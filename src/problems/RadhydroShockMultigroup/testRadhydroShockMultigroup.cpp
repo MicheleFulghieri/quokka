@@ -72,7 +72,7 @@ template <> struct RadSystem_Traits<ShockProblem> {
 	static constexpr double c_hat_over_c = chat / c;
 	static constexpr double Erad_floor = Erad_floor_;
 	static constexpr double energy_unit = C::hplanck; // set boundary unit to Hz
-	static constexpr amrex::GpuArray<double, Physics_Traits<ShockProblem>::nGroups + 1> radBoundaries{1.00000000e+15, 1.00000000e+16, 1.00000000e+17,
+	static constexpr amrex::GpuArray<double, PhysicsTraits<ShockProblem>::nGroups + 1> radBoundaries{1.00000000e+15, 1.00000000e+16, 1.00000000e+17,
 													  1.00000000e+18, 1.00000000e+19, 1.00000000e+20};
 	static constexpr int beta_order = 1;
 	// static constexpr OpacityModel opacity_model = OpacityModel::piecewise_constant_opacity;
@@ -132,7 +132,7 @@ AMRSimulation<ShockProblem>::setCustomBoundaryConditions(const amrex::IntVect &i
 	low_bdr_cells[RadSystem<ShockProblem>::x2GasMomentum_index] = 0.;
 	low_bdr_cells[RadSystem<ShockProblem>::x3GasMomentum_index] = 0.;
 	low_bdr_cells[RadSystem<ShockProblem>::gasEnergy_index] = Egas_L + (px_L * px_L) / (2 * rho0);
-	for (int g = 0; g < Physics_Traits<ShockProblem>::nGroups; ++g) {
+	for (int g = 0; g < PhysicsTraits<ShockProblem>::nGroups; ++g) {
 		low_bdr_cells[RadSystem<ShockProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g] = Erad_g_L[g];
 		low_bdr_cells[RadSystem<ShockProblem>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = 0;
 		low_bdr_cells[RadSystem<ShockProblem>::x2RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = 0;
@@ -155,7 +155,7 @@ AMRSimulation<ShockProblem>::setCustomBoundaryConditions(const amrex::IntVect &i
 	high_bdr_cells[RadSystem<ShockProblem>::x2GasMomentum_index] = 0.;
 	high_bdr_cells[RadSystem<ShockProblem>::x3GasMomentum_index] = 0.;
 	high_bdr_cells[RadSystem<ShockProblem>::gasEnergy_index] = Egas_R + (px_R * px_R) / (2 * rho1);
-	for (int g = 0; g < Physics_Traits<ShockProblem>::nGroups; ++g) {
+	for (int g = 0; g < PhysicsTraits<ShockProblem>::nGroups; ++g) {
 		high_bdr_cells[RadSystem<ShockProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g] = Erad_g_R[g];
 		high_bdr_cells[RadSystem<ShockProblem>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = 0;
 		high_bdr_cells[RadSystem<ShockProblem>::x2RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = 0;
@@ -210,7 +210,7 @@ template <> void QuokkaSimulation<ShockProblem>::setInitialConditionsOnGrid(quok
 		state_cc(i, j, k, RadSystem<ShockProblem>::x3GasMomentum_index) = 0;
 		state_cc(i, j, k, RadSystem<ShockProblem>::gasEnergy_index) = energy;
 		state_cc(i, j, k, RadSystem<ShockProblem>::gasInternalEnergy_index) = energy - (x1Momentum * x1Momentum) / (2 * density);
-		for (int g = 0; g < Physics_Traits<ShockProblem>::nGroups; ++g) {
+		for (int g = 0; g < PhysicsTraits<ShockProblem>::nGroups; ++g) {
 			state_cc(i, j, k, RadSystem<ShockProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g) = Erad_g[g];
 			state_cc(i, j, k, RadSystem<ShockProblem>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g) = x1RadFlux;
 			state_cc(i, j, k, RadSystem<ShockProblem>::x2RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g) = 0;
@@ -264,7 +264,7 @@ auto problem_main() -> int
 			xs.at(i) = x; // cm
 
 			double Erad_t = 0.0;
-			for (int g = 0; g < Physics_Traits<ShockProblem>::nGroups; ++g) {
+			for (int g = 0; g < PhysicsTraits<ShockProblem>::nGroups; ++g) {
 				Erad_t += values.at(RadSystem<ShockProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g)[i];
 			}
 			Erad.at(i) = Erad_t / a_rad;			       // scaled

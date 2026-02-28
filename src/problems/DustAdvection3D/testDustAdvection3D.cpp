@@ -82,7 +82,7 @@ template <> void QuokkaSimulation<DustAdvection3D>::setInitialConditionsOnGrid(q
 		amrex::Real const rho_dust_local = rho_bg + A * std::exp(-r2 / (2.0 * sigma * sigma));
 		amrex::Real const v_dust_local = v_dust;
 
-		if constexpr (Physics_Traits<DustAdvection3D>::is_dust_enabled) {
+		if constexpr (PhysicsTraits<DustAdvection3D>::is_dust_enabled) {
 			state_cc(i, j, k, HydroSystem<DustAdvection3D>::dustDensity_index) = rho_dust_local;
 			state_cc(i, j, k, HydroSystem<DustAdvection3D>::x1DustMomentum_index) = rho_dust_local * v_dust_local;
 			state_cc(i, j, k, HydroSystem<DustAdvection3D>::x2DustMomentum_index) = rho_dust_local * v_dust_local;
@@ -163,7 +163,7 @@ void QuokkaSimulation<DustAdvection3D>::computeReferenceSolution(amrex::MultiFab
 			stateExact(i, j, k, HydroSystem<DustAdvection3D>::x3Momentum_index) = rho_gas_exact * v_gas;
 
 			// fill dust components
-			if constexpr (Physics_Traits<DustAdvection3D>::is_dust_enabled) {
+			if constexpr (PhysicsTraits<DustAdvection3D>::is_dust_enabled) {
 				stateExact(i, j, k, HydroSystem<DustAdvection3D>::dustDensity_index) = rho_dust_exact;
 				stateExact(i, j, k, HydroSystem<DustAdvection3D>::x1DustMomentum_index) = rho_dust_exact * v_dust;
 				stateExact(i, j, k, HydroSystem<DustAdvection3D>::x2DustMomentum_index) = rho_dust_exact * v_dust;

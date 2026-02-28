@@ -75,7 +75,7 @@ template <> struct RadSystem_Traits<DustProblem> {
 	static constexpr double Erad_floor = erad_floor;
 	static constexpr int beta_order = beta_order_;
 	static constexpr double energy_unit = 1.;
-	static constexpr amrex::GpuArray<double, Physics_Traits<DustProblem>::nGroups + 1> radBoundaries{1.0e-3, 0.1, 1.0, 10.0, 1.0e3};
+	static constexpr amrex::GpuArray<double, PhysicsTraits<DustProblem>::nGroups + 1> radBoundaries{1.0e-3, 0.1, 1.0, 10.0, 1.0e3};
 	// static constexpr OpacityModel opacity_model = OpacityModel::piecewise_constant_opacity;
 	static constexpr OpacityModel opacity_model = OpacityModel::PPL_opacity_fixed_slope_spectrum;
 };
@@ -132,7 +132,7 @@ template <> void QuokkaSimulation<DustProblem>::setInitialConditionsOnGrid(quokk
 
 	// loop over the grid and set the initial condition
 	amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-		for (int g = 0; g < Physics_Traits<DustProblem>::nGroups; ++g) {
+		for (int g = 0; g < PhysicsTraits<DustProblem>::nGroups; ++g) {
 			state_cc(i, j, k, RadSystem<DustProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g) = erad_floor;
 			state_cc(i, j, k, RadSystem<DustProblem>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g) = 0;
 			state_cc(i, j, k, RadSystem<DustProblem>::x2RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g) = 0;
@@ -161,7 +161,7 @@ template <> void QuokkaSimulation<DustProblem>::computeAfterTimestep()
 		const amrex::Real rho = values.at(RadSystem<DustProblem>::gasDensity_index)[0];
 		const amrex::Real Egas_i = RadSystem<DustProblem>::ComputeEintFromEgas(rho, x1GasMom, x2GasMom, x3GasMom, Etot_i);
 		double Erad_i = 0.0;
-		for (int g = 0; g < Physics_Traits<DustProblem>::nGroups; ++g) {
+		for (int g = 0; g < PhysicsTraits<DustProblem>::nGroups; ++g) {
 			Erad_i += values.at(RadSystem<DustProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g)[0];
 		}
 		// userData_.Trad_vec_.push_back(std::pow(Erad_i / a_rad, 1. / 4.));

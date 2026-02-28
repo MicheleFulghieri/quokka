@@ -78,14 +78,14 @@ template <> void QuokkaSimulation<StreamingProblem>::setInitialConditionsOnGrid(
 	const auto Egas0 = initial_Egas;
 
 	// calculate radEnergyFractions
-	quokka::valarray<amrex::Real, Physics_Traits<StreamingProblem>::nGroups> radEnergyFractions{};
-	for (int g = 0; g < Physics_Traits<StreamingProblem>::nGroups; ++g) {
-		radEnergyFractions[g] = 1.0 / Physics_Traits<StreamingProblem>::nGroups;
+	quokka::valarray<amrex::Real, PhysicsTraits<StreamingProblem>::nGroups> radEnergyFractions{};
+	for (int g = 0; g < PhysicsTraits<StreamingProblem>::nGroups; ++g) {
+		radEnergyFractions[g] = 1.0 / PhysicsTraits<StreamingProblem>::nGroups;
 	}
 
 	// loop over the grid and set the initial condition
 	amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-		for (int g = 0; g < Physics_Traits<StreamingProblem>::nGroups; ++g) {
+		for (int g = 0; g < PhysicsTraits<StreamingProblem>::nGroups; ++g) {
 			state_cc(i, j, k, RadSystem<StreamingProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g) =
 			    Erad0 * radEnergyFractions[g];
 			state_cc(i, j, k, RadSystem<StreamingProblem>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g) = 0;
@@ -115,8 +115,8 @@ AMRSimulation<StreamingProblem>::setCustomBoundaryConditions(const amrex::IntVec
 	{
 		const double Erad = 1.0;
 		const double Frad = c * Erad;
-		for (int g = 0; g < Physics_Traits<StreamingProblem>::nGroups; ++g) {
-			const double radEnergyFraction = 1.0 / Physics_Traits<StreamingProblem>::nGroups;
+		for (int g = 0; g < PhysicsTraits<StreamingProblem>::nGroups; ++g) {
+			const double radEnergyFraction = 1.0 / PhysicsTraits<StreamingProblem>::nGroups;
 			low_bdr_cells[RadSystem<StreamingProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g] = Erad * radEnergyFraction;
 			low_bdr_cells[RadSystem<StreamingProblem>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = Frad * radEnergyFraction;
 			low_bdr_cells[RadSystem<StreamingProblem>::x2RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = 0;
@@ -134,8 +134,8 @@ AMRSimulation<StreamingProblem>::setCustomBoundaryConditions(const amrex::IntVec
 	amrex::GpuArray<amrex::Real, nvar> high_bdr_cells{};
 	{
 		const double Erad = initial_Erad;
-		for (int g = 0; g < Physics_Traits<StreamingProblem>::nGroups; ++g) {
-			const double radEnergyFraction = 1.0 / Physics_Traits<StreamingProblem>::nGroups;
+		for (int g = 0; g < PhysicsTraits<StreamingProblem>::nGroups; ++g) {
+			const double radEnergyFraction = 1.0 / PhysicsTraits<StreamingProblem>::nGroups;
 			high_bdr_cells[RadSystem<StreamingProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g] = Erad * radEnergyFraction;
 			high_bdr_cells[RadSystem<StreamingProblem>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = 0;
 			high_bdr_cells[RadSystem<StreamingProblem>::x2RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = 0;
@@ -205,7 +205,7 @@ auto problem_main() -> int
 		xs.at(i) = x;
 		erad_exact.at(i) = (x <= chat * tmax) ? 1.0 : 0.0;
 		double erad_sim = 0.0;
-		for (int g = 0; g < Physics_Traits<StreamingProblem>::nGroups; ++g) {
+		for (int g = 0; g < PhysicsTraits<StreamingProblem>::nGroups; ++g) {
 			erad_sim += values.at(RadSystem<StreamingProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g)[i];
 		}
 		erad.at(i) = erad_sim;

@@ -85,7 +85,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE auto compute_Mdot_and_r_K(const amrex::
 				sum_pz += pz;
 				sum_cs += cs * rho;
 				n_cells += 1;
-				if constexpr (Physics_Traits<problem_t>::is_mhd_enabled) {
+				if constexpr (PhysicsTraits<problem_t>::is_mhd_enabled) {
 					sum_magnetic_energy += HydroSystem<problem_t>::ComputeMagneticEnergy(ii, jj, kk, fab_fc);
 					sum_pressure += HydroSystem<problem_t>::ComputePressure(local_state, ii, jj, kk, fab_fc);
 				}
@@ -108,7 +108,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE auto compute_Mdot_and_r_K(const amrex::
 
 	// Compute average plasma beta in the accretion zone
 	double mean_plasma_beta = std::numeric_limits<double>::max();
-	if constexpr (Physics_Traits<problem_t>::is_mhd_enabled) {
+	if constexpr (PhysicsTraits<problem_t>::is_mhd_enabled) {
 		mean_plasma_beta = ParticleUtils::computePlasmaBeta(sum_pressure, sum_magnetic_energy);
 	}
 
@@ -484,7 +484,7 @@ template <typename problem_t> void UpdateHydroState(amrex::MultiFab &state, amre
 		state_arr[bx](i, j, k, HydroSystem<problem_t>::energy_index) *= accretion_down_factor;
 
 		// update passive scalars
-		for (int n = 0; n < Physics_Traits<problem_t>::numPassiveScalars; ++n) {
+		for (int n = 0; n < PhysicsTraits<problem_t>::numPassiveScalars; ++n) {
 			state_arr[bx](i, j, k, HydroSystem<problem_t>::scalar0_index + n) *= accretion_down_factor;
 		}
 	});

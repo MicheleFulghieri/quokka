@@ -44,7 +44,7 @@ template <typename problem_t> class EOS
 	static constexpr amrex::Real mean_molecular_weight_ = EOS_Traits<problem_t>::mean_molecular_weight;
 
       public:
-	static constexpr int nmscalars_ = Physics_Traits<problem_t>::numMassScalars;
+	static constexpr int nmscalars_ = PhysicsTraits<problem_t>::numMassScalars;
 	[[nodiscard]] AMREX_FORCE_INLINE AMREX_GPU_HOST_DEVICE static auto
 	ComputeTgasFromEint(amrex::Real rho, amrex::Real Eint, quokka::optional<amrex::GpuArray<amrex::Real, nmscalars_>> const &massScalars = {})
 	    -> amrex::Real;
@@ -76,15 +76,15 @@ template <typename problem_t> class EOS
 	static constexpr amrex::Real gamma_ = EOS_Traits<problem_t>::gamma; // needed for HLLD solver
 
 	static constexpr amrex::Real boltzmann_constant_ = []() constexpr {
-		if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CGS) {
+		if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CGS) {
 			return C::k_B;
-		} else if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CONSTANTS) {
-			return Physics_Traits<problem_t>::boltzmann_constant;
-		} else if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CUSTOM) {
+		} else if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CONSTANTS) {
+			return PhysicsTraits<problem_t>::boltzmann_constant;
+		} else if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CUSTOM) {
 			// k_B / k_B_bar = u_l^2 * u_m / u_t^2 / u_T
 			return C::k_B /
-			       (Physics_Traits<problem_t>::unit_length * Physics_Traits<problem_t>::unit_length * Physics_Traits<problem_t>::unit_mass /
-				(Physics_Traits<problem_t>::unit_time * Physics_Traits<problem_t>::unit_time) / Physics_Traits<problem_t>::unit_temperature);
+			       (PhysicsTraits<problem_t>::unit_length * PhysicsTraits<problem_t>::unit_length * PhysicsTraits<problem_t>::unit_mass /
+				(PhysicsTraits<problem_t>::unit_time * PhysicsTraits<problem_t>::unit_time) / PhysicsTraits<problem_t>::unit_temperature);
 		}
 	}();
 };

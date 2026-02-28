@@ -47,7 +47,7 @@ class LuminosityUpdate
 	AMREX_GPU_DEVICE AMREX_FORCE_INLINE static void updateLuminosity(ParticleType &p, amrex::Real current_time,
 									 LuminosityGpuConstTables<Nout, oob_policy> const &gpu_tables) noexcept
 	{
-		constexpr int nGroups = Physics_Traits<problem_t>::nGroups;
+		constexpr int nGroups = PhysicsTraits<problem_t>::nGroups;
 		static_assert(nGroups == Nout, "Number of groups must match table outputs");
 
 		// Use table interpolation: (age, mass) -> luminosity per group

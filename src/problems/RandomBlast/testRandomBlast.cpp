@@ -166,7 +166,7 @@ template <> void QuokkaSimulation<RandomBlast>::ComputeDerivedVar(int lev, std::
 auto problem_main() -> int
 {
 	// This problem is only implemented in CGS units because the cooling tables are provided in CGS units.
-	static_assert(Physics_Traits<RandomBlast>::unit_system == UnitSystem::CGS);
+	static_assert(PhysicsTraits<RandomBlast>::unit_system == UnitSystem::CGS);
 
 	QuokkaSimulation<RandomBlast> sim;
 

@@ -85,7 +85,7 @@ namespace detail
 template <typename problem_t> constexpr auto isNormalComponent(int n, int dim) -> bool
 {
 	// Check radiation flux components if radiation is enabled
-	if constexpr (Physics_Traits<problem_t>::is_radiation_enabled) {
+	if constexpr (PhysicsTraits<problem_t>::is_radiation_enabled) {
 		// Check gas momentum components in RadSystem
 		if ((n == RadSystem<problem_t>::x1GasMomentum_index) && (dim == 0)) {
 			return true;
@@ -98,7 +98,7 @@ template <typename problem_t> constexpr auto isNormalComponent(int n, int dim) -
 		}
 
 		// Check radiation flux components for all groups
-		for (int g = 0; g < Physics_Traits<problem_t>::nGroups; ++g) {
+		for (int g = 0; g < PhysicsTraits<problem_t>::nGroups; ++g) {
 			if ((n == RadSystem<problem_t>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g) && (dim == 0)) {
 				return true;
 			}
@@ -200,7 +200,7 @@ auto BC_fc(BCType::mathematicalBndryTypes bc_x, BCType::mathematicalBndryTypes b
 {
 	const int nvars_fc = Physics_Indices<problem_t>::nvarTotal_fc;
 	amrex::Vector<amrex::BCRec> BCs_fc(nvars_fc);
-	if constexpr (Physics_Traits<problem_t>::is_mhd_enabled) {
+	if constexpr (PhysicsTraits<problem_t>::is_mhd_enabled) {
 		std::array<BCType::mathematicalBndryTypes, 3> bcs = {bc_x, bc_y, bc_z};
 		for (int icomp = 0; icomp < nvars_fc; ++icomp) {
 			for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {

@@ -70,8 +70,8 @@ template <> struct RadSystem_Traits<TubeProblem> {
 	static constexpr double c_hat_over_c = 10.0 * a0 / C::c_light;
 	static constexpr double Erad_floor = 0.;
 	static constexpr double energy_unit = C::k_B;
-	static constexpr amrex::GpuArray<double, Physics_Traits<TubeProblem>::nGroups + 1> radBoundaries{0.01 * T_lo, 3.3 * T_lo, 1000. * T_lo}; // Kelvin
-	// static constexpr amrex::GpuArray<double, Physics_Traits<TubeProblem>::nGroups + 1> radBoundaries{0.01 * T_lo, 1000. * T_lo}; // Kelvin
+	static constexpr amrex::GpuArray<double, PhysicsTraits<TubeProblem>::nGroups + 1> radBoundaries{0.01 * T_lo, 3.3 * T_lo, 1000. * T_lo}; // Kelvin
+	// static constexpr amrex::GpuArray<double, PhysicsTraits<TubeProblem>::nGroups + 1> radBoundaries{0.01 * T_lo, 1000. * T_lo}; // Kelvin
 	static constexpr int beta_order = 1;
 	// static constexpr OpacityModel opacity_model = OpacityModel::single_group;
 	static constexpr OpacityModel opacity_model = OpacityModel::piecewise_constant_opacity;
@@ -171,7 +171,7 @@ template <> void QuokkaSimulation<TubeProblem>::setInitialConditionsOnGrid(quokk
 		// calculate radEnergyFractions based on the boundary conditions
 		auto radEnergyFractions = RadSystem<TubeProblem>::ComputePlanckEnergyFractions(radBoundaries_g, Tgas);
 
-		for (int g = 0; g < Physics_Traits<TubeProblem>::nGroups; ++g) {
+		for (int g = 0; g < PhysicsTraits<TubeProblem>::nGroups; ++g) {
 			state_cc(i, j, k, RadSystem<TubeProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g) = Erad * radEnergyFractions[g];
 			state_cc(i, j, k, RadSystem<TubeProblem>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g) = 0;
 			state_cc(i, j, k, RadSystem<TubeProblem>::x2RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g) = 0;
@@ -207,7 +207,7 @@ AMRSimulation<TubeProblem>::setCustomBoundaryConditions(const amrex::IntVect &iv
 	amrex::GpuArray<amrex::Real, nvar> low_bdr_cells{};
 	// Set specific values for left boundary
 	const double Erad_left = RadSystem<TubeProblem>::radiation_constant_ * std::pow(T_lo, 4);
-	for (int g = 0; g < Physics_Traits<TubeProblem>::nGroups; ++g) {
+	for (int g = 0; g < PhysicsTraits<TubeProblem>::nGroups; ++g) {
 		low_bdr_cells[RadSystem<TubeProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g] = Erad_left * radEnergyFractionsT0[g];
 		low_bdr_cells[RadSystem<TubeProblem>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = 0.;
 		low_bdr_cells[RadSystem<TubeProblem>::x2RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = 0.;
@@ -229,7 +229,7 @@ AMRSimulation<TubeProblem>::setCustomBoundaryConditions(const amrex::IntVect &iv
 	}
 	// Set specific values for right boundary
 	const double Erad_right = RadSystem<TubeProblem>::radiation_constant_ * std::pow(T_hi, 4);
-	for (int g = 0; g < Physics_Traits<TubeProblem>::nGroups; ++g) {
+	for (int g = 0; g < PhysicsTraits<TubeProblem>::nGroups; ++g) {
 		high_bdr_cells[RadSystem<TubeProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g] = Erad_right * radEnergyFractionsT1[g];
 		high_bdr_cells[RadSystem<TubeProblem>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = 0.;
 		high_bdr_cells[RadSystem<TubeProblem>::x2RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = 0.;
@@ -280,7 +280,7 @@ auto problem_main() -> int
 	const int nx = static_cast<int>(position0.size());
 
 	// compute error norm
-	std::vector<std::vector<double>> Erad_arr_at_group(Physics_Traits<TubeProblem>::nGroups, std::vector<double>(nx));
+	std::vector<std::vector<double>> Erad_arr_at_group(PhysicsTraits<TubeProblem>::nGroups, std::vector<double>(nx));
 	std::vector<double> Trad_arr(nx);
 	std::vector<double> Erad_arr(nx);
 	std::vector<double> Erad_exact_arr(nx);
@@ -300,7 +300,7 @@ auto problem_main() -> int
 
 		double Erad_0 = 0.0;
 		double Erad_t = 0.0;
-		for (int g = 0; g < Physics_Traits<TubeProblem>::nGroups; ++g) {
+		for (int g = 0; g < PhysicsTraits<TubeProblem>::nGroups; ++g) {
 			Erad_0 += values0.at(RadSystem<TubeProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g)[i];
 			Erad_arr_at_group[g][i] = values.at(RadSystem<TubeProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g)[i];
 			Erad_t += Erad_arr_at_group[g][i];
@@ -417,7 +417,7 @@ auto problem_main() -> int
 	Trad_args["label"] = "E_tot";
 	Trad_args["color"] = "k";
 	matplotlibcpp::plot(xs, Erad_arr, Trad_args);
-	for (int g = 0; g < Physics_Traits<TubeProblem>::nGroups; ++g) {
+	for (int g = 0; g < PhysicsTraits<TubeProblem>::nGroups; ++g) {
 		Trad_args["label"] = std::format("E_{}", g);
 		Trad_args["color"] = std::format("C{}", g);
 		// matplotlibcpp::plot(xs, strided_vector_from(Erad_arr_at_group, s, g), Trad_args);

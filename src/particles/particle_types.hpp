@@ -103,8 +103,8 @@ constexpr int RadParticleLumIdx = static_cast<int>(RadParticleRealIdx::luminosit
 // Number of real components for Rad_particles, birth time + death time + radiation groups
 template <typename problem_t>
 constexpr int RadParticleRealComps = []() constexpr {
-	if constexpr (Physics_Traits<problem_t>::is_hydro_enabled || Physics_Traits<problem_t>::is_radiation_enabled) {
-		return 2 + Physics_Traits<problem_t>::nGroups; // birth_time death_time lum1 ... lumN
+	if constexpr (PhysicsTraits<problem_t>::is_hydro_enabled || PhysicsTraits<problem_t>::is_radiation_enabled) {
+		return 2 + PhysicsTraits<problem_t>::nGroups; // birth_time death_time lum1 ... lumN
 	} else {
 		return 2; // birth_time death_time
 	}
@@ -164,8 +164,8 @@ constexpr int CICRadParticleLumIdx = static_cast<int>(CICRadParticleRealIdx::lum
 // Number of real components for CICRad_particles, mass + 3 velocity components + birth time + death time + radiation groups
 template <typename problem_t>
 constexpr int CICRadParticleRealComps = []() constexpr {
-	if constexpr (Physics_Traits<problem_t>::is_hydro_enabled || Physics_Traits<problem_t>::is_radiation_enabled) {
-		return 6 + Physics_Traits<problem_t>::nGroups; // mass, vx, vy, vz, birth_time, death_time, lum[nGroups]
+	if constexpr (PhysicsTraits<problem_t>::is_hydro_enabled || PhysicsTraits<problem_t>::is_radiation_enabled) {
+		return 6 + PhysicsTraits<problem_t>::nGroups; // mass, vx, vy, vz, birth_time, death_time, lum[nGroups]
 	} else {
 		return 6; // mass, vx, vy, vz, birth_time, death_time
 	}
@@ -232,8 +232,8 @@ constexpr int StochasticStellarPopParticleStageIdx = static_cast<int>(Stochastic
 // Number of real components for StochasticStellarPop_particles, mass + 3 velocity components + times + positions + death density + luminosity
 template <typename problem_t>
 constexpr int StochasticStellarPopParticleRealComps = []() constexpr {
-	if constexpr (Physics_Traits<problem_t>::is_hydro_enabled || Physics_Traits<problem_t>::is_radiation_enabled) {
-		return 14 + Physics_Traits<problem_t>::nGroups; // mass, vx, vy, vz, birth_time, death_time, birth_xyz, death_xyz, death_density, mass_at_birth,
+	if constexpr (PhysicsTraits<problem_t>::is_hydro_enabled || PhysicsTraits<problem_t>::is_radiation_enabled) {
+		return 14 + PhysicsTraits<problem_t>::nGroups; // mass, vx, vy, vz, birth_time, death_time, birth_xyz, death_xyz, death_density, mass_at_birth,
 								// lum[nGroups]
 	} else {
 		return 14; // mass, vx, vy, vz, birth_time, death_time, birth_xyz, death_xyz, death_density, mass_at_birth
@@ -282,8 +282,8 @@ constexpr int TestParticleStageIdx = static_cast<int>(TestParticleIntIdx::evolut
 // Number of real components for Test_particles
 template <typename problem_t>
 constexpr int TestParticleRealComps = []() constexpr {
-	if constexpr (Physics_Traits<problem_t>::is_hydro_enabled || Physics_Traits<problem_t>::is_radiation_enabled) {
-		return 6 + Physics_Traits<problem_t>::nGroups; // mass, vx, vy, vz, birth_time, death_time, lum[nGroups]
+	if constexpr (PhysicsTraits<problem_t>::is_hydro_enabled || PhysicsTraits<problem_t>::is_radiation_enabled) {
+		return 6 + PhysicsTraits<problem_t>::nGroups; // mass, vx, vy, vz, birth_time, death_time, lum[nGroups]
 	} else {
 		return 6; // mass, vx, vy, vz, birth_time, death_time
 	}

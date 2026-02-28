@@ -184,7 +184,7 @@ AMRSimulation<SuOlsonProblemCgs>::setCustomBoundaryConditions(const amrex::IntVe
 	// Left state
 	amrex::GpuArray<amrex::Real, nvar> low_bdr_cells{};
 	auto Erad_L = RadSystem<SuOlsonProblemCgs>::ComputeThermalRadiationMultiGroup(T_L, radBoundaries_g);
-	for (int g = 0; g < Physics_Traits<SuOlsonProblemCgs>::nGroups; ++g) {
+	for (int g = 0; g < PhysicsTraits<SuOlsonProblemCgs>::nGroups; ++g) {
 		low_bdr_cells[RadSystem<SuOlsonProblemCgs>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g] = Erad_L[g];
 		low_bdr_cells[RadSystem<SuOlsonProblemCgs>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = 0.;
 		low_bdr_cells[RadSystem<SuOlsonProblemCgs>::x2RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = 0.;
@@ -200,7 +200,7 @@ AMRSimulation<SuOlsonProblemCgs>::setCustomBoundaryConditions(const amrex::IntVe
 	// Right state
 	amrex::GpuArray<amrex::Real, nvar> high_bdr_cells{};
 	auto Erad_R = RadSystem<SuOlsonProblemCgs>::ComputeThermalRadiationMultiGroup(T_R, radBoundaries_g);
-	for (int g = 0; g < Physics_Traits<SuOlsonProblemCgs>::nGroups; ++g) {
+	for (int g = 0; g < PhysicsTraits<SuOlsonProblemCgs>::nGroups; ++g) {
 		high_bdr_cells[RadSystem<SuOlsonProblemCgs>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g] = Erad_R[g];
 		high_bdr_cells[RadSystem<SuOlsonProblemCgs>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = 0.;
 		high_bdr_cells[RadSystem<SuOlsonProblemCgs>::x2RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = 0.;
@@ -231,7 +231,7 @@ template <> void QuokkaSimulation<SuOlsonProblemCgs>::setInitialConditionsOnGrid
 		// const double Erad = a_rad * std::pow(T_initial, 4);
 		auto Erad_g = RadSystem<SuOlsonProblemCgs>::ComputeThermalRadiationMultiGroup(T_initial, radBoundaries_g);
 
-		for (int g = 0; g < Physics_Traits<SuOlsonProblemCgs>::nGroups; ++g) {
+		for (int g = 0; g < PhysicsTraits<SuOlsonProblemCgs>::nGroups; ++g) {
 			state_cc(i, j, k, RadSystem<SuOlsonProblemCgs>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g) = Erad_g[g];
 			state_cc(i, j, k, RadSystem<SuOlsonProblemCgs>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g) = 0;
 			state_cc(i, j, k, RadSystem<SuOlsonProblemCgs>::x2RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g) = 0;
@@ -307,7 +307,7 @@ auto problem_main() -> int
 		for (int i = 0; i < nx; ++i) {
 			double Erad_t = 0.;
 			// const double Erad_t = values.at(RadSystem<SuOlsonProblemCgs>::radEnergy_index)[i];
-			for (int g = 0; g < Physics_Traits<SuOlsonProblemCgs>::nGroups; ++g) {
+			for (int g = 0; g < PhysicsTraits<SuOlsonProblemCgs>::nGroups; ++g) {
 				Erad_t += values.at(RadSystem<SuOlsonProblemCgs>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g)[i];
 			}
 			const double Egas_t = values.at(RadSystem<SuOlsonProblemCgs>::gasInternalEnergy_index)[i];
@@ -324,7 +324,7 @@ auto problem_main() -> int
 			int counter = 0;
 			int group_counter = 0;
 			double Erad_sum = 0.;
-			for (int g = 0; g < Physics_Traits<SuOlsonProblemCgs>::nGroups; ++g) {
+			for (int g = 0; g < PhysicsTraits<SuOlsonProblemCgs>::nGroups; ++g) {
 				auto Erad_g = values.at(RadSystem<SuOlsonProblemCgs>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g)[i];
 				Trad_g[g].push_back(std::pow(Erad_g / a_rad, 1. / 4.));
 

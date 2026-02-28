@@ -88,7 +88,7 @@ AMREX_FORCE_INLINE AMREX_GPU_HOST_DEVICE auto RadSystem<TophatProblem>::ComputeF
 	return ComputePlanckOpacity(rho, 0.);
 }
 
-[[maybe_unused]] static constexpr int nmscalars_ = Physics_Traits<TophatProblem>::numMassScalars;
+[[maybe_unused]] static constexpr int nmscalars_ = PhysicsTraits<TophatProblem>::numMassScalars;
 template <>
 AMREX_FORCE_INLINE AMREX_GPU_HOST_DEVICE auto
 quokka::EOS<TophatProblem>::ComputeTgasFromEint(const double rho, const double Egas,

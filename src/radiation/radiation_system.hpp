@@ -75,7 +75,7 @@ template <typename problem_t> struct RadSystem_Traits {
 	static constexpr double c_hat_over_c = 1.0;
 	static constexpr double Erad_floor = 0.;
 	static constexpr double energy_unit = C::ev2erg;
-	static constexpr amrex::GpuArray<double, Physics_Traits<problem_t>::nGroups + 1> radBoundaries = {0., inf};
+	static constexpr amrex::GpuArray<double, PhysicsTraits<problem_t>::nGroups + 1> radBoundaries = {0., inf};
 	static constexpr double beta_order = 1;
 	static constexpr OpacityModel opacity_model = OpacityModel::single_group;
 };
@@ -97,13 +97,13 @@ struct RadPressureResult {
 // A struct to hold the opacity terms for the radiation-matter energy exchange, containing the following elements:
 // kappaE, kappaP, kappaF, kappaPoverE, delta_nu_kappa_B_at_edge, alpha_P, alpha_E
 template <typename problem_t> struct OpacityTerms {
-	quokka::valarray<double, Physics_Traits<problem_t>::nGroups> kappaE;
-	quokka::valarray<double, Physics_Traits<problem_t>::nGroups> kappaP;
-	quokka::valarray<double, Physics_Traits<problem_t>::nGroups> kappaF;
-	quokka::valarray<double, Physics_Traits<problem_t>::nGroups> kappaPoverE;
-	amrex::GpuArray<double, Physics_Traits<problem_t>::nGroups> delta_nu_kappa_B_at_edge; // Delta (nu * kappa * B)
-	amrex::GpuArray<double, Physics_Traits<problem_t>::nGroups> alpha_P;
-	amrex::GpuArray<double, Physics_Traits<problem_t>::nGroups> alpha_E;
+	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> kappaE;
+	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> kappaP;
+	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> kappaF;
+	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> kappaPoverE;
+	amrex::GpuArray<double, PhysicsTraits<problem_t>::nGroups> delta_nu_kappa_B_at_edge; // Delta (nu * kappa * B)
+	amrex::GpuArray<double, PhysicsTraits<problem_t>::nGroups> alpha_P;
+	amrex::GpuArray<double, PhysicsTraits<problem_t>::nGroups> alpha_E;
 };
 
 // A struct to hold the results of the Newton-Raphson iteration for energy update, containing the following elements:
@@ -112,8 +112,8 @@ template <typename problem_t> struct NewtonIterationResult {
 	double Egas;							      // gas internal energy
 	double T_gas;							      // gas temperature
 	double T_d;							      // dust temperature
-	quokka::valarray<double, Physics_Traits<problem_t>::nGroups> EradVec; // radiation energy density
-	quokka::valarray<double, Physics_Traits<problem_t>::nGroups> work;    // work term
+	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> EradVec; // radiation energy density
+	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> work;    // work term
 	OpacityTerms<problem_t> opacity_terms;
 };
 
@@ -123,19 +123,19 @@ template <typename problem_t> struct JacobianResult {
 	double J00;	   // (0, 0) component of the Jacobian matrix
 	double F0;	   // (0) component of the residual
 	double Fg_abs_sum; // sum of the absolute values of the (g) components of the residual, g = 1, 2, ..., nGroups, and tau(g) > 0
-	quokka::valarray<double, Physics_Traits<problem_t>::nGroups> J0g; // (0, g) components of the Jacobian matrix, g = 1, 2, ..., nGroups
-	quokka::valarray<double, Physics_Traits<problem_t>::nGroups> Jg0; // (g, 0) components of the Jacobian matrix, g = 1, 2, ..., nGroups
-	quokka::valarray<double, Physics_Traits<problem_t>::nGroups> Jgg; // (g, g) components of the Jacobian matrix, g = 1, 2, ..., nGroups
-	quokka::valarray<double, Physics_Traits<problem_t>::nGroups> Jg1; // (g, 1) components of the Jacobian matrix, g = 1, 2, ..., nGroups
-	quokka::valarray<double, Physics_Traits<problem_t>::nGroups> Fg;  // (g) components of the residual, g = 1, 2, ..., nGroups
+	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> J0g; // (0, g) components of the Jacobian matrix, g = 1, 2, ..., nGroups
+	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> Jg0; // (g, 0) components of the Jacobian matrix, g = 1, 2, ..., nGroups
+	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> Jgg; // (g, g) components of the Jacobian matrix, g = 1, 2, ..., nGroups
+	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> Jg1; // (g, 1) components of the Jacobian matrix, g = 1, 2, ..., nGroups
+	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> Fg;  // (g) components of the residual, g = 1, 2, ..., nGroups
 };
 
 // A struct to hold the results of UpdateFlux(), containing the following elements:
 // Erad, gasMomentum, Frad
 template <typename problem_t> struct FluxUpdateResult {
-	quokka::valarray<double, Physics_Traits<problem_t>::nGroups> Erad;			   // radiation energy density
+	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> Erad;			   // radiation energy density
 	amrex::GpuArray<double, 3> gasMomentum;							   // gas momentum
-	amrex::GpuArray<amrex::GpuArray<amrex::Real, Physics_Traits<problem_t>::nGroups>, 3> Frad; // radiation flux
+	amrex::GpuArray<amrex::GpuArray<amrex::Real, PhysicsTraits<problem_t>::nGroups>, 3> Frad; // radiation flux
 };
 
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static auto minmod_func(double a, double b) -> double
@@ -161,9 +161,9 @@ template <typename problem_t> class RadSystem : public HyperbolicSystem<problem_
 		return 0.5 * (sgn(a) + sgn(b)) * std::min(0.5 * std::abs(a + b), std::min(2.0 * std::abs(a), 2.0 * std::abs(b)));
 	}
 
-	static constexpr int nmscalars_ = Physics_Traits<problem_t>::numMassScalars;
+	static constexpr int nmscalars_ = PhysicsTraits<problem_t>::numMassScalars;
 	static constexpr int numRadVars_ = Physics_NumVars::numRadVarsPerGroup;			 // number of radiation variables for each photon group
-	static constexpr int nvarHyperbolic_ = numRadVars_ * Physics_Traits<problem_t>::nGroups; // total number of radiation variables
+	static constexpr int nvarHyperbolic_ = numRadVars_ * PhysicsTraits<problem_t>::nGroups; // total number of radiation variables
 	static constexpr int nstartHyperbolic_ = Physics_Indices<problem_t>::radFirstIndex;
 	static constexpr int nvar_ = nstartHyperbolic_ + nvarHyperbolic_;
 
@@ -190,28 +190,28 @@ template <typename problem_t> class RadSystem : public HyperbolicSystem<problem_
 	// templated class!
 
 	static constexpr amrex::Real c_light_ = []() constexpr {
-		if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CGS) {
+		if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CGS) {
 			return c_light_cgs_;
-		} else if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CONSTANTS) {
-			return Physics_Traits<problem_t>::c_light;
-		} else if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CUSTOM) {
+		} else if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CONSTANTS) {
+			return PhysicsTraits<problem_t>::c_light;
+		} else if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CUSTOM) {
 			// c / c_bar = u_l / u_t
-			return c_light_cgs_ / (Physics_Traits<problem_t>::unit_length / Physics_Traits<problem_t>::unit_time);
+			return c_light_cgs_ / (PhysicsTraits<problem_t>::unit_length / PhysicsTraits<problem_t>::unit_time);
 		}
 	}();
 	static constexpr double c_hat_ = c_light_ * RadSystem_Traits<problem_t>::c_hat_over_c;
 
 	static constexpr double radiation_constant_ = []() constexpr {
-		if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CGS) {
+		if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CGS) {
 			return C::a_rad;
-		} else if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CONSTANTS) {
-			return Physics_Traits<problem_t>::radiation_constant;
-		} else if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CUSTOM) {
+		} else if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CONSTANTS) {
+			return PhysicsTraits<problem_t>::radiation_constant;
+		} else if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CUSTOM) {
 			// a_rad / a_rad_bar = 1 / u_l * u_m / u_t^2 / u_T^4
-			return C::a_rad / (1.0 / Physics_Traits<problem_t>::unit_length * Physics_Traits<problem_t>::unit_mass /
-					   (Physics_Traits<problem_t>::unit_time * Physics_Traits<problem_t>::unit_time) /
-					   (Physics_Traits<problem_t>::unit_temperature * Physics_Traits<problem_t>::unit_temperature *
-					    Physics_Traits<problem_t>::unit_temperature * Physics_Traits<problem_t>::unit_temperature));
+			return C::a_rad / (1.0 / PhysicsTraits<problem_t>::unit_length * PhysicsTraits<problem_t>::unit_mass /
+					   (PhysicsTraits<problem_t>::unit_time * PhysicsTraits<problem_t>::unit_time) /
+					   (PhysicsTraits<problem_t>::unit_temperature * PhysicsTraits<problem_t>::unit_temperature *
+					    PhysicsTraits<problem_t>::unit_temperature * PhysicsTraits<problem_t>::unit_temperature));
 		}
 	}();
 
@@ -220,7 +220,7 @@ template <typename problem_t> class RadSystem : public HyperbolicSystem<problem_
 	static constexpr bool enable_dust_gas_thermal_coupling_model_ = ISM_Traits<problem_t>::enable_dust_gas_thermal_coupling_model;
 	static constexpr bool enable_photoelectric_heating_ = ISM_Traits<problem_t>::enable_photoelectric_heating;
 
-	static constexpr int nGroups_ = Physics_Traits<problem_t>::nGroups;
+	static constexpr int nGroups_ = PhysicsTraits<problem_t>::nGroups;
 	static constexpr amrex::GpuArray<double, nGroups_ + 1> radBoundaries_ = []() constexpr {
 		if constexpr (nGroups_ > 1) {
 			return RadSystem_Traits<problem_t>::radBoundaries;
@@ -252,15 +252,15 @@ template <typename problem_t> class RadSystem : public HyperbolicSystem<problem_
 	static constexpr double gamma_ = quokka::EOS_Traits<problem_t>::gamma;
 
 	static constexpr amrex::Real boltzmann_constant_ = []() constexpr {
-		if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CGS) {
+		if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CGS) {
 			return C::k_B;
-		} else if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CONSTANTS) {
-			return Physics_Traits<problem_t>::boltzmann_constant;
-		} else if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CUSTOM) {
+		} else if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CONSTANTS) {
+			return PhysicsTraits<problem_t>::boltzmann_constant;
+		} else if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CUSTOM) {
 			// k_B / k_B_bar = u_l^2 * u_m / u_t^2 / u_T
 			return C::k_B /
-			       (Physics_Traits<problem_t>::unit_length * Physics_Traits<problem_t>::unit_length * Physics_Traits<problem_t>::unit_mass /
-				(Physics_Traits<problem_t>::unit_time * Physics_Traits<problem_t>::unit_time) / Physics_Traits<problem_t>::unit_temperature);
+			       (PhysicsTraits<problem_t>::unit_length * PhysicsTraits<problem_t>::unit_length * PhysicsTraits<problem_t>::unit_mass /
+				(PhysicsTraits<problem_t>::unit_time * PhysicsTraits<problem_t>::unit_time) / PhysicsTraits<problem_t>::unit_temperature);
 		}
 	}();
 

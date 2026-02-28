@@ -73,7 +73,7 @@ template <> AMREX_GPU_HOST_DEVICE auto RadSystem<CouplingProblem>::ComputeFluxMe
 	return 1.0;
 }
 
-[[maybe_unused]] static constexpr int nmscalars_ = Physics_Traits<CouplingProblem>::numMassScalars;
+[[maybe_unused]] static constexpr int nmscalars_ = PhysicsTraits<CouplingProblem>::numMassScalars;
 template <>
 AMREX_GPU_HOST_DEVICE auto
 quokka::EOS<CouplingProblem>::ComputeTgasFromEint([[maybe_unused]] const double rho, const double Egas,

@@ -637,7 +637,7 @@ template <typename ContainerType, typename problem_t, ParticleType particleType>
 		if (this->container_ != nullptr && this->getEvolutionStageIndex() >= 0) {
 			if (!quokka::disable_SN_feedback) {
 				// Requires CGS units
-				AMREX_ALWAYS_ASSERT_WITH_MESSAGE(Physics_Traits<problem_t>::unit_system == UnitSystem::CGS,
+				AMREX_ALWAYS_ASSERT_WITH_MESSAGE(PhysicsTraits<problem_t>::unit_system == UnitSystem::CGS,
 								 "UnitSystem must be CGS for particleMeshInteraction");
 
 				// Deposit supernova energy and momentum from all particles. This also updates the evolution stage of the particles.
@@ -713,7 +713,7 @@ template <typename problem_t> class PhysicsParticleRegister
 	// Check if registry contains any radiating particles
 	[[nodiscard]] auto HasRadiatingParticles() const -> bool
 	{
-		if (Physics_Traits<problem_t>::is_radiation_enabled) {
+		if (PhysicsTraits<problem_t>::is_radiation_enabled) {
 			for (const auto &[name, descriptor] : particleRegistry_) { // NOSONAR
 				if (descriptor->getLumIndex() >= 0) {
 					return true;
@@ -813,7 +813,7 @@ template <typename problem_t> class PhysicsParticleRegister
 		const BL_PROFILE("PhysicsParticleRegister::depositRadiation()");
 		for (const auto &[type, descriptor] : particleRegistry_) {
 			if (descriptor->getLumIndex() >= 0) {
-				descriptor->depositRadiation(radEnergySource, lev, current_time, Physics_Traits<problem_t>::nGroups);
+				descriptor->depositRadiation(radEnergySource, lev, current_time, PhysicsTraits<problem_t>::nGroups);
 			}
 		}
 	}

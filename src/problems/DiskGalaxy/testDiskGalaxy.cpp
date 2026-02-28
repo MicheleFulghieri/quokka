@@ -440,7 +440,7 @@ template <> void QuokkaSimulation<DiskGalaxy>::setInitialConditionsOnGrid(quokka
 		const auto initial_scalar_density_d = initial_scalar_density;
 
 		// Initialize passive scalar field
-		if constexpr (Physics_Traits<DiskGalaxy>::numPassiveScalars > 0) {
+		if constexpr (PhysicsTraits<DiskGalaxy>::numPassiveScalars > 0) {
 			state_cc(i, j, k, HydroSystem<DiskGalaxy>::scalar0_index) = initial_scalar_density_d;
 		}
 	});
@@ -643,7 +643,7 @@ template <> void QuokkaSimulation<DiskGalaxy>::ComputeDerivedVar(int lev, std::s
 	}
 
 	if (dname == "bfield_strength") {
-		static_assert(Physics_Traits<DiskGalaxy>::is_mhd_enabled, "bfield_strength requires MHD to be enabled.");
+		static_assert(PhysicsTraits<DiskGalaxy>::is_mhd_enabled, "bfield_strength requires MHD to be enabled.");
 		const int ncomp = ncomp_cc_in;
 		for (amrex::MFIter iter(mf); iter.isValid(); ++iter) {
 			const amrex::Box &indexRange = iter.validbox();

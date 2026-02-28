@@ -245,7 +245,7 @@ template <> void QuokkaSimulation<MGProblem>::setInitialConditionsOnGrid(quokka:
 		auto Erad_g = RadSystem<MGProblem>::ComputeThermalRadiationMultiGroup(Trad, radBoundaries_g);
 		auto Frad_g = RadSystem<MGProblem>::ComputeFluxInDiffusionLimit(radBoundaries_g, Trad, v0);
 
-		for (int g = 0; g < Physics_Traits<MGProblem>::nGroups; ++g) {
+		for (int g = 0; g < PhysicsTraits<MGProblem>::nGroups; ++g) {
 			state_cc(i, j, k, RadSystem<MGProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g) = Erad_g[g];
 			// OLD, correct if you ignore the (delta nu B) term
 			// state_cc(i, j, k, RadSystem<MGProblem>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g) = 4. / 3. * v0 * Erad_g[g];
@@ -363,7 +363,7 @@ auto problem_main() -> int
 		}
 		amrex::Real const x = position[i];
 		double Erad_t = 0.0;
-		for (int g = 0; g < Physics_Traits<MGProblem>::nGroups; ++g) {
+		for (int g = 0; g < PhysicsTraits<MGProblem>::nGroups; ++g) {
 			Erad_t += values.at(RadSystem<MGProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g)[i];
 		}
 		const auto Trad_t = std::pow(Erad_t / a_rad, 1. / 4.);

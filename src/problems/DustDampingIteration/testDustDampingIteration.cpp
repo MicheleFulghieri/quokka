@@ -138,7 +138,7 @@ template <> void QuokkaSimulation<DustDampingWithCorrection>::setInitialConditio
 		const auto vx_dust1_local = vx_dust1;
 		const auto vx_dust2_local = vx_dust2;
 
-		if constexpr (Physics_Traits<DustDampingWithCorrection>::is_dust_enabled) {
+		if constexpr (PhysicsTraits<DustDampingWithCorrection>::is_dust_enabled) {
 			// for dust1
 			state_cc(i, j, k, HydroSystem<DustDampingWithCorrection>::dustDensity_index) = rho_dust1;
 			state_cc(i, j, k, HydroSystem<DustDampingWithCorrection>::x1DustMomentum_index) = rho_dust1 * vx_dust1_local;
@@ -175,7 +175,7 @@ template <> void QuokkaSimulation<DustDampingWithoutCorrection>::setInitialCondi
 		const auto vx_dust1_local = vx_dust1;
 		const auto vx_dust2_local = vx_dust2;
 
-		if constexpr (Physics_Traits<DustDampingWithoutCorrection>::is_dust_enabled) {
+		if constexpr (PhysicsTraits<DustDampingWithoutCorrection>::is_dust_enabled) {
 			// for dust1
 			state_cc(i, j, k, HydroSystem<DustDampingWithoutCorrection>::dustDensity_index) = rho_dust1;
 			state_cc(i, j, k, HydroSystem<DustDampingWithoutCorrection>::x1DustMomentum_index) = rho_dust1 * vx_dust1_local;
@@ -209,7 +209,7 @@ template <> void QuokkaSimulation<DustDampingWithCorrection>::computeAfterTimest
 		// store gas total energy
 		userData_.E_gas_vec_.push_back(Egas_total);
 
-		if constexpr (Physics_Traits<DustDampingWithCorrection>::is_dust_enabled) {
+		if constexpr (PhysicsTraits<DustDampingWithCorrection>::is_dust_enabled) {
 			// store dust1 velocity
 			const double dust1_density = values.at(HydroSystem<DustDampingWithCorrection>::dustDensity_index)[0];
 			const double dust1_momentum_x = values.at(HydroSystem<DustDampingWithCorrection>::x1DustMomentum_index)[0];
@@ -244,7 +244,7 @@ template <> void QuokkaSimulation<DustDampingWithoutCorrection>::computeAfterTim
 		// store gas total energy
 		userData_.E_gas_vec_.push_back(Egas_total);
 
-		if constexpr (Physics_Traits<DustDampingWithoutCorrection>::is_dust_enabled) {
+		if constexpr (PhysicsTraits<DustDampingWithoutCorrection>::is_dust_enabled) {
 			// store dust1 velocity
 			const double dust1_density = values.at(HydroSystem<DustDampingWithoutCorrection>::dustDensity_index)[0];
 			const double dust1_momentum_x = values.at(HydroSystem<DustDampingWithoutCorrection>::x1DustMomentum_index)[0];
@@ -285,7 +285,7 @@ auto run_reference_simulation() -> SimulationData<DustDampingWithCorrection>
 		sim.userData_.v_gas_vec_.push_back(initial_v_gas);
 		sim.userData_.E_gas_vec_.push_back(initial_Egas_total);
 
-		if constexpr (Physics_Traits<DustDampingWithCorrection>::is_dust_enabled) {
+		if constexpr (PhysicsTraits<DustDampingWithCorrection>::is_dust_enabled) {
 			const double initial_dust1_density = val_ini.at(HydroSystem<DustDampingWithCorrection>::dustDensity_index)[0];
 			const double initial_dust1_momentum_x = val_ini.at(HydroSystem<DustDampingWithCorrection>::x1DustMomentum_index)[0];
 			const double initial_v_dust1 = initial_dust1_momentum_x / initial_dust1_density;
@@ -328,7 +328,7 @@ auto run_iterative_with_correction() -> SimulationData<DustDampingWithCorrection
 		sim.userData_.v_gas_vec_.push_back(initial_v_gas);
 		sim.userData_.E_gas_vec_.push_back(initial_Egas_total);
 
-		if constexpr (Physics_Traits<DustDampingWithCorrection>::is_dust_enabled) {
+		if constexpr (PhysicsTraits<DustDampingWithCorrection>::is_dust_enabled) {
 			const double initial_dust1_density = val_ini.at(HydroSystem<DustDampingWithCorrection>::dustDensity_index)[0];
 			const double initial_dust1_momentum_x = val_ini.at(HydroSystem<DustDampingWithCorrection>::x1DustMomentum_index)[0];
 			const double initial_v_dust1 = initial_dust1_momentum_x / initial_dust1_density;
@@ -370,7 +370,7 @@ auto run_iterative_without_correction() -> SimulationData<DustDampingWithoutCorr
 		sim.userData_.v_gas_vec_.push_back(initial_v_gas);
 		sim.userData_.E_gas_vec_.push_back(initial_Egas_total);
 
-		if constexpr (Physics_Traits<DustDampingWithoutCorrection>::is_dust_enabled) {
+		if constexpr (PhysicsTraits<DustDampingWithoutCorrection>::is_dust_enabled) {
 			const double initial_dust1_density = val_ini.at(HydroSystem<DustDampingWithoutCorrection>::dustDensity_index)[0];
 			const double initial_dust1_momentum_x = val_ini.at(HydroSystem<DustDampingWithoutCorrection>::x1DustMomentum_index)[0];
 			const double initial_v_dust1 = initial_dust1_momentum_x / initial_dust1_density;

@@ -148,7 +148,7 @@ template <> void QuokkaSimulation<SNProblem>::setInitialConditionsOnGrid(quokka:
 			  (userData_.boost_velocity[2] * userData_.boost_velocity[2]);
 
 	amrex::Real initial_scalar_density = 0.0;
-	if constexpr (Physics_Traits<SNProblem>::numPassiveScalars > 0) {
+	if constexpr (PhysicsTraits<SNProblem>::numPassiveScalars > 0) {
 		const amrex::Real cell_vol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
 		initial_scalar_density = 1.0e-6 * quokka::scalar_yield_per_SN / cell_vol;
 	}
@@ -165,7 +165,7 @@ template <> void QuokkaSimulation<SNProblem>::setInitialConditionsOnGrid(quokka:
 		const auto initial_scalar_density_d = initial_scalar_density;
 
 		// Initialize passive scalar field
-		if constexpr (Physics_Traits<SNProblem>::numPassiveScalars > 0) {
+		if constexpr (PhysicsTraits<SNProblem>::numPassiveScalars > 0) {
 			state_cc(i, j, k, HydroSystem<SNProblem>::scalar0_index) = initial_scalar_density_d;
 		}
 	});
@@ -236,7 +236,7 @@ auto problem_main() -> int
 	// Compute initial scalar quantities for validation
 	amrex::Real total_scalar_init = 0.0;
 	amrex::Real initial_scalar_density = 0.0;
-	if constexpr (Physics_Traits<SNProblem>::numPassiveScalars > 0) {
+	if constexpr (PhysicsTraits<SNProblem>::numPassiveScalars > 0) {
 		const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &dx0 = sim.geom[0].CellSizeArray();
 		const amrex::Real vol = AMREX_D_TERM(dx0[0], *dx0[1], *dx0[2]);
 		total_scalar_init = sim.state_new_cc_[0].sum(HydroSystem<SNProblem>::scalar0_index) * vol;
@@ -248,7 +248,7 @@ auto problem_main() -> int
 
 	// Validate passive scalar conservation and peak enhancement
 	int scalar_validation_status = 0;
-	if constexpr (Physics_Traits<SNProblem>::numPassiveScalars > 0) {
+	if constexpr (PhysicsTraits<SNProblem>::numPassiveScalars > 0) {
 		const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &dx0 = sim.geom[0].CellSizeArray();
 		const amrex::Real vol = AMREX_D_TERM(dx0[0], *dx0[1], *dx0[2]);
 		const amrex::Real total_scalar_final = sim.state_new_cc_[0].sum(HydroSystem<SNProblem>::scalar0_index) * vol;

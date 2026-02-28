@@ -78,7 +78,7 @@ template <> AMREX_GPU_HOST_DEVICE auto RadSystem<SuOlsonProblem>::ComputeFluxMea
 	return kappa;
 }
 
-[[maybe_unused]] static constexpr int nmscalars_ = Physics_Traits<SuOlsonProblem>::numMassScalars;
+[[maybe_unused]] static constexpr int nmscalars_ = PhysicsTraits<SuOlsonProblem>::numMassScalars;
 template <>
 AMREX_GPU_HOST_DEVICE auto
 quokka::EOS<SuOlsonProblem>::ComputeTgasFromEint([[maybe_unused]] const double rho, const double Egas,

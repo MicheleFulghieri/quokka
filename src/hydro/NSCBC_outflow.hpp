@@ -36,7 +36,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE auto dQ_dx_outflow(quokka::valarray<amrex::R
 	const amrex::Real w = Q[3];
 	const amrex::Real P = Q[4];
 
-	static constexpr int nmscalars_ = Physics_Traits<problem_t>::numMassScalars;
+	static constexpr int nmscalars_ = PhysicsTraits<problem_t>::numMassScalars;
 	amrex::GpuArray<Real, nmscalars_> massScalars;
 	for (int n = 0; n < nmscalars_; ++n) {
 		// indexing here follows primVars

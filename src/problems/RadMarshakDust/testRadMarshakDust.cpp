@@ -124,7 +124,7 @@ template <> void QuokkaSimulation<MarshakProblem>::setInitialConditionsOnGrid(qu
 
 	// loop over the grid and set the initial condition
 	amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-		for (int g = 0; g < Physics_Traits<MarshakProblem>::nGroups; ++g) {
+		for (int g = 0; g < PhysicsTraits<MarshakProblem>::nGroups; ++g) {
 			state_cc(i, j, k, RadSystem<MarshakProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g) = Erads[g];
 			state_cc(i, j, k, RadSystem<MarshakProblem>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g) = 0;
 			state_cc(i, j, k, RadSystem<MarshakProblem>::x2RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g) = 0;
@@ -164,7 +164,7 @@ AMRSimulation<MarshakProblem>::setCustomBoundaryConditions(const amrex::IntVect 
 	low_bdr_cells[RadSystem<MarshakProblem>::x2GasMomentum_index] = 0.;
 	low_bdr_cells[RadSystem<MarshakProblem>::x3GasMomentum_index] = 0.;
 	// Set specific values for multigroup radiation
-	for (int g = 0; g < Physics_Traits<MarshakProblem>::nGroups; ++g) {
+	for (int g = 0; g < PhysicsTraits<MarshakProblem>::nGroups; ++g) {
 		low_bdr_cells[RadSystem<MarshakProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g] = Erads[g];
 		low_bdr_cells[RadSystem<MarshakProblem>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = Frads[g];
 		low_bdr_cells[RadSystem<MarshakProblem>::x2RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = 0;

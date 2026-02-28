@@ -142,7 +142,7 @@ template <> void QuokkaSimulation<DustDamping>::setInitialConditionsOnGrid(quokk
 		const auto vx_dust1_local = vx_dust1;
 		const auto vx_dust2_local = vx_dust2;
 
-		if constexpr (Physics_Traits<DustDamping>::is_dust_enabled) {
+		if constexpr (PhysicsTraits<DustDamping>::is_dust_enabled) {
 			// for dust1
 			state_cc(i, j, k, HydroSystem<DustDamping>::dustDensity_index) = rho_dust1;
 			state_cc(i, j, k, HydroSystem<DustDamping>::x1DustMomentum_index) = rho_dust1 * vx_dust1_local;
@@ -176,7 +176,7 @@ template <> void QuokkaSimulation<DustDamping>::computeAfterTimestep()
 		// store gas total energy
 		userData_.E_gas_vec_.push_back(Egas_total);
 
-		if constexpr (Physics_Traits<DustDamping>::is_dust_enabled) {
+		if constexpr (PhysicsTraits<DustDamping>::is_dust_enabled) {
 			// store dust1 velocity
 			const double dust1_density = values.at(HydroSystem<DustDamping>::dustDensity_index)[0];
 			const double dust1_momentum_x = values.at(HydroSystem<DustDamping>::x1DustMomentum_index)[0];
@@ -261,7 +261,7 @@ auto problem_main() -> int
 		sim.userData_.v_gas_vec_.push_back(initial_v_gas);
 		sim.userData_.E_gas_vec_.push_back(initial_Egas_total);
 
-		if constexpr (Physics_Traits<DustDamping>::is_dust_enabled) {
+		if constexpr (PhysicsTraits<DustDamping>::is_dust_enabled) {
 			const double initial_dust1_density = val_ini.at(HydroSystem<DustDamping>::dustDensity_index)[0];
 			const double initial_dust1_momentum_x = val_ini.at(HydroSystem<DustDamping>::x1DustMomentum_index)[0];
 			const double initial_v_dust1 = initial_dust1_momentum_x / initial_dust1_density;

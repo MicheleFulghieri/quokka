@@ -171,7 +171,7 @@ depositThermalSNR(amrex::Array4<amrex::Real> const &local_buffer, const int ix, 
 
 				// Deposit passive scalar if enabled
 				// TODO(chongchonghe): Add support for multiple passive scalars (currently only deposits to scalar0)
-				if constexpr (Physics_Traits<problem_t>::numPassiveScalars > 0) {
+				if constexpr (PhysicsTraits<problem_t>::numPassiveScalars > 0) {
 					const amrex::Real scalar_per_cell = scalar_yield_per_SN_d * kernel_times_vol_inverse;
 					amrex::Gpu::Atomic::AddNoRet(&local_buffer(ix + ii, iy + jj, iz + kk, HydroSystem<problem_t>::scalar0_index),
 								     scalar_per_cell);
@@ -324,7 +324,7 @@ depositThermalKineticMomentumSNR(amrex::Array4<amrex::Real> const &local_state, 
 
 				// Deposit passive scalar if enabled
 				// TODO(chongchonghe): Add support for multiple passive scalars (currently only deposits to scalar0)
-				if constexpr (Physics_Traits<problem_t>::numPassiveScalars > 0) {
+				if constexpr (PhysicsTraits<problem_t>::numPassiveScalars > 0) {
 					const amrex::Real scalar_per_cell = scalar_yield_per_SN_d * kernel_times_vol_inverse;
 					amrex::Gpu::Atomic::AddNoRet(&local_buffer(ii, jj, kk, HydroSystem<problem_t>::scalar0_index), scalar_per_cell);
 				}
@@ -582,8 +582,8 @@ addCompositeBufferToState(amrex::Array4<amrex::Real> const &local_state, amrex::
 	local_state(i, j, k, HydroSystem<problem_t>::energy_index) = e_tot_new;
 
 	// Add passive scalars from buffer to state (scalars are conserved densities)
-	if constexpr (Physics_Traits<problem_t>::numPassiveScalars > 0) {
-		for (int n = 0; n < Physics_Traits<problem_t>::numPassiveScalars; ++n) {
+	if constexpr (PhysicsTraits<problem_t>::numPassiveScalars > 0) {
+		for (int n = 0; n < PhysicsTraits<problem_t>::numPassiveScalars; ++n) {
 			local_state(i, j, k, HydroSystem<problem_t>::scalar0_index + n) += local_buffer(i, j, k, HydroSystem<problem_t>::scalar0_index + n);
 		}
 	}
@@ -646,8 +646,8 @@ addThermalOnlyBufferToState(amrex::Array4<amrex::Real> const &local_state, amrex
 	local_state(i, j, k, HydroSystem<problem_t>::energy_index) = e_new;
 
 	// Add passive scalars from buffer to state (scalars are conserved densities)
-	if constexpr (Physics_Traits<problem_t>::numPassiveScalars > 0) {
-		for (int n = 0; n < Physics_Traits<problem_t>::numPassiveScalars; ++n) {
+	if constexpr (PhysicsTraits<problem_t>::numPassiveScalars > 0) {
+		for (int n = 0; n < PhysicsTraits<problem_t>::numPassiveScalars; ++n) {
 			local_state(i, j, k, HydroSystem<problem_t>::scalar0_index + n) += local_buffer(i, j, k, HydroSystem<problem_t>::scalar0_index + n);
 		}
 	}

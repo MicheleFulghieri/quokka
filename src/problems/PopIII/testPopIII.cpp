@@ -351,7 +351,7 @@ template <> void QuokkaSimulation<PopIII>::refineGrid(int lev, amrex::TagBoxArra
 		amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
 			Real const rho = state(i, j, k, nidx);
 			Real const pressure = HydroSystem<PopIII>::ComputePressure(state, i, j, k);
-			amrex::GpuArray<Real, Physics_Traits<PopIII>::numMassScalars> massScalars = RadSystem<PopIII>::ComputeMassScalars(state, i, j, k);
+			amrex::GpuArray<Real, PhysicsTraits<PopIII>::numMassScalars> massScalars = RadSystem<PopIII>::ComputeMassScalars(state, i, j, k);
 
 			amrex::Real const cs = quokka::EOS<PopIII>::ComputeSoundSpeed(rho, pressure, massScalars);
 
@@ -377,7 +377,7 @@ template <> void QuokkaSimulation<PopIII>::ComputeDerivedVar(int lev, std::strin
 			Real const rho = state[bx](i, j, k, HydroSystem<PopIII>::density_index);
 			amrex::Real const Eint = state[bx](i, j, k, HydroSystem<PopIII>::internalEnergy_index);
 
-			amrex::GpuArray<Real, Physics_Traits<PopIII>::numMassScalars> massScalars = RadSystem<PopIII>::ComputeMassScalars(state[bx], i, j, k);
+			amrex::GpuArray<Real, PhysicsTraits<PopIII>::numMassScalars> massScalars = RadSystem<PopIII>::ComputeMassScalars(state[bx], i, j, k);
 
 			output[bx](i, j, k, ncomp) = quokka::EOS<PopIII>::ComputeTgasFromEint(rho, Eint, massScalars);
 		});
@@ -417,7 +417,7 @@ template <> void QuokkaSimulation<PopIII>::ComputeDerivedVar(int lev, std::strin
 		amrex::ParallelFor(mf, [=] AMREX_GPU_DEVICE(int bx, int i, int j, int k) noexcept {
 			Real const rho = state[bx](i, j, k, HydroSystem<PopIII>::density_index);
 			Real const pressure = HydroSystem<PopIII>::ComputePressure(state[bx], i, j, k);
-			amrex::GpuArray<Real, Physics_Traits<PopIII>::numMassScalars> massScalars = RadSystem<PopIII>::ComputeMassScalars(state[bx], i, j, k);
+			amrex::GpuArray<Real, PhysicsTraits<PopIII>::numMassScalars> massScalars = RadSystem<PopIII>::ComputeMassScalars(state[bx], i, j, k);
 
 			amrex::Real const cs = quokka::EOS<PopIII>::ComputeSoundSpeed(rho, pressure, massScalars);
 			output[bx](i, j, k, ncomp) = cs;

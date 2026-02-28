@@ -60,11 +60,11 @@ enum class RiemannSolver { HLLC, LLF, LLF_MHD, HLLD };
 template <typename problem_t> class HydroSystem : public HyperbolicSystem<problem_t>
 {
       public:
-	static constexpr int nmscalars_ = Physics_Traits<problem_t>::numMassScalars;
-	static constexpr int nscalars_ = Physics_Traits<problem_t>::numPassiveScalars;
+	static constexpr int nmscalars_ = PhysicsTraits<problem_t>::numMassScalars;
+	static constexpr int nscalars_ = PhysicsTraits<problem_t>::numPassiveScalars;
 	static constexpr int nvar_ = Physics_NumVars::numHydroVars + nscalars_ +
-				     (Physics_Traits<problem_t>::nDustGroups * Physics_NumVars::numDustVarsPerGroup) *
-					 static_cast<int>(Physics_Traits<problem_t>::is_dust_enabled); // total number of variables
+				     (PhysicsTraits<problem_t>::nDustGroups * Physics_NumVars::numDustVarsPerGroup) *
+					 static_cast<int>(PhysicsTraits<problem_t>::is_dust_enabled); // total number of variables
 	static constexpr int nHydroScalars_ = Physics_NumVars::numHydroVars + nscalars_;
 	static constexpr int numDustVars_ = Physics_NumVars::numDustVarsPerGroup; // number of dust variables for each dust group
 
@@ -211,19 +211,19 @@ void HydroSystem<problem_t>::ConservedToPrimitive(amrex::MultiFab const &cons_cc
 		// First-capture the magnetic field arrays by accessing them early
 		// This forces NVCC to capture them before the constexpr if block
 		std::remove_cv_t<std::remove_reference_t<decltype(cons_fc_x0[bx])>> fc_x0_ref{};
-		if (Physics_Traits<problem_t>::is_mhd_enabled) {
+		if (PhysicsTraits<problem_t>::is_mhd_enabled) {
 			// If not wrapped in this if clause, this will fail in Debug mode due to nan values
 			fc_x0_ref = cons_fc_x0[bx];
 		}
 #if AMREX_SPACEDIM >= 2
 		std::remove_cv_t<std::remove_reference_t<decltype(cons_fc_x1[bx])>> fc_x1_ref{};
-		if (Physics_Traits<problem_t>::is_mhd_enabled) {
+		if (PhysicsTraits<problem_t>::is_mhd_enabled) {
 			fc_x1_ref = cons_fc_x1[bx];
 		}
 #endif
 #if AMREX_SPACEDIM == 3
 		std::remove_cv_t<std::remove_reference_t<decltype(cons_fc_x2[bx])>> fc_x2_ref{};
-		if (Physics_Traits<problem_t>::is_mhd_enabled) {
+		if (PhysicsTraits<problem_t>::is_mhd_enabled) {
 			fc_x2_ref = cons_fc_x2[bx];
 		}
 #endif
@@ -255,7 +255,7 @@ void HydroSystem<problem_t>::ConservedToPrimitive(amrex::MultiFab const &cons_cc
 		const amrex::Real kinetic_energy = 0.5 * rho * (vx * vx + vy * vy + vz * vz);
 		amrex::Real magnetic_energy = 0.;
 
-		if constexpr (Physics_Traits<problem_t>::is_mhd_enabled) {
+		if constexpr (PhysicsTraits<problem_t>::is_mhd_enabled) {
 			// note, bx is the box, and bxi is the magnetic-field component
 			const amrex::Real b_x0_m = fc_x0_ref(i, j, k, Physics_Indices<problem_t>::mhdFirstIndex);
 			const amrex::Real b_x0_p = fc_x0_ref(i + 1, j, k, Physics_Indices<problem_t>::mhdFirstIndex);
@@ -306,8 +306,8 @@ void HydroSystem<problem_t>::ConservedToPrimitive(amrex::MultiFab const &cons_cc
 		}
 
 		// handle dust
-		if constexpr (Physics_Traits<problem_t>::is_dust_enabled) {
-			for (int g = 0; g < Physics_Traits<problem_t>::nDustGroups; ++g) {
+		if constexpr (PhysicsTraits<problem_t>::is_dust_enabled) {
+			for (int g = 0; g < PhysicsTraits<problem_t>::nDustGroups; ++g) {
 				const amrex::Real dust_rho = cons_cc[bx](i, j, k, dustDensity_index + numDustVars_ * g);
 				const amrex::Real dust_px = cons_cc[bx](i, j, k, x1DustMomentum_index + numDustVars_ * g);
 				const amrex::Real dust_py = cons_cc[bx](i, j, k, x2DustMomentum_index + numDustVars_ * g);
@@ -350,7 +350,7 @@ auto HydroSystem<problem_t>::maxSignalSpeedLocal(amrex::MultiFab const &cons_mf,
 				amrex::IntVect(0), // no ghost cells
 				[=] AMREX_GPU_DEVICE(int bx, int i, int j, int k) noexcept -> amrex::GpuTuple<amrex::Real> {
 					std::array<amrex::Array4<const amrex::Real>, AMREX_SPACEDIM> cons_fc{};
-					if (Physics_Traits<problem_t>::is_mhd_enabled) { // if instead of if constexpr to avoid nvcc issues
+					if (PhysicsTraits<problem_t>::is_mhd_enabled) { // if instead of if constexpr to avoid nvcc issues
 						cons_fc[0] = cons_fc_x0[bx];
 #if AMREX_SPACEDIM >= 2
 						cons_fc[1] = cons_fc_x1[bx];
@@ -398,7 +398,7 @@ void HydroSystem<problem_t>::ComputeMaxSignalSpeed(amrex::Array4<const amrex::Re
 		const double vel_magnitude = std::sqrt(vx * vx + vy * vy + vz * vz);
 		double fastest_wavespeed = NAN;
 
-		if (Physics_Traits<problem_t>::is_mhd_enabled) {
+		if (PhysicsTraits<problem_t>::is_mhd_enabled) {
 			amrex::GpuArray<Real, nmscalars_> massScalars = RadSystem<problem_t>::ComputeMassScalars(cons_cc, i, j, k);
 			const auto total_energy = cons_cc(i, j, k, energy_index); // *total* gas energy per unit volume
 			const auto kinetic_energy = 0.5 * rho * (vx * vx + vy * vy + vz * vz);
@@ -433,8 +433,8 @@ void HydroSystem<problem_t>::ComputeMaxSignalSpeed(amrex::Array4<const amrex::Re
 
 		double signal_max = fastest_wavespeed + vel_magnitude;
 
-		if constexpr (Physics_Traits<problem_t>::is_dust_enabled) {
-			for (int g = 0; g < Physics_Traits<problem_t>::nDustGroups; ++g) {
+		if constexpr (PhysicsTraits<problem_t>::is_dust_enabled) {
+			for (int g = 0; g < PhysicsTraits<problem_t>::nDustGroups; ++g) {
 				const amrex::Real dust_rho = cons_cc(i, j, k, dustDensity_index + g * numDustVars_);
 				const amrex::Real dust_px = cons_cc(i, j, k, x1DustMomentum_index + g * numDustVars_);
 				const amrex::Real dust_py = cons_cc(i, j, k, x2DustMomentum_index + g * numDustVars_);
@@ -472,7 +472,7 @@ auto HydroSystem<problem_t>::CheckStatesValid(amrex::MultiFab const &cons_mf, st
 				amrex::IntVect(0), // no ghost cells
 				[=] AMREX_GPU_DEVICE(int bx, int i, int j, int k) noexcept -> amrex::GpuTuple<bool> {
 					std::array<amrex::Array4<const amrex::Real>, AMREX_SPACEDIM> cons_fc{};
-					if (Physics_Traits<problem_t>::is_mhd_enabled) {
+					if (PhysicsTraits<problem_t>::is_mhd_enabled) {
 						cons_fc[0] = cons_fc_x0[bx];
 #if AMREX_SPACEDIM >= 2
 						cons_fc[1] = cons_fc_x1[bx];
@@ -658,7 +658,7 @@ template <typename problem_t>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE auto
 HydroSystem<problem_t>::ComputeMagneticEnergy(int i, int j, int k, std::array<amrex::Array4<const amrex::Real>, AMREX_SPACEDIM> const *cons_fc) -> amrex::Real
 {
-	if constexpr (!Physics_Traits<problem_t>::is_mhd_enabled) {
+	if constexpr (!PhysicsTraits<problem_t>::is_mhd_enabled) {
 		return 0.0;
 	} else {
 		AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cons_fc != nullptr, "ComputeMagneticEnergy called without face-centered fields for MHD problem");
@@ -682,7 +682,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE auto HydroSystem<problem_t>::ComputePlasmaBe
 										   std::array<amrex::Array4<const amrex::Real>, AMREX_SPACEDIM> const *cons_fc)
     -> amrex::Real
 {
-	if constexpr (!Physics_Traits<problem_t>::is_mhd_enabled) {
+	if constexpr (!PhysicsTraits<problem_t>::is_mhd_enabled) {
 		return std::numeric_limits<amrex::Real>::max();
 	} else {
 		const amrex::Real pressure_thermal = ComputePressure(cons, i, j, k, cons_fc);
@@ -1063,8 +1063,8 @@ void HydroSystem<problem_t>::EnforceLimits(amrex::Real const densityFloor, amrex
 		}
 
 		// Enforce dust density floor
-		if constexpr (Physics_Traits<problem_t>::is_dust_enabled) {
-			for (int g = 0; g < Physics_Traits<problem_t>::nDustGroups; ++g) {
+		if constexpr (PhysicsTraits<problem_t>::is_dust_enabled) {
+			for (int g = 0; g < PhysicsTraits<problem_t>::nDustGroups; ++g) {
 				amrex::Real dust_rho = state[bx](i, j, k, dustDensity_index + g * numDustVars_);
 				if (dust_rho < localDensityFloor) {
 					state[bx](i, j, k, dustDensity_index + g * numDustVars_) = localDensityFloor;
@@ -1130,7 +1130,7 @@ void HydroSystem<problem_t>::AddInternalEnergyPdV(amrex::MultiFab &rhs_mf, amrex
 		// get cell-centered pressure
 		std::array<amrex::Array4<const amrex::Real>, AMREX_SPACEDIM> cons_fc{};
 
-		if (Physics_Traits<problem_t>::is_mhd_enabled) {
+		if (PhysicsTraits<problem_t>::is_mhd_enabled) {
 			cons_fc[0] = cons_fc_x0[bx];
 #if AMREX_SPACEDIM >= 2
 			cons_fc[1] = cons_fc_x1[bx];
@@ -1193,7 +1193,7 @@ void HydroSystem<problem_t>::SyncDualEnergy(amrex::MultiFab &consVar_mf, amrex::
 
 		// compute magnetic energy
 		amrex::Real Emag = 0;
-		if (Physics_Traits<problem_t>::is_mhd_enabled) { // cannot be 'if constexpr' due to CUDA limitation
+		if (PhysicsTraits<problem_t>::is_mhd_enabled) { // cannot be 'if constexpr' due to CUDA limitation
 			constexpr int mhd_idx = Physics_Indices<problem_t>::mhdFirstIndex;
 			amrex::Real const Bx = 0.5 * (faceVar_x[bx](i, j, k, mhd_idx) + faceVar_x[bx](i + 1, j, k, mhd_idx));
 #if AMREX_SPACEDIM >= 2
@@ -1243,7 +1243,7 @@ void HydroSystem<problem_t>::ComputeFluxes(amrex::MultiFab &x1Flux_mf, amrex::Mu
 
 	amrex::MultiArray4<double> x1FSpds_in;
 	amrex::MultiArray4<const double> x1ConsVar_fc_in;
-	if constexpr (Physics_Traits<problem_t>::is_mhd_enabled) {
+	if constexpr (PhysicsTraits<problem_t>::is_mhd_enabled) {
 		if (RIEMANN == RiemannSolver::HLLD || RIEMANN == RiemannSolver::LLF_MHD) {
 			x1FSpds_in = (*x1FSpds_mf).arrays();
 		}
@@ -1255,11 +1255,11 @@ void HydroSystem<problem_t>::ComputeFluxes(amrex::MultiFab &x1Flux_mf, amrex::Mu
 	amrex::ParallelFor(x1Flux_mf, ng, [=] AMREX_GPU_DEVICE(int bx, int i_in, int j_in, int k_in) {
 		// first capture
 		[[maybe_unused]] std::remove_cv_t<std::remove_reference_t<decltype(x1ConsVar_fc_in[bx])>> x1ConsVar_fc_ref{};
-		if (Physics_Traits<problem_t>::is_mhd_enabled) {
+		if (PhysicsTraits<problem_t>::is_mhd_enabled) {
 			x1ConsVar_fc_ref = x1ConsVar_fc_in[bx];
 		}
 		[[maybe_unused]] std::remove_cv_t<std::remove_reference_t<decltype(x1FSpds_in[bx])>> x1FSpds_ref{};
-		if (Physics_Traits<problem_t>::is_mhd_enabled) {
+		if (PhysicsTraits<problem_t>::is_mhd_enabled) {
 			x1FSpds_ref = x1FSpds_in[bx];
 		}
 
@@ -1311,7 +1311,7 @@ void HydroSystem<problem_t>::ComputeFluxes(amrex::MultiFab &x1Flux_mf, amrex::Mu
 		double bz_R = 0.0;
 		double magnetic_energy_L = 0.0;
 		double magnetic_energy_R = 0.0;
-		if constexpr (Physics_Traits<problem_t>::is_mhd_enabled) {
+		if constexpr (PhysicsTraits<problem_t>::is_mhd_enabled) {
 			quokka::Array4View<const amrex::Real, DIR> x1ConsVar_fc(x1ConsVar_fc_ref);
 			bx1 = x1ConsVar_fc(i, j, k, Physics_Indices<problem_t>::mhdFirstIndex);
 			by_L = x1LeftState_bfield(i, j, k, 0);
@@ -1450,7 +1450,7 @@ void HydroSystem<problem_t>::ComputeFluxes(amrex::MultiFab &x1Flux_mf, amrex::Mu
 		quokka::valarray<double, nHydroScalars_> F_canonical{};
 
 		if constexpr (RIEMANN == RiemannSolver::HLLC) {
-			static_assert(!Physics_Traits<problem_t>::is_mhd_enabled, "Cannot use HLLC solver for MHD problems!");
+			static_assert(!PhysicsTraits<problem_t>::is_mhd_enabled, "Cannot use HLLC solver for MHD problems!");
 			F_canonical = quokka::Riemann::HLLC<problem_t, nscalars_, nmscalars_, nHydroScalars_>(sL, sR, gamma_, du, dw);
 		} else if constexpr (RIEMANN == RiemannSolver::LLF) {
 			F_canonical = quokka::Riemann::LLF<problem_t, nscalars_, nmscalars_, nHydroScalars_>(sL, sR);
@@ -1550,7 +1550,7 @@ void HydroSystem<problem_t>::ComputeFluxes(amrex::MultiFab &x1Flux_mf, amrex::Mu
 		}
 
 		// calculate dust fluxes if enabled
-		if constexpr (Physics_Traits<problem_t>::is_dust_enabled) {
+		if constexpr (PhysicsTraits<problem_t>::is_dust_enabled) {
 			DustSystem<problem_t>::template ComputeDustFluxes<DIR>(x1Flux, x1LeftState, x1RightState, i, j, k);
 		}
 	});

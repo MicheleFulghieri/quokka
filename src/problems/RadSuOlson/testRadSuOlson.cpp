@@ -92,7 +92,7 @@ template <> AMREX_GPU_HOST_DEVICE auto RadSystem<MarshakProblem>::ComputeFluxMea
 	return kappa / rho;
 }
 
-[[maybe_unused]] static constexpr int nmscalars_ = Physics_Traits<MarshakProblem>::numMassScalars;
+[[maybe_unused]] static constexpr int nmscalars_ = PhysicsTraits<MarshakProblem>::numMassScalars;
 template <>
 AMREX_GPU_HOST_DEVICE auto
 quokka::EOS<MarshakProblem>::ComputeTgasFromEint([[maybe_unused]] const double rho, const double Egas,

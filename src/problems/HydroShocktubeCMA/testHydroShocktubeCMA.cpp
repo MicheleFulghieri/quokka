@@ -74,7 +74,7 @@ template <> void QuokkaSimulation<ShocktubeProblem>::setInitialConditionsOnGrid(
 	const amrex::Array4<double> &state_cc = grid_elem.array_;
 
 	const int ncomp_cc = Physics_Indices<ShocktubeProblem>::nvarTotal_cc;
-	const int nmscalars = Physics_Traits<ShocktubeProblem>::numMassScalars;
+	const int nmscalars = PhysicsTraits<ShocktubeProblem>::numMassScalars;
 	// loop over the grid and set the initial condition
 	amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 		amrex::Real const x = prob_lo[0] + (i + static_cast<amrex::Real>(0.5)) * dx[0];
@@ -206,7 +206,7 @@ template <> void QuokkaSimulation<ShocktubeProblem>::computeAfterTimestep()
 {
 	auto [position, values] = fextract(state_new_cc_[0], Geom(0), 0, 0.5);
 	const int nx = static_cast<int>(position.size()); // number of cells along the x direction
-	const int nmscalars = Physics_Traits<ShocktubeProblem>::numMassScalars;
+	const int nmscalars = PhysicsTraits<ShocktubeProblem>::numMassScalars;
 
 	if (amrex::ParallelDescriptor::IOProcessor()) {
 		userData_.t_vec_.push_back(tNew_[0]);

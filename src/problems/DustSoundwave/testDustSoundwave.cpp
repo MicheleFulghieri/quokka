@@ -146,7 +146,7 @@ template <> void QuokkaSimulation<DustSoundwave>::setInitialConditionsOnGrid(quo
 		// velocity perturbation: δv_d = A_vel[Re(δv_d^)cos(kx) - Im(δv_d^)sin(kx)]
 		double const du_d = A_vel * (Re_u_d * cos(kk * x) - Im_u_d * sin(kk * x));
 
-		if constexpr (Physics_Traits<DustSoundwave>::is_dust_enabled) {
+		if constexpr (PhysicsTraits<DustSoundwave>::is_dust_enabled) {
 			state_cc(i, j, k, HydroSystem<DustSoundwave>::dustDensity_index) = rho_dust_local;
 			state_cc(i, j, k, HydroSystem<DustSoundwave>::x1DustMomentum_index) = rho_dust_local * du_d;
 			state_cc(i, j, k, HydroSystem<DustSoundwave>::x2DustMomentum_index) = 0.;

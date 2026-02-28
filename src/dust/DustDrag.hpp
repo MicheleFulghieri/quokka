@@ -16,10 +16,10 @@
 template <typename problem_t> class DustDrag
 {
       public:
-	static constexpr int nscalars_ = Physics_Traits<problem_t>::numPassiveScalars;
+	static constexpr int nscalars_ = PhysicsTraits<problem_t>::numPassiveScalars;
 	static constexpr int nHydroScalars_ = Physics_NumVars::numHydroVars + nscalars_;
 	static constexpr int numDustVars_ = Physics_NumVars::numDustVarsPerGroup; // number of dust variables for each dust group
-	static constexpr int nDustGroups_ = Physics_Traits<problem_t>::nDustGroups;
+	static constexpr int nDustGroups_ = PhysicsTraits<problem_t>::nDustGroups;
 
 	enum consVarIndex { // NOLINT
 		density_index = Physics_Indices<problem_t>::hydroFirstIndex,
@@ -126,7 +126,7 @@ void DustDrag<problem_t>::computeDustDrag(amrex::MultiFab &consVar_cc_mf, std::a
 	// NOLINTNEXTLINE(modernize-use-trailing-return-type)
 	amrex::ParallelFor(consVar_cc_mf, [=] AMREX_GPU_DEVICE(int bx, int i, int j, int k) {
 		std::array<amrex::Array4<const amrex::Real>, AMREX_SPACEDIM> cons_fc{};
-		if (Physics_Traits<problem_t>::is_mhd_enabled) { // if instead of if constexpr to avoid nvcc issues
+		if (PhysicsTraits<problem_t>::is_mhd_enabled) { // if instead of if constexpr to avoid nvcc issues
 			cons_fc[0] = cons_fc_x0[bx];
 #if AMREX_SPACEDIM >= 2
 			cons_fc[1] = cons_fc_x1[bx];

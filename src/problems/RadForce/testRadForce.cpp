@@ -93,16 +93,16 @@ template <> void QuokkaSimulation<TubeProblem>::setInitialConditionsOnGrid(quokk
 	const amrex::Array4<double> &state_cc = grid_elem.array_;
 
 	// calculate radEnergyFractions
-	quokka::valarray<amrex::Real, Physics_Traits<TubeProblem>::nGroups> radEnergyFractions{};
-	for (int g = 0; g < Physics_Traits<TubeProblem>::nGroups; ++g) {
-		radEnergyFractions[g] = 1.0 / Physics_Traits<TubeProblem>::nGroups;
+	quokka::valarray<amrex::Real, PhysicsTraits<TubeProblem>::nGroups> radEnergyFractions{};
+	for (int g = 0; g < PhysicsTraits<TubeProblem>::nGroups; ++g) {
+		radEnergyFractions[g] = 1.0 / PhysicsTraits<TubeProblem>::nGroups;
 	}
 
 	// loop over the grid and set the initial condition
 	amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
 		amrex::Real const rho = rho0;
 
-		for (int g = 0; g < Physics_Traits<TubeProblem>::nGroups; ++g) {
+		for (int g = 0; g < PhysicsTraits<TubeProblem>::nGroups; ++g) {
 			state_cc(i, j, k, RadSystem<TubeProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g) =
 			    Frad0 * radEnergyFractions[g] / c_light_cgs_;
 			state_cc(i, j, k, RadSystem<TubeProblem>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g) = Frad0 * radEnergyFractions[g];
@@ -133,16 +133,16 @@ AMRSimulation<TubeProblem>::setCustomBoundaryConditions(const amrex::IntVect &iv
 	amrex::Real const rho = rho0;
 	amrex::Real const vel = Mach0 * a0;
 
-	quokka::valarray<amrex::Real, Physics_Traits<TubeProblem>::nGroups> radEnergyFractions{};
-	for (int g = 0; g < Physics_Traits<TubeProblem>::nGroups; ++g) {
-		radEnergyFractions[g] = 1.0 / Physics_Traits<TubeProblem>::nGroups;
+	quokka::valarray<amrex::Real, PhysicsTraits<TubeProblem>::nGroups> radEnergyFractions{};
+	for (int g = 0; g < PhysicsTraits<TubeProblem>::nGroups; ++g) {
+		radEnergyFractions[g] = 1.0 / PhysicsTraits<TubeProblem>::nGroups;
 	}
 
 	// Prepare left boundary values
 	amrex::GpuArray<amrex::Real, nvar> low_bdr_cells{};
 
 	// Set specific values for radiation groups
-	for (int g = 0; g < Physics_Traits<TubeProblem>::nGroups; ++g) {
+	for (int g = 0; g < PhysicsTraits<TubeProblem>::nGroups; ++g) {
 		low_bdr_cells[RadSystem<TubeProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g] = Erad * radEnergyFractions[g];
 		low_bdr_cells[RadSystem<TubeProblem>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = Frad * radEnergyFractions[g];
 		low_bdr_cells[RadSystem<TubeProblem>::x2RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g] = 0.;

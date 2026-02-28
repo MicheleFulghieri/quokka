@@ -1,0 +1,26 @@
+# Zel'dovich Pancake simulation parameters
+geometry.prob_lo     =  0.0  0.0  0.0 
+geometry.prob_hi     =  6.172e25  3.086e24  3.086e24 # 20 Mpc x 1 Mpc x 1 Mpc
+geometry.is_periodic = 1 1 1
+
+amr.n_cell          = 128 8 8
+amr.max_level       = 0
+amr.blocking_factor = 8
+
+quokka.bc = periodic periodic periodic
+
+# Cosmology
+cosmology.hubble_constant = 0.7
+cosmology.omega_m = 1.0
+cosmology.omega_lambda = 0.0
+cosmology.a_init = 0.02
+
+# Poisson solver
+poisson_abstol = 1.0e-45
+poisson_reltol = 1.0e-10
+
+# Simulation control
+amr.plot_int = 100
+amr.v = 1
+do_subcycle = 0
+max_timesteps = 20000

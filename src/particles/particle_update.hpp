@@ -50,7 +50,7 @@ template <> struct ParticlePropertyUpdateTraits<ParticleType::StochasticStellarP
 			return;
 		}
 
-		constexpr int nGroups = Physics_Traits<problem_t>::nGroups;
+		constexpr int nGroups = PhysicsTraits<problem_t>::nGroups;
 		auto *host_tables_ptr = quokka::g_luminosity_tables_ptr<nGroups>;
 
 		// Only proceed if tables are initialized
@@ -95,7 +95,7 @@ template <> struct ParticlePropertyUpdateTraits<ParticleType::StochasticStellarP
 // 		const double is_on = age < 1.0e14 ? 1.0 : 0.0; // 3 Myr
 
 // 		// Update luminosity components (they are stored consecutively starting at lum_idx)
-// 		for (int g = 0; g < Physics_Traits<problem_t>::nGroups; ++g) {
+// 		for (int g = 0; g < PhysicsTraits<problem_t>::nGroups; ++g) {
 // 			const amrex::Real luminosity = star_lum_per_M_solar * (mass / C::M_solar) * (g + 1) * is_on; // erg / s
 // 			p.rdata(lum_idx + g) = luminosity;
 // 		}

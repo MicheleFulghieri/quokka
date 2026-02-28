@@ -222,7 +222,7 @@ template <> void QuokkaSimulation<MGproblem>::setInitialConditionsOnGrid(quokka:
 
 		auto Erad_g = RadSystem<MGproblem>::ComputeThermalRadiationMultiGroup(Trad, radBoundaries_g);
 
-		for (int g = 0; g < Physics_Traits<MGproblem>::nGroups; ++g) {
+		for (int g = 0; g < PhysicsTraits<MGproblem>::nGroups; ++g) {
 			state_cc(i, j, k, RadSystem<MGproblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g) = Erad_g[g];
 			state_cc(i, j, k, RadSystem<MGproblem>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g) = 4. / 3. * v0 * Erad_g[g];
 			state_cc(i, j, k, RadSystem<MGproblem>::x2RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g) = 0;
@@ -284,7 +284,7 @@ auto problem_main() -> int
 		xs.at(i) = x;
 		// const auto Erad_t = values.at(RadSystem<SGProblem>::radEnergy_index)[i];
 		double Erad_t = 0.0;
-		for (int g = 0; g < Physics_Traits<SGProblem>::nGroups; ++g) {
+		for (int g = 0; g < PhysicsTraits<SGProblem>::nGroups; ++g) {
 			Erad_t += values.at(RadSystem<SGProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g)[i];
 		}
 		const auto Trad_t = std::pow(Erad_t / a_rad, 1. / 4.);
@@ -357,7 +357,7 @@ auto problem_main() -> int
 		const amrex::Real x = position2[i];
 		// const auto Erad_t = values2.at(RadSystem<MGproblem>::radEnergy_index)[i];
 		double Erad_t = 0.0;
-		for (int g = 0; g < Physics_Traits<MGproblem>::nGroups; ++g) {
+		for (int g = 0; g < PhysicsTraits<MGproblem>::nGroups; ++g) {
 			Erad_t += values2.at(RadSystem<MGproblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g)[i];
 		}
 		const auto Trad_t = std::pow(Erad_t / a_rad, 1. / 4.);

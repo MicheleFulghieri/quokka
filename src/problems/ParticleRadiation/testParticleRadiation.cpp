@@ -71,7 +71,7 @@ template <> struct RadSystem_Traits<ParticleRadiationProblem> {
 	static constexpr double energy_unit = C::ev2erg; // set boundary unit to eV
 	// Define radiation group boundaries for 2-group radiation
 	// Group 0: 1 eV to 100 eV, Group 1: 100 eV to 10000 eV
-	static constexpr amrex::GpuArray<double, Physics_Traits<ParticleRadiationProblem>::nGroups + 1> radBoundaries{1.0, 100.0, 10000.0};
+	static constexpr amrex::GpuArray<double, PhysicsTraits<ParticleRadiationProblem>::nGroups + 1> radBoundaries{1.0, 100.0, 10000.0};
 	static constexpr OpacityModel opacity_model = OpacityModel::piecewise_constant_opacity;
 };
 
@@ -135,7 +135,7 @@ template <> void QuokkaSimulation<ParticleRadiationProblem>::setInitialCondition
 		const double rho_e = CV * T0 * rho;
 
 		// Set radiation variables
-		for (int g = 0; g < Physics_Traits<ParticleRadiationProblem>::nGroups; ++g) {
+		for (int g = 0; g < PhysicsTraits<ParticleRadiationProblem>::nGroups; ++g) {
 			state_cc(i, j, k, RadSystem<ParticleRadiationProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g) = Erad0;
 			state_cc(i, j, k, RadSystem<ParticleRadiationProblem>::x1RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g) = 0;
 			state_cc(i, j, k, RadSystem<ParticleRadiationProblem>::x2RadFlux_index + Physics_NumVars::numRadVarsPerGroup * g) = 0;
@@ -171,7 +171,7 @@ auto problem_main() -> int
 	amrex::Real const vol = AMREX_D_TERM(dx0[0], *dx0[1], *dx0[2]);
 	// Total radiation energy in the field
 	amrex::Real total_Erad_init = 0.0;
-	for (int g = 0; g < Physics_Traits<ParticleRadiationProblem>::nGroups; ++g) {
+	for (int g = 0; g < PhysicsTraits<ParticleRadiationProblem>::nGroups; ++g) {
 		total_Erad_init +=
 		    sim.state_new_cc_[0].sum(RadSystem<ParticleRadiationProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g) * vol;
 	}
@@ -189,7 +189,7 @@ auto problem_main() -> int
 
 	// Total radiation energy in the field
 	amrex::Real total_Erad = 0.0;
-	for (int g = 0; g < Physics_Traits<ParticleRadiationProblem>::nGroups; ++g) {
+	for (int g = 0; g < PhysicsTraits<ParticleRadiationProblem>::nGroups; ++g) {
 		total_Erad += sim.state_new_cc_[0].sum(RadSystem<ParticleRadiationProblem>::radEnergy_index + Physics_NumVars::numRadVarsPerGroup * g) * vol;
 	}
 

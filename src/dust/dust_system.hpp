@@ -18,7 +18,7 @@
 template <typename problem_t> class DustSystem
 {
       public:
-	static constexpr int nscalars_ = Physics_Traits<problem_t>::numPassiveScalars;
+	static constexpr int nscalars_ = PhysicsTraits<problem_t>::numPassiveScalars;
 	static constexpr int nHydroScalars_ = Physics_NumVars::numHydroVars + nscalars_;
 	static constexpr int numDustVars_ = Physics_NumVars::numDustVarsPerGroup; // number of dust variables for each dust group
 
@@ -64,7 +64,7 @@ AMREX_GPU_DEVICE void DustSystem<problem_t>::ComputeDustFluxes(quokka::Array4Vie
 							       quokka::Array4View<const amrex::Real, DIR> &x1LeftState,
 							       quokka::Array4View<const amrex::Real, DIR> &x1RightState, int i, int j, int k)
 {
-	for (int g = 0; g < Physics_Traits<problem_t>::nDustGroups; ++g) {
+	for (int g = 0; g < PhysicsTraits<problem_t>::nDustGroups; ++g) {
 		// gather left- and right- density for dust
 		const double dust_rho_L = x1LeftState(i, j, k, primDustDensity_index + numDustVars_ * g);
 		const double dust_rho_R = x1RightState(i, j, k, primDustDensity_index + numDustVars_ * g);

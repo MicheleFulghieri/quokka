@@ -46,7 +46,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE auto dQ_dx_inflow_x1_lower(quokka::valarray<
 		s[i] = Q[6 + i];
 	}
 
-	static constexpr int nmscalars_ = Physics_Traits<problem_t>::numMassScalars;
+	static constexpr int nmscalars_ = PhysicsTraits<problem_t>::numMassScalars;
 	amrex::GpuArray<Real, nmscalars_> massScalars;
 	for (int n = 0; n < nmscalars_; ++n) {
 		// indexing here follows primVars
@@ -182,7 +182,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void setInflowX1LowerLowOrder(const amrex::I
 	// compute primitive vars from valid region
 	quokka::valarray<amrex::Real, N> const Q_i = HydroSystem<problem_t>::ComputePrimVars(consVar, ilo, j, k);
 
-	static constexpr int nmscalars_ = Physics_Traits<problem_t>::numMassScalars;
+	static constexpr int nmscalars_ = PhysicsTraits<problem_t>::numMassScalars;
 	amrex::GpuArray<Real, nmscalars_> massScalars;
 	for (int n = 0; n < nmscalars_; ++n) {
 		// indexing here follows primVars

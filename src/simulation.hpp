@@ -255,7 +255,7 @@ template <typename problem_t> class AMRSimulation : public amrex::AmrCore
 
 	auto builtin_BCs_fc(amrex::Vector<amrex::BCRec> & /*BCs_cc*/) -> amrex::Vector<amrex::BCRec>
 	{
-		static_assert(!(Physics_Traits<problem_t>::is_mhd_enabled), "You are required to explicitly define the face-centered BCs when MHD is enabled.");
+		static_assert(!(PhysicsTraits<problem_t>::is_mhd_enabled), "You are required to explicitly define the face-centered BCs when MHD is enabled.");
 		amrex::Vector<amrex::BCRec> BCs_fc(0);
 		return BCs_fc;
 	}
@@ -284,7 +284,7 @@ template <typename problem_t> class AMRSimulation : public amrex::AmrCore
 	void setInitialConditionsAtLevel_fc(int level, amrex::Real time);
 	void evolve();
 	void computeTimestep();
-	auto computeTimestepAtLevel(int lev) -> amrex::ValLocPair<amrex::Real, amrex::IntVect>;
+	virtual auto computeTimestepAtLevel(int lev) -> amrex::ValLocPair<amrex::Real, amrex::IntVect>;
 
 	void AverageFCToCC(amrex::MultiFab &mf_cc, const amrex::MultiFab &mf_fc, int idim, int dstcomp_start, int srccomp_start, int srccomp_total) const;
 
@@ -550,7 +550,7 @@ template <typename problem_t> class AMRSimulation : public amrex::AmrCore
 
 	// Nghost = number of ghost cells for each array
 	// For our new scheme MHD-scheme, we need 7 ghosts for MHD (4 base + 3 for EMF) or 6 otherwise
-	int nghost_cc_ = Physics_Traits<problem_t>::is_mhd_enabled ? 7 : 6;
+	int nghost_cc_ = PhysicsTraits<problem_t>::is_mhd_enabled ? 7 : 6;
 	int nghost_fc_ = nghost_cc_;
 
 	amrex::Vector<std::string> componentNames_cc_;
@@ -575,7 +575,7 @@ template <typename problem_t> class AMRSimulation : public amrex::AmrCore
 	quokka::SpacingType rad_table_output_spacing_ = quokka::SpacingType::fast_log;
 
 #if AMREX_SPACEDIM == 3
-	quokka::LuminosityTables<Physics_Traits<problem_t>::nGroups> luminosityTables_;
+	quokka::LuminosityTables<PhysicsTraits<problem_t>::nGroups> luminosityTables_;
 #endif // AMREX_SPACEDIM == 3
 
 	// Diagnostics
@@ -594,50 +594,50 @@ template <typename problem_t> class AMRSimulation : public amrex::AmrCore
 
 	// gravity
 	static constexpr amrex::Real Gconst_ = []() constexpr {
-		if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CGS) {
+		if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CGS) {
 			return C::Gconst; // gravitational constant G, CGS units
-		} else if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CONSTANTS) {
-			return Physics_Traits<problem_t>::gravitational_constant; // gravitational constant G, user defined
-		} else if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CUSTOM) {
+		} else if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CONSTANTS) {
+			return PhysicsTraits<problem_t>::gravitational_constant; // gravitational constant G, user defined
+		} else if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CUSTOM) {
 			// G / G_bar = u_l^3 / u_m / u_t^2
 			return C::Gconst /
-			       (Physics_Traits<problem_t>::unit_length * Physics_Traits<problem_t>::unit_length * Physics_Traits<problem_t>::unit_length /
-				Physics_Traits<problem_t>::unit_mass / (Physics_Traits<problem_t>::unit_time * Physics_Traits<problem_t>::unit_time));
+			       (PhysicsTraits<problem_t>::unit_length * PhysicsTraits<problem_t>::unit_length * PhysicsTraits<problem_t>::unit_length /
+				PhysicsTraits<problem_t>::unit_mass / (PhysicsTraits<problem_t>::unit_time * PhysicsTraits<problem_t>::unit_time));
 		}
 	}();
 
 	// unit length, mass, time, temperature
 	static constexpr amrex::Real unit_length = []() constexpr {
-		if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CUSTOM) {
-			return Physics_Traits<problem_t>::unit_length;
-		} else if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CGS) {
+		if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CUSTOM) {
+			return PhysicsTraits<problem_t>::unit_length;
+		} else if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CGS) {
 			return 1.0;
 		} else {
 			return NAN;
 		}
 	}();
 	static constexpr amrex::Real unit_mass = []() constexpr {
-		if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CUSTOM) {
-			return Physics_Traits<problem_t>::unit_mass;
-		} else if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CGS) {
+		if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CUSTOM) {
+			return PhysicsTraits<problem_t>::unit_mass;
+		} else if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CGS) {
 			return 1.0;
 		} else {
 			return NAN;
 		}
 	}();
 	static constexpr amrex::Real unit_time = []() constexpr {
-		if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CUSTOM) {
-			return Physics_Traits<problem_t>::unit_time;
-		} else if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CGS) {
+		if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CUSTOM) {
+			return PhysicsTraits<problem_t>::unit_time;
+		} else if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CGS) {
 			return 1.0;
 		} else {
 			return NAN;
 		}
 	}();
 	static constexpr amrex::Real unit_temperature = []() constexpr {
-		if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CUSTOM) {
-			return Physics_Traits<problem_t>::unit_temperature;
-		} else if constexpr (Physics_Traits<problem_t>::unit_system == UnitSystem::CGS) {
+		if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CUSTOM) {
+			return PhysicsTraits<problem_t>::unit_temperature;
+		} else if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CGS) {
 			return 1.0;
 		} else {
 			return NAN;
@@ -779,7 +779,7 @@ template <typename problem_t> void AMRSimulation<problem_t>::initialize()
 	simulationMetadata_["git_hash_amrex"] = getGitHashForAmrex();
 
 	// add units and physics-specific metadata
-	if constexpr (Physics_Traits<problem_t>::is_hydro_enabled || Physics_Traits<problem_t>::is_radiation_enabled) {
+	if constexpr (PhysicsTraits<problem_t>::is_hydro_enabled || PhysicsTraits<problem_t>::is_radiation_enabled) {
 		initializeSimulationMetadata();
 	}
 
@@ -1026,12 +1026,12 @@ template <typename problem_t> void AMRSimulation<problem_t>::readParameters()
 
 #if AMREX_SPACEDIM == 3
 		// if particle and radiation are enabled
-		if (particleRegister_.HasRadiatingParticles() && Physics_Traits<problem_t>::is_radiation_enabled) {
+		if (particleRegister_.HasRadiatingParticles() && PhysicsTraits<problem_t>::is_radiation_enabled) {
 			if (useLuminosityTable_) {
 				AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!luminosityTableFilename_.empty(),
 								 "When use_luminosity_table is set to true, rad_table must be specified");
 
-				constexpr int nGroups = Physics_Traits<problem_t>::nGroups;
+				constexpr int nGroups = PhysicsTraits<problem_t>::nGroups;
 				amrex::Print() << "Loading luminosity table from: " << luminosityTableFilename_ << "\n";
 
 				// Use specified spacing for luminosity values
@@ -1105,7 +1105,7 @@ template <typename problem_t> void AMRSimulation<problem_t>::setInitialCondition
 	}
 
 	// Ensure consistency between particle radiation settings and luminosity data table configuration
-	if constexpr (Physics_Traits<problem_t>::is_radiation_enabled) {
+	if constexpr (PhysicsTraits<problem_t>::is_radiation_enabled) {
 		if (particleRegister_.HasRadiatingParticles()) {
 			AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!(useLuminosityTable_ && luminosityTableFilename_.empty()),
 							 "When use_luminosity_table is set to true, rad_table must be specified");
@@ -1398,7 +1398,7 @@ template <typename problem_t> void AMRSimulation<problem_t>::evolve()
 #if AMREX_SPACEDIM == 3
 		if constexpr (Particle_Traits<problem_t>::particle_switch != ParticleSwitch::None) {
 			// do particle leapfrog (first kick at time t)
-			if constexpr (Physics_Traits<problem_t>::is_self_gravity_enabled) {
+			if constexpr (PhysicsTraits<problem_t>::is_self_gravity_enabled) {
 				kickParticlesAllLevels(dt_[0]);
 			}
 		}
@@ -1427,7 +1427,7 @@ template <typename problem_t> void AMRSimulation<problem_t>::evolve()
 		// do particle leapfrog (second kick at t + dt)
 #if AMREX_SPACEDIM == 3
 		if constexpr (Particle_Traits<problem_t>::particle_switch != ParticleSwitch::None) {
-			if constexpr (Physics_Traits<problem_t>::is_self_gravity_enabled) {
+			if constexpr (PhysicsTraits<problem_t>::is_self_gravity_enabled) {
 				kickParticlesAllLevels(dt_[0]);
 			}
 
@@ -1660,7 +1660,7 @@ template <typename problem_t> void AMRSimulation<problem_t>::evolve()
 template <typename problem_t> void AMRSimulation<problem_t>::calculateGpotAllLevels()
 {
 #if AMREX_SPACEDIM == 3
-	if constexpr (Physics_Traits<problem_t>::is_self_gravity_enabled) {
+	if constexpr (PhysicsTraits<problem_t>::is_self_gravity_enabled) {
 		if (do_subcycle == 1) { // not supported
 			amrex::Abort("Poisson solve is not support when AMR subcycling is enabled! You must set do_subcycle = 0.");
 		}
@@ -1859,7 +1859,7 @@ template <typename problem_t> void AMRSimulation<problem_t>::calculateGpotAllLev
 template <typename problem_t> void AMRSimulation<problem_t>::gravAccelAllLevels(const amrex::Real dt)
 {
 #if AMREX_SPACEDIM == 3
-	if constexpr (Physics_Traits<problem_t>::is_self_gravity_enabled) {
+	if constexpr (PhysicsTraits<problem_t>::is_self_gravity_enabled) {
 
 		BL_PROFILE_REGION("GravitySolver"); // NOLINT(misc-const-correctness)
 
@@ -1874,7 +1874,7 @@ template <typename problem_t> void AMRSimulation<problem_t>::gravAccelAllLevels(
 template <typename problem_t> void AMRSimulation<problem_t>::ellipticSolveAllLevels(const amrex::Real dt)
 {
 #if AMREX_SPACEDIM == 3
-	if constexpr (Physics_Traits<problem_t>::is_self_gravity_enabled) {
+	if constexpr (PhysicsTraits<problem_t>::is_self_gravity_enabled) {
 		if (poissonSupercycleInterval_ > 1) {
 			AMREX_ALWAYS_ASSERT_WITH_MESSAGE(regrid_int <= 0, "Poisson supercycling is only allowed for static meshes!");
 		}
@@ -2179,7 +2179,7 @@ template <typename problem_t> void AMRSimulation<problem_t>::timeStepWithSubcycl
 			if (flux_reg_[lev + 1] != nullptr) {
 				flux_reg_[lev + 1]->Reflux(state_new_cc_[lev], 1.0, 0, 0, state_new_cc_[lev].nComp(), geom[lev]);
 			}
-			if constexpr (Physics_Traits<problem_t>::is_mhd_enabled) {
+			if constexpr (PhysicsTraits<problem_t>::is_mhd_enabled) {
 				if (emf_reg_[lev + 1] != nullptr) {
 					// NOLINTNEXTLINE(readability-container-data-pointer)
 					emf_reg_[lev + 1]->Reflux({AMREX_D_DECL(&state_new_fc_[lev][0], &state_new_fc_[lev][1], &state_new_fc_[lev][2])});
@@ -2341,7 +2341,7 @@ void AMRSimulation<problem_t>::MakeNewLevelFromCoarse(int level, amrex::Real tim
 
 	if (level > 0 && (do_reflux != 0)) {
 		flux_reg_[level] = std::make_unique<amrex::FluxRegister>(ba, dm, refRatio(level - 1), level, ncomp_cc);
-		if constexpr (Physics_Traits<problem_t>::is_mhd_enabled) {
+		if constexpr (PhysicsTraits<problem_t>::is_mhd_enabled) {
 			const int nemf_vars = 1;
 			emf_reg_[level] = std::make_unique<amrex::EdgeFluxRegister>(ba, boxArray(level - 1), dm, DistributionMap(level - 1), Geom(level),
 										    Geom(level - 1), nemf_vars);
@@ -2396,7 +2396,7 @@ void AMRSimulation<problem_t>::RemakeLevel(int level, amrex::Real time, const am
 
 	if (level > 0 && (do_reflux != 0)) {
 		flux_reg_[level] = std::make_unique<amrex::FluxRegister>(ba, dm, refRatio(level - 1), level, ncomp_cc);
-		if constexpr (Physics_Traits<problem_t>::is_mhd_enabled) {
+		if constexpr (PhysicsTraits<problem_t>::is_mhd_enabled) {
 			const int nemf_vars = 1;
 			emf_reg_[level] = std::make_unique<amrex::EdgeFluxRegister>(ba, boxArray(level - 1), dm, DistributionMap(level - 1), Geom(level),
 										    Geom(level - 1), nemf_vars);
@@ -3029,7 +3029,7 @@ void AMRSimulation<problem_t>::MakeNewLevelFromScratch(int level, amrex::Real ti
 
 	if (level > 0 && (do_reflux != 0)) {
 		flux_reg_[level] = std::make_unique<amrex::FluxRegister>(ba, dm, refRatio(level - 1), level, ncomp_cc);
-		if constexpr (Physics_Traits<problem_t>::is_mhd_enabled) {
+		if constexpr (PhysicsTraits<problem_t>::is_mhd_enabled) {
 			const int nemf_vars = 1;
 			emf_reg_[level] = std::make_unique<amrex::EdgeFluxRegister>(ba, boxArray(level - 1), dm, DistributionMap(level - 1), Geom(level),
 										    Geom(level - 1), nemf_vars);
@@ -3512,7 +3512,7 @@ template <typename problem_t> void AMRSimulation<problem_t>::InitPhyParticles(am
 		} else {
 			AMREX_ASSERT(StochasticStellarPopParticles == nullptr);
 
-			static_assert(Physics_Traits<problem_t>::unit_system == UnitSystem::CGS, "UnitSystem must be CGS for StochasticStellarPop particles");
+			static_assert(PhysicsTraits<problem_t>::unit_system == UnitSystem::CGS, "UnitSystem must be CGS for StochasticStellarPop particles");
 
 			// Create particle container
 			StochasticStellarPopParticles = std::make_unique<quokka::StochasticStellarPopParticleContainer<problem_t>>(this);
@@ -4714,7 +4714,7 @@ template <typename problem_t> void AMRSimulation<problem_t>::ReadCheckpointFile(
 
 		if (lev > 0 && (do_reflux != 0)) {
 			flux_reg_[lev] = std::make_unique<amrex::FluxRegister>(ba, dm, refRatio(lev - 1), lev, ncomp_cc);
-			if constexpr (Physics_Traits<problem_t>::is_mhd_enabled) {
+			if constexpr (PhysicsTraits<problem_t>::is_mhd_enabled) {
 				const int nemf_vars = 1;
 				emf_reg_[lev] = std::make_unique<amrex::EdgeFluxRegister>(ba, boxArray(lev - 1), dm, DistributionMap(lev - 1), Geom(lev),
 											  Geom(lev - 1), nemf_vars);
