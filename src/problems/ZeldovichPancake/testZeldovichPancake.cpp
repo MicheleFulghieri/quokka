@@ -20,17 +20,15 @@ template <> struct Physics_Traits<ZeldovichProblem> {
 	static constexpr int numMassScalars = 0;
 	static constexpr int numPassiveScalars = 0;
 	static constexpr bool is_dust_enabled = false;
-	static constexpr int nGroups = 1;
-	static constexpr int nDustGroups = 1;
 	static constexpr UnitSystem unit_system = UnitSystem::CGS;
 
-	// Cosmology parameters (Einstein-de Sitter)
+	// Cosmology parameters: Einstein-de Sitter universe (flat, matter-only)
 	static constexpr double omega_m = 1.0;
 	static constexpr double omega_r = 0.0;
 	static constexpr double omega_lambda = 0.0;
-	static constexpr double hubble_constant = 0.7; // h = 0.7
-	static constexpr double a_init = 0.02;         // start early
-	static constexpr double cosmology_dt_limit = 0.01;
+	static constexpr double hubble_constant = 0.7; // h = 0.7 (H0 = 70 km/s/Mpc)
+	static constexpr double a_init = 0.02;	       // start at z_init = 49
+	static constexpr double cosmology_dt_limit = 0.01; // max delta_a / a per step
 };
 
 template <> void QuokkaSimulation<ZeldovichProblem>::setInitialConditionsOnGrid(quokka::grid const &grid_elem)
@@ -61,14 +59,21 @@ template <> void QuokkaSimulation<ZeldovichProblem>::setInitialConditionsOnGrid(
 	amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 		amrex::Real const x = prob_lo[0] + (i + 0.5) * dx[0];
 		
-		// Zel'dovich ICs
+		// Zel'dovich pancake initial conditions (1D, x-direction)
+		// In the Zel'dovich approximation, linear perturbation theory gives:
+		//   delta(q) = -amplitude * cos(k*q)   (density contrast)
+		//   rho(q)   = rho_mean / (1 - delta)  (comoving density)
+		// where amplitude = a_init / a_collapse < 1  =>  delta is small initially.
+		//
+		// Growing mode peculiar velocity in EdS (f=1, D=a):
+		//   v_pec = a(t) * H(a) * (amplitude / k) * sin(k*q)
+		// Note: the factor is a*H, NOT a^2*H.
 		const double k_wave = 2.0 * M_PI / L;
 		const double amplitude = a_init / a_collapse;
-		
+
 		const double delta = -amplitude * std::cos(k_wave * x);
 		const double rho = rho_mean / (1.0 - delta);
-		// v_phys = a^2 * H(a) * psi = a^2 * H(a) * (amplitude/k) * sin(kx)
-		const double v = -H_init * (a_init * a_init) * (amplitude / k_wave) * std::sin(k_wave * x);
+		const double v = a_init * H_init * (amplitude / k_wave) * std::sin(k_wave * x);
 
 		const double gamma = quokka::EOS_Traits<ZeldovichProblem>::gamma;
 		const double eint = (rho * C::k_B * T_init) / (C::m_u * (gamma - 1.0));

@@ -20,16 +20,14 @@ template <> struct Physics_Traits<ExpansionProblem> {
 	static constexpr int numMassScalars = 0;
 	static constexpr int numPassiveScalars = 0;
 	static constexpr bool is_dust_enabled = false;
-	static constexpr int nGroups = 1;
-	static constexpr int nDustGroups = 1;
 	static constexpr UnitSystem unit_system = UnitSystem::CGS;
 
-	// Cosmology parameters
+	// Cosmology parameters: flat matter-only EdS universe
 	static constexpr double omega_m = 1.0;
 	static constexpr double omega_r = 0.0;
 	static constexpr double omega_lambda = 0.0;
-	static constexpr double hubble_constant = 0.7; // h = 0.7 (approx 70 km/s/Mpc)
-	static constexpr double a_init = 1.0;
+	static constexpr double hubble_constant = 0.7; // h = 0.7 (H0 = 70 km/s/Mpc)
+	static constexpr double a_init = 1.0;	       // start at z=0
 	static constexpr double cosmology_dt_limit = 1e-4; // very small for accuracy
 };
 

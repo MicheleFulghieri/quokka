@@ -1,26 +1,27 @@
 # Zel'dovich Pancake simulation parameters
-geometry.prob_lo     =  0.0  0.0  0.0 
-geometry.prob_hi     =  6.172e25  3.086e24  3.086e24 # 20 Mpc x 1 Mpc x 1 Mpc
-geometry.is_periodic = 1 1 1
+geometry.prob_lo     =  0.0  0.0  0.0  # define the origin of the simulation box coordinates
+geometry.prob_hi     =  6.172e25  3.086e24  3.086e24 # 20 Mpc x 1 Mpc x 1 Mpc (x, y, z) max extension
+geometry.is_periodic = 1 1 1   # periodic boundary conditions
 
-amr.n_cell          = 128 8 8
-amr.max_level       = 0
-amr.blocking_factor = 8
+amr.n_cell          = 128 8 8   # initial number of cells in each dimension
+amr.max_level       = 0         # maximum level of refinement
+amr.blocking_factor = 8         # factor by which the number of cells is multiplied at each level
 
-quokka.bc = periodic periodic periodic
+quokka.bc = periodic periodic periodic   # boundary conditions for each dimension (x, y, z)   
 
 # Cosmology
 cosmology.hubble_constant = 0.7
-cosmology.omega_m = 1.0
+cosmology.omega_m = 1.0         # Einstein-de Sitter universe
 cosmology.omega_lambda = 0.0
-cosmology.a_init = 0.02
+cosmology.a_init = 0.02         # initial scale factor
 
 # Poisson solver
-poisson_abstol = 1.0e-45
-poisson_reltol = 1.0e-10
+poisson_abstol = 1.0e-45       # absolute tolerance for the Poisson solver (gravitational potential calculation)
+poisson_reltol = 1.0e-10       # relative tolerance for the Poisson solver (gravitational potential calculation)
 
 # Simulation control
-amr.plot_int = 100
-amr.v = 1
-do_subcycle = 0
-max_timesteps = 20000
+plotfile_interval = 100         # interval between plotfiles: save a plotfile every 100 timesteps
+amr.v = 1                       # verbosity level: 0=quiet, 1=verbose, 2=very verbose
+do_subcycle = 0                 # whether to use subcycling
+max_timesteps = 20000           # maximum number of timesteps: if the simulation runs for more than 20000 timesteps, it will stop
+

@@ -404,6 +404,7 @@ template <typename problem_t> class QuokkaSimulation : public AMRSimulation<prob
 			 amrex::iMultiFab &redoFlag);
 
 	// void PrintRadEnergySource(amrex::MultiFab const &radEnergySource);
+	void WritePlotFile() override;
 };
 
 template <typename problem_t> void QuokkaSimulation<problem_t>::defineComponentNames()
@@ -730,7 +731,7 @@ template <typename problem_t> void QuokkaSimulation<problem_t>::readParmParse()
 			comoving_mean_density_ = omega_m * rho_crit_0;
 		}
 
-		quokka::cosmology::printCosmologyInfo(cosmology_params_);
+		quokka::cosmology::printCosmologyInfo(cosmology_params_, a_now_);
 	}
 }
 
@@ -1476,17 +1477,10 @@ template <typename problem_t> void QuokkaSimulation<problem_t>::fillPoissonRhsAt
 		}
 	});
 
-	// For periodic boundaries, the RHS must sum to zero exactly for MLMG to converge.
-	// We subtract the mean of the RHS to ensure this.
-	if (geom[lev].isAllPeriodic()) {
-		const amrex::Real rhs_sum = rhs_mf.sum(0); // sum() handles parallel reduction
-		const amrex::Real ncells = static_cast<amrex::Real>(geom[lev].Domain().numPts());
-		const amrex::Real rhs_mean = rhs_sum / ncells;
-		
-		amrex::ParallelFor(rhs_mf, [=] AMREX_GPU_DEVICE(int bx, int i, int j, int k) noexcept {
-			rhs[bx](i, j, k) -= rhs_mean;
-		});
-	}
+	// Note: for periodic BCs, the comoving Poisson RHS is 4*pi*G*(rho_c - rho_bar_c)/a,
+	// which sums to zero by construction when rho_bar_c is the cell-averaged comoving density.
+	// The MLMG solver handles any residual mean internally via its null-space projection.
+	// We therefore do NOT subtract the RHS mean here — it would double-count the mean removal.
 
 	amrex::Gpu::streamSynchronizeAll();
 }
@@ -3394,6 +3388,15 @@ void QuokkaSimulation<problem_t>::WriteSingleLevelPlotfileSimplified(const std::
 	}
 	const auto plotfile_name = CustomPlotFileName(plotfile_prefix.c_str(), istep[lev]);
 	WriteSingleLevelPlotfile(plotfile_name, mf, compNames, geom[lev], tNew_[lev], istep[lev]);
+}
+
+
+template <typename problem_t> void QuokkaSimulation<problem_t>::WritePlotFile()
+{
+	if constexpr (PhysicsTraits<problem_t>::is_cosmology_enabled) {
+		this->simulationMetadata_["a"] = a_now_;
+	}
+	AMRSimulation<problem_t>::WritePlotFile();
 }
 
 #endif // RADIATION_SIMULATION_HPP_

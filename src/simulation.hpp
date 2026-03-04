@@ -472,8 +472,8 @@ template <typename problem_t> class AMRSimulation : public amrex::AmrCore
 	void WriteMetadataFile(std::string const &MetadataFileName) const;
 	void ReadMetadataFile(std::string const &chkfilename);
 	void WriteStatisticsFile();
-	void WritePlotFile();
-	void WriteCheckpointFile() const;
+	virtual void WritePlotFile();
+	virtual void WriteCheckpointFile() const;
 	void SetLastCheckpointSymlink(std::string const &checkpointname) const;
 	void writeFaceVelocitiesToDisk(std::array<amrex::MultiFab, AMREX_SPACEDIM> const &faceVel, int lev, int step);
 	void writeReconstructedStatesToDisk(std::array<amrex::MultiFab, AMREX_SPACEDIM> const &leftState,
