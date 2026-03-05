@@ -1462,16 +1462,21 @@ template <typename problem_t> void QuokkaSimulation<problem_t>::fillPoissonRhsAt
 	auto rhs = rhs_mf.arrays();
 	const Real G = Gconst_;
 
+	// Hoist cosmology member variables to local scalars before the lambda.
+	// NVCC 13 forbids the first capture of 'this' (via a member access like a_now_)
+	// from occurring inside a 'if constexpr' branch of a __device__ lambda.
+	// By copying to local variables here (on the host), the lambda captures
+	// plain scalars via [=], never touching 'this' for the first time inside constexpr-if.
+	const amrex::Real a_cosmo = a_now_;
+	const amrex::Real rho_mean_cosmo = comoving_mean_density_;
+
 	amrex::ParallelFor(rhs_mf, [=] AMREX_GPU_DEVICE(int bx, int i, int j, int k) noexcept {
 		// *add* density to rhs_mf
 		// (N.B. particles **will not work** if you overwrite the density here!)
 		amrex::Real rho = state[bx](i, j, k, HydroSystem<problem_t>::density_index);
 		if constexpr (PhysicsTraits<problem_t>::is_cosmology_enabled) {
-			const amrex::Real a = a_now_;
-			// Comoving Poisson equation: \nabla^2 \phi = 4 \pi G a^2 (\rho_phys - \bar{\rho}_phys)
-			// Assuming 'rho' in the state is comoving density: \rho_phys = \rho / a^3
-			// RHS = 4 * \pi * G * a^2 * (\rho / a^3 - \bar{\rho} / a^3) = 4 * \pi * G * (\rho - \bar{\rho}) / a
-			rhs[bx](i, j, k) += 4.0 * M_PI * G * (rho - comoving_mean_density_) / a;
+			// Comoving Poisson equation: \nabla^2 \phi = 4\pi G (\rho_c - \bar{\rho}_c) / a
+			rhs[bx](i, j, k) += 4.0 * M_PI * G * (rho - rho_mean_cosmo) / a_cosmo;
 		} else {
 			rhs[bx](i, j, k) += 4.0 * M_PI * G * rho;
 		}
@@ -1493,6 +1498,9 @@ template <typename problem_t> void QuokkaSimulation<problem_t>::applyPoissonGrav
 	auto const &phi = phi_mf.const_arrays();
 	auto state = state_new_cc_[lev].arrays();
 
+	// Hoist a_now_ to a local scalar for the same NVCC constexpr-if reason as above.
+	const amrex::Real a_cosmo = a_now_;
+
 	amrex::ParallelFor(phi_mf, [=] AMREX_GPU_DEVICE(int bx, int i, int j, int k) noexcept {
 		// add operator-split gravitational acceleration
 		const amrex::Real rho = state[bx](i, j, k, HydroSystem<problem_t>::density_index);
@@ -1501,16 +1509,16 @@ template <typename problem_t> void QuokkaSimulation<problem_t>::applyPoissonGrav
 		amrex::Real pz = state[bx](i, j, k, HydroSystem<problem_t>::x3Momentum_index);
 		const amrex::Real KE_old = 0.5 * (px * px + py * py + pz * pz) / rho;
 
-		// g = -grad \phi
+		// g = -grad \phi  (centered finite difference)
 		amrex::Real gx = -0.5 * (phi[bx](i + 1, j, k) - phi[bx](i - 1, j, k)) / dx[0];
 		amrex::Real gy = -0.5 * (phi[bx](i, j + 1, k) - phi[bx](i, j - 1, k)) / dx[1];
 		amrex::Real gz = -0.5 * (phi[bx](i, j, k + 1) - phi[bx](i, j, k - 1)) / dx[2];
 
+		// In comoving coordinates the peculiar acceleration is g_pec = -nabla_x phi / a
 		if constexpr (PhysicsTraits<problem_t>::is_cosmology_enabled) {
-			const amrex::Real a = a_now_;
-			gx /= a;
-			gy /= a;
-			gz /= a;
+			gx /= a_cosmo;
+			gy /= a_cosmo;
+			gz /= a_cosmo;
 		}
 
 		px += dt * rho * gx;
