@@ -1,4 +1,5 @@
 #!/bin/bash 
+set -euo pipefail        # exit on error, undefined variable, and fail on pipe errors
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=8000mb
@@ -31,8 +32,14 @@ export OMP_THREAD_LIMIT=$SLURM_CPUS_PER_TASK
 # Execution
 echo "Starting HydroWave simulation at: $(date)"
 
+# Print some useful information about the job
+echo "Running on host: $(hostname)"
+echo "Job ID: $SLURM_JOB_ID"
+echo "SLURM_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK"
+sacct -j $SLURM_JOB_ID --format=JobID,State,Elapsed,MaxRSS
+
 # Command execution
-$EXE $INPUT --plotfile_prefix="$OUT_DIR/plt"
+srun $EXE $INPUT --plotfile_prefix="$OUT_DIR/plt"  # srun is used to launch the executable in a way that is compatible with SLURM's resource management
 
 echo "Simultion finished at: $(date)"
 
