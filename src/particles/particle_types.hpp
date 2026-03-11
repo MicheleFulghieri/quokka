@@ -342,12 +342,9 @@ template <typename EnumType, int nComps, bool expandLast> auto expandEnumNames()
 	}
 
 	// Add all components except the last one
-	if constexpr (enum_size > 1){	// if a particle type has only one component (e.g. luminosity), we will not add the base name without suffix, and directly start with name_0
-		for (int i = 0; i < enum_size - 1; ++i) {
+	for (int i = 0; i < enum_size - 1; ++i) {
 		names.push_back(enum_names[i]);
-	    }
 	}
-		
 
 	// Expand the last component into name_0, name_1, ...
 	const std::string &base_name = enum_names.back();
