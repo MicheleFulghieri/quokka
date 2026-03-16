@@ -53,15 +53,16 @@
 #include "hydro/hydro_system.hpp"
 #include "physics_info.hpp"
 
-namespace quokka::cosmology {
+namespace quokka::cosmology
+{
 
 /// @brief Parameters for the cosmological model (LCDM by default)
 struct CosmologyParams {
 	amrex::Real H0{C::Hubble_const}; ///< Hubble constant at z=0 [s^-1]
 	amrex::Real Omega_m{0.315};	 ///< Matter density parameter
-	amrex::Real Omega_r{9.2618e-5}; ///< Radiation density parameter
+	amrex::Real Omega_r{9.2618e-5};	 ///< Radiation density parameter
 	amrex::Real Omega_L{0.685};	 ///< Dark energy (Lambda) density parameter
-	// Omega_k = 1 - (Omega_m + Omega_r + Omega_L)  [derived]
+					 // Omega_k = 1 - (Omega_m + Omega_r + Omega_L)  [derived]
 };
 
 /// @brief Compute the dimensionless Hubble factor E(a) = H(a)/H0
@@ -99,8 +100,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE auto HubbleFactor(amrex::Real a, Cosmol
 /// \return             New scale factor a(t+dt)
 ///
 /// [[nodiscard]]: the compiler warns if the caller discards the return value.
-[[nodiscard]] inline auto evolveScaleFactor(amrex::Real a_old, amrex::Real dt, CosmologyParams const &cosmo,
-					    amrex::Real max_frac_step = 0.01) -> amrex::Real
+[[nodiscard]] inline auto evolveScaleFactor(amrex::Real a_old, amrex::Real dt, CosmologyParams const &cosmo, amrex::Real max_frac_step = 0.01) -> amrex::Real
 {
 	// Estimate how many sub-steps we need: H*dt < max_frac_step per sub-step
 	const amrex::Real H_est = cosmo.H0 * HubbleFactor(a_old, cosmo);
@@ -111,8 +111,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE auto HubbleFactor(amrex::Real a, Cosmol
 	for (int step = 0; step < nsteps; ++step) {
 		// Midpoint (RK2): evaluate derivative at start, step to midpoint,
 		// re-evaluate at midpoint, use midpoint derivative for the full step.
-		const amrex::Real k1 = a * cosmo.H0 * HubbleFactor(a, cosmo);         // da/dt at t
-		const amrex::Real a_mid = a + 0.5 * dt_sub * k1;                       // a at t+dt/2
+		const amrex::Real k1 = a * cosmo.H0 * HubbleFactor(a, cosmo);	      // da/dt at t
+		const amrex::Real a_mid = a + 0.5 * dt_sub * k1;		      // a at t+dt/2
 		const amrex::Real k2 = a_mid * cosmo.H0 * HubbleFactor(a_mid, cosmo); // da/dt at t+dt/2
 		a += dt_sub * k2;
 	}

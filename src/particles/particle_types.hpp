@@ -234,7 +234,7 @@ template <typename problem_t>
 constexpr int StochasticStellarPopParticleRealComps = []() constexpr {
 	if constexpr (PhysicsTraits<problem_t>::is_hydro_enabled || PhysicsTraits<problem_t>::is_radiation_enabled) {
 		return 14 + PhysicsTraits<problem_t>::nGroups; // mass, vx, vy, vz, birth_time, death_time, birth_xyz, death_xyz, death_density, mass_at_birth,
-								// lum[nGroups]
+							       // lum[nGroups]
 	} else {
 		return 14; // mass, vx, vy, vz, birth_time, death_time, birth_xyz, death_xyz, death_density, mass_at_birth
 	}

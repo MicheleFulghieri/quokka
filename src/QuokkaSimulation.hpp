@@ -74,8 +74,8 @@ namespace filesystem = experimental::filesystem;
 
 #include "SimulationData.hpp"
 #include "chemistry/Chemistry.hpp"
-#include "cosmology/Cosmology.hpp"
 #include "cooling/ResampledCooling.hpp"
+#include "cosmology/Cosmology.hpp"
 #include "dust/DustDrag.hpp"
 #include "dust/dust_system.hpp"
 #include "eos.H"
@@ -515,9 +515,9 @@ template <typename problem_t> void AMRSimulation<problem_t>::initializeSimulatio
 			k_B = C::k_B;
 		} else if constexpr (PhysicsTraits<problem_t>::unit_system == UnitSystem::CUSTOM) {
 			// Have to do a conversion because EOS class is not accessible here
-			k_B = C::k_B /
-			      (PhysicsTraits<problem_t>::unit_length * PhysicsTraits<problem_t>::unit_length * PhysicsTraits<problem_t>::unit_mass /
-			       (PhysicsTraits<problem_t>::unit_time * PhysicsTraits<problem_t>::unit_time) / PhysicsTraits<problem_t>::unit_temperature);
+			k_B =
+			    C::k_B / (PhysicsTraits<problem_t>::unit_length * PhysicsTraits<problem_t>::unit_length * PhysicsTraits<problem_t>::unit_mass /
+				      (PhysicsTraits<problem_t>::unit_time * PhysicsTraits<problem_t>::unit_time) / PhysicsTraits<problem_t>::unit_temperature);
 		}
 		simulationMetadata_["constants"]["k_B"] = k_B;
 		simulationMetadata_["constants"]["G"] = Gconst_;
@@ -3409,7 +3409,6 @@ void QuokkaSimulation<problem_t>::WriteSingleLevelPlotfileSimplified(const std::
 	const auto plotfile_name = CustomPlotFileName(plotfile_prefix.c_str(), istep[lev]);
 	WriteSingleLevelPlotfile(plotfile_name, mf, compNames, geom[lev], tNew_[lev], istep[lev]);
 }
-
 
 template <typename problem_t> void QuokkaSimulation<problem_t>::WritePlotFile()
 {

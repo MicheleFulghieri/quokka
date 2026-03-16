@@ -4,7 +4,8 @@
 #include "physics_info.hpp"
 #include <cmath>
 
-struct ZeldovichProblem {};
+struct ZeldovichProblem {
+};
 
 template <> struct quokka::EOS_Traits<ZeldovichProblem> {
 	static constexpr double gamma = 5.0 / 3.0;
@@ -26,8 +27,8 @@ template <> struct Physics_Traits<ZeldovichProblem> {
 	static constexpr double omega_m = 1.0;
 	static constexpr double omega_r = 0.0;
 	static constexpr double omega_lambda = 0.0;
-	static constexpr double hubble_constant = 0.7; // h = 0.7 (H0 = 70 km/s/Mpc)
-	static constexpr double a_init = 0.02;	       // start at z_init = 49
+	static constexpr double hubble_constant = 0.7;	   // h = 0.7 (H0 = 70 km/s/Mpc)
+	static constexpr double a_init = 0.02;		   // start at z_init = 49
 	static constexpr double cosmology_dt_limit = 0.01; // max delta_a / a per step
 };
 
@@ -44,8 +45,8 @@ template <> void QuokkaSimulation<ZeldovichProblem>::setInitialConditionsOnGrid(
 	const double z_init = 1.0 / a_init - 1.0;
 	const double z_collapse = 1.0; // collapse at z=1 (a=0.5)
 	const double a_collapse = 1.0 / (1.0 + z_collapse);
-	
-	const double T_init = 100.0;     // low temperature
+
+	const double T_init = 100.0; // low temperature
 
 	// H(a) for EdS: H(a) = H0 * a^(-3/2)
 	const double Mpc_to_cm = 3.08567758e24;
@@ -58,7 +59,7 @@ template <> void QuokkaSimulation<ZeldovichProblem>::setInitialConditionsOnGrid(
 
 	amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 		amrex::Real const x = prob_lo[0] + (i + 0.5) * dx[0];
-		
+
 		// Zel'dovich pancake initial conditions (1D, x-direction)
 		// In the Zel'dovich approximation, linear perturbation theory gives:
 		//   delta(q) = -amplitude * cos(k*q)   (density contrast)
@@ -87,7 +88,8 @@ template <> void QuokkaSimulation<ZeldovichProblem>::setInitialConditionsOnGrid(
 	});
 }
 
-template <> void QuokkaSimulation<ZeldovichProblem>::computeReferenceSolution(amrex::MultiFab & /*ref*/, amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const & /*dx*/,
+template <>
+void QuokkaSimulation<ZeldovichProblem>::computeReferenceSolution(amrex::MultiFab & /*ref*/, amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const & /*dx*/,
 								  amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const & /*prob_lo*/)
 {
 }
@@ -99,13 +101,13 @@ auto problem_main() -> int
 	const double z_collapse = 1.0;
 	const double a_collapse = 1.0 / (1.0 + z_collapse);
 	const double a_init = PhysicsTraits<ZeldovichProblem>::a_init;
-	
+
 	// Einstein-de Sitter age: t(a) = (2/3) * (1/H0) * a^(3/2)
 	const double Mpc_to_cm = 3.08567758e24;
 	const double h = PhysicsTraits<ZeldovichProblem>::hubble_constant;
 	const double H0 = (h * 100.0 * 1e5) / Mpc_to_cm;
-	const double t_init = (2.0/3.0) * (1.0/H0) * std::pow(a_init, 1.5);
-	const double t_collapse = (2.0/3.0) * (1.0/H0) * std::pow(a_collapse, 1.5);
+	const double t_init = (2.0 / 3.0) * (1.0 / H0) * std::pow(a_init, 1.5);
+	const double t_collapse = (2.0 / 3.0) * (1.0 / H0) * std::pow(a_collapse, 1.5);
 
 	sim.stopTime_ = t_collapse - t_init;
 	sim.maxTimesteps_ = 2000;
@@ -117,7 +119,7 @@ auto problem_main() -> int
 	// Check if the density perturbation has grown
 	const amrex::Real rho_min = sim.state_new_cc_[0].min(HydroSystem<ZeldovichProblem>::density_index);
 	const amrex::Real rho_max = sim.state_new_cc_[0].max(HydroSystem<ZeldovichProblem>::density_index);
-	
+
 	amrex::Print() << "\nZel'dovich Pancake Results:\n";
 	amrex::Print() << "  Final a = " << sim.a_now_ << " (expected " << a_collapse << ")\n";
 	amrex::Print() << "  rho_max / rho_min = " << rho_max / rho_min << "\n";

@@ -109,9 +109,9 @@ template <typename problem_t> struct OpacityTerms {
 // A struct to hold the results of the Newton-Raphson iteration for energy update, containing the following elements:
 // Egas, T_gas, T_d, EradVec, work, opacity_terms
 template <typename problem_t> struct NewtonIterationResult {
-	double Egas;							      // gas internal energy
-	double T_gas;							      // gas temperature
-	double T_d;							      // dust temperature
+	double Egas;							     // gas internal energy
+	double T_gas;							     // gas temperature
+	double T_d;							     // dust temperature
 	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> EradVec; // radiation energy density
 	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> work;    // work term
 	OpacityTerms<problem_t> opacity_terms;
@@ -127,14 +127,14 @@ template <typename problem_t> struct JacobianResult {
 	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> Jg0; // (g, 0) components of the Jacobian matrix, g = 1, 2, ..., nGroups
 	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> Jgg; // (g, g) components of the Jacobian matrix, g = 1, 2, ..., nGroups
 	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> Jg1; // (g, 1) components of the Jacobian matrix, g = 1, 2, ..., nGroups
-	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> Fg;  // (g) components of the residual, g = 1, 2, ..., nGroups
+	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> Fg;	 // (g) components of the residual, g = 1, 2, ..., nGroups
 };
 
 // A struct to hold the results of UpdateFlux(), containing the following elements:
 // Erad, gasMomentum, Frad
 template <typename problem_t> struct FluxUpdateResult {
-	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> Erad;			   // radiation energy density
-	amrex::GpuArray<double, 3> gasMomentum;							   // gas momentum
+	quokka::valarray<double, PhysicsTraits<problem_t>::nGroups> Erad;			  // radiation energy density
+	amrex::GpuArray<double, 3> gasMomentum;							  // gas momentum
 	amrex::GpuArray<amrex::GpuArray<amrex::Real, PhysicsTraits<problem_t>::nGroups>, 3> Frad; // radiation flux
 };
 
@@ -162,7 +162,7 @@ template <typename problem_t> class RadSystem : public HyperbolicSystem<problem_
 	}
 
 	static constexpr int nmscalars_ = PhysicsTraits<problem_t>::numMassScalars;
-	static constexpr int numRadVars_ = Physics_NumVars::numRadVarsPerGroup;			 // number of radiation variables for each photon group
+	static constexpr int numRadVars_ = Physics_NumVars::numRadVarsPerGroup;			// number of radiation variables for each photon group
 	static constexpr int nvarHyperbolic_ = numRadVars_ * PhysicsTraits<problem_t>::nGroups; // total number of radiation variables
 	static constexpr int nstartHyperbolic_ = Physics_Indices<problem_t>::radFirstIndex;
 	static constexpr int nvar_ = nstartHyperbolic_ + nvarHyperbolic_;

@@ -4,7 +4,8 @@
 #include "physics_info.hpp"
 #include <cmath>
 
-struct ExpansionProblem {};
+struct ExpansionProblem {
+};
 
 template <> struct quokka::EOS_Traits<ExpansionProblem> {
 	static constexpr double gamma = 5.0 / 3.0;
@@ -26,8 +27,8 @@ template <> struct Physics_Traits<ExpansionProblem> {
 	static constexpr double omega_m = 1.0;
 	static constexpr double omega_r = 0.0;
 	static constexpr double omega_lambda = 0.0;
-	static constexpr double hubble_constant = 0.7; // h = 0.7 (H0 = 70 km/s/Mpc)
-	static constexpr double a_init = 1.0;	       // start at z=0
+	static constexpr double hubble_constant = 0.7;	   // h = 0.7 (H0 = 70 km/s/Mpc)
+	static constexpr double a_init = 1.0;		   // start at z=0
 	static constexpr double cosmology_dt_limit = 1e-4; // very small for accuracy
 };
 
@@ -38,7 +39,7 @@ template <> void QuokkaSimulation<ExpansionProblem>::setInitialConditionsOnGrid(
 
 	amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 		const double rho = 1.0e-30; // low density
-		const double P = 1.0e-10;  // low pressure
+		const double P = 1.0e-10;   // low pressure
 		const double gamma = quokka::EOS_Traits<ExpansionProblem>::gamma;
 
 		state_cc(i, j, k, HydroSystem<ExpansionProblem>::density_index) = rho;
@@ -50,7 +51,8 @@ template <> void QuokkaSimulation<ExpansionProblem>::setInitialConditionsOnGrid(
 	});
 }
 
-template <> void QuokkaSimulation<ExpansionProblem>::computeReferenceSolution(amrex::MultiFab & /*ref*/, amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const & /*dx*/,
+template <>
+void QuokkaSimulation<ExpansionProblem>::computeReferenceSolution(amrex::MultiFab & /*ref*/, amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const & /*dx*/,
 								  amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const & /*prob_lo*/)
 {
 	// No reference solution needed here, we'll check manually in problem_main
@@ -83,7 +85,7 @@ auto problem_main() -> int
 
 	// Verify density (should be constant in comoving coords)
 	const double rho_err = std::abs(rho_f - rho0) / rho0;
-	
+
 	// Verify internal energy scaling: e_f = e0 * (a0/a_f)^(3*(gamma-1))
 	const amrex::Real e_expected = e0 * std::pow(a0 / a_f, 3.0 * (gamma - 1.0));
 	const double e_err = std::abs(e_f - e_expected) / e_expected;
