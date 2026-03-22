@@ -159,7 +159,7 @@ template <typename problem_t> struct PhysicsTraits {
 	}();
 	static constexpr double omega_m = []() constexpr {
 		if constexpr ( requires { T::omega_m; }) {
-			return t::omega_m;
+			return T::omega_m;
 		}
 		return 0.315;
 	};
