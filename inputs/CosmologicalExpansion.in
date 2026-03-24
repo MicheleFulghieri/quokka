@@ -15,5 +15,8 @@ cosmology.omega_m = 1.0
 cosmology.omega_lambda = 0.0
 cosmology.a_init = 1.0
 
-amr.plot_int = 100
-amr.v = 1
+
+# Simulation control
+plotfile_interval = 50          # interval between plotfiles: save a plotfile every 100 timesteps
+amr.v = 1                       # verbosity level: 0=quiet, 1=verbose, 2=very verbose
+

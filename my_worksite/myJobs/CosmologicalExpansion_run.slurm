@@ -15,8 +15,8 @@
 BASE_DIR="/data/mfulghieri/quokka"
 EXE="${BASE_DIR}/build/src/problems/CosmologicalExpansion/CosmologicalExpansion"
 INPUT="${BASE_DIR}/inputs/CosmologicalExpansion.in"
-#OUT_DIR="${BASE_DIR}/outputs/ZeldovichPancake_${SLURM_JOB_ID}"
-OUT_DIR="${BASE_DIR}/outputs/CosmologicalExpansion"
+OUT_DIR="${BASE_DIR}/outputs/CosmologicalExpansion_${SLURM_JOB_ID}"
+#OUT_DIR="${BASE_DIR}/outputs/CosmologicalExpansion"
 
 # Creation of the required directories
 mkdir -p "${OUT_DIR}"

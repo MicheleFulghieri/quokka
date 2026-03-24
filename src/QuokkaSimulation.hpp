@@ -724,6 +724,16 @@ template <typename problem_t> void QuokkaSimulation<problem_t>::readParmParse()
 
 		cosmology_params_ = {H0_cgs, omega_m, omega_r, omega_lambda};
 
+		// persist cosmological parameters in simulation metadata
+		// (these are constant throughout the run and written to metadata.yaml with every plotfile/checkpoint)
+		this->simulationMetadata_["cosmology"]["H0"] = H0_cgs;
+		this->simulationMetadata_["cosmology"]["hubble_constant"] = h;
+		this->simulationMetadata_["cosmology"]["Omega_m"] = omega_m;
+		this->simulationMetadata_["cosmology"]["Omega_r"] = omega_r;
+		this->simulationMetadata_["cosmology"]["Omega_Lambda"] = omega_lambda;
+		this->simulationMetadata_["cosmology"]["Omega_k"] = 1.0 - omega_m - omega_r - omega_lambda;
+		this->simulationMetadata_["cosmology"]["a_init"] = a_now_;
+
 		cpp.query("comoving_mean_density", comoving_mean_density_);
 		if (comoving_mean_density_ == 0.0) {
 			// rho_crit = 3 H0^2 / (8 pi G)
@@ -3413,7 +3423,9 @@ void QuokkaSimulation<problem_t>::WriteSingleLevelPlotfileSimplified(const std::
 template <typename problem_t> void QuokkaSimulation<problem_t>::WritePlotFile()
 {
 	if constexpr (PhysicsTraits<problem_t>::is_cosmology_enabled) {
-		this->simulationMetadata_["a"] = a_now_;
+		// update dynamic cosmological state for this output
+		this->simulationMetadata_["cosmology"]["a"] = a_now_;
+		this->simulationMetadata_["cosmology"]["z"] = (1.0 / a_now_) - 1.0;
 	}
 	AMRSimulation<problem_t>::WritePlotFile();
 }
