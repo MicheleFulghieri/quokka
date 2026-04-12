@@ -113,3 +113,4 @@ KokkosCore_config.tmp
 
 # hdf5 files
 *.hdf5
+outputs/

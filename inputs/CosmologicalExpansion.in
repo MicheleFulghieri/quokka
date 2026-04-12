@@ -1,0 +1,42 @@
+# *****************************************************************
+# Problem size, geometry and resolution
+# *****************************************************************
+geometry.prob_lo     =  0.0  0.0  0.0 
+geometry.prob_hi     =  1.0e24  1.0e24  1.0e24   # 0.324077  0.324077 0.324077  Mpc  
+geometry.is_periodic = 1 1 1
+
+amr.n_cell          = 32 32 32
+amr.max_level       = 0
+amr.blocking_factor = 8
+
+quokka.bc = periodic periodic periodic
+
+amr.stop_time     = 2.604e10     # from a=0.1 to a=2
+amr.max_timesteps = 2000000
+quokka.cfl        = 0.3
+
+
+# *****************************************************************
+# Cosmology
+# *****************************************************************
+cosmology.hubble_constant = 0.7
+cosmology.omega_m         = 1.0    # Einstein-de Sitter    
+cosmology.omega_lambda    = 0.0
+cosmology.a_init          = 0.1    ## try more in the past
+
+
+# *****************************************************************
+# Problem specific parameters
+# *****************************************************************
+problem.rho0  = 1.0e-30      # initial density (comoving)
+problem.P0    = 1.0e-25      # initial pressure (for small dt)
+problem.vx0   = 1.0e5        # comparable to cs, greater then the numerical precision
+problem.vy0   = 0            # only vx, to check if there is some mix
+problem.vz0   = 0
+
+
+# *****************************************************************
+# Simulation control
+# *****************************************************************
+plotfile_interval = 500         # save a plotfile every 50 timesteps
+amr.v = 1                       # AMReX verbosity level: 0=quiet, 1=verbose, 2=very verbose
