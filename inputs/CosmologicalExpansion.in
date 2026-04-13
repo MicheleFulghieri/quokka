@@ -11,8 +11,8 @@ amr.blocking_factor = 8
 
 quokka.bc = periodic periodic periodic
 
-amr.stop_time     = 2.604e10     # from a=0.1 to a=2
-amr.max_timesteps = 2000000
+amr.stop_time     = 2.945e11     # from a=0.001 to a=10
+amr.max_timesteps = 20000000
 quokka.cfl        = 0.3
 
 
@@ -22,7 +22,7 @@ quokka.cfl        = 0.3
 cosmology.hubble_constant = 0.7
 cosmology.omega_m         = 1.0    # Einstein-de Sitter    
 cosmology.omega_lambda    = 0.0
-cosmology.a_init          = 0.1    ## try more in the past
+cosmology.a_init          = 1e-3   # CMB time
 
 
 # *****************************************************************
@@ -30,9 +30,9 @@ cosmology.a_init          = 0.1    ## try more in the past
 # *****************************************************************
 problem.rho0  = 1.0e-30      # initial density (comoving)
 problem.P0    = 1.0e-25      # initial pressure (for small dt)
-problem.vx0   = 1.0e5        # comparable to cs, greater then the numerical precision
-problem.vy0   = 0            # only vx, to check if there is some mix
-problem.vz0   = 0
+problem.vx0   = 5.77e4       #(5*10^5)/3
+problem.vy0   = 5.77e4        
+problem.vz0   = 5.77e4
 
 
 # *****************************************************************

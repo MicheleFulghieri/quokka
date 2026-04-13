@@ -16,9 +16,9 @@
 struct ExpansionProblem {
 	static constexpr double rho0_default = 1.0e-30; // low density
 	static constexpr double P0_default = 1.0e-25;	// low pressure (enough to have low sound speed and thus small dt)
-	static constexpr double vx0_default = 0;        // for a pure expansion test
+	static constexpr double vx0_default = 0;	// for a pure expansion test
 	static constexpr double vy0_default = 0;
-	static constexpr double vz0_default = 0;     
+	static constexpr double vz0_default = 0;
 };
 
 // energy evolution for the analytical solution
@@ -48,7 +48,7 @@ template <> struct Physics_Traits<ExpansionProblem> {
 	static constexpr double omega_r = 0.0;
 	static constexpr double omega_lambda = 0.0;
 	static constexpr double hubble_constant = 0.7;	   // h = 0.7 (H0 = 70 km/s/Mpc)
-	static constexpr double a_init = 1.0;	     	   // start at z=0
+	static constexpr double a_init = 1.0;		   // start at z=0
 	static constexpr double cosmology_dt_limit = 1e-4; // very small for accuracy
 };
 
@@ -57,11 +57,11 @@ template <> void QuokkaSimulation<ExpansionProblem>::setInitialConditionsOnGrid(
 {
 	// Initial conditions: default of the problem
 	const double gamma = quokka::EOS_Traits<ExpansionProblem>::gamma;
-	amrex::Real rho    = ExpansionProblem::rho0_default;
-	amrex::Real P      = ExpansionProblem::P0_default;
-	amrex::Real vx     = ExpansionProblem::vx0_default;
-	amrex::Real vy     = ExpansionProblem::vy0_default;
-	amrex::Real vz     = ExpansionProblem::vz0_default;
+	amrex::Real rho = ExpansionProblem::rho0_default;
+	amrex::Real P = ExpansionProblem::P0_default;
+	amrex::Real vx = ExpansionProblem::vx0_default;
+	amrex::Real vy = ExpansionProblem::vy0_default;
+	amrex::Real vz = ExpansionProblem::vz0_default;
 
 	// Initial conditions: precedence to user-entered values (override if present in the .in file)
 	amrex::ParmParse pp("problem");
@@ -71,8 +71,8 @@ template <> void QuokkaSimulation<ExpansionProblem>::setInitialConditionsOnGrid(
 	pp.query("vy0", vy);
 	pp.query("vz0", vz);
 
-	const amrex::Box &indexRange = grid_elem.indexRange_;      //set of the indices of the grid patch
-	const amrex::Array4<double> &state_cc = grid_elem.array_;  // Array4 is a ponter to the data
+	const amrex::Box &indexRange = grid_elem.indexRange_;	  // set of the indices of the grid patch
+	const amrex::Array4<double> &state_cc = grid_elem.array_; // Array4 is a ponter to the data
 
 	amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 		state_cc(i, j, k, HydroSystem<ExpansionProblem>::density_index) = rho;
@@ -80,7 +80,7 @@ template <> void QuokkaSimulation<ExpansionProblem>::setInitialConditionsOnGrid(
 		state_cc(i, j, k, HydroSystem<ExpansionProblem>::x2Momentum_index) = rho * vy;
 		state_cc(i, j, k, HydroSystem<ExpansionProblem>::x3Momentum_index) = rho * vz;
 		state_cc(i, j, k, HydroSystem<ExpansionProblem>::internalEnergy_index) = P / (gamma - 1.0);
-		state_cc(i, j, k, HydroSystem<ExpansionProblem>::energy_index) = P / (gamma - 1.0) + 0.5 * rho * (vx*vx + vy*vy + vz*vz); // eint + ekin
+		state_cc(i, j, k, HydroSystem<ExpansionProblem>::energy_index) = P / (gamma - 1.0) + 0.5 * rho * (vx * vx + vy * vy + vz * vz); // eint + ekin
 	});
 }
 
@@ -99,15 +99,15 @@ void QuokkaSimulation<ExpansionProblem>::computeReferenceSolution(amrex::MultiFa
 	amrex::Real a_init = Physics_Traits<ExpansionProblem>::a_init;
 	amrex::ParmParse pp_cosmo("cosmology");
 	pp_cosmo.query("a_init", a_init);
-	amrex::Real a_now = this->a_now_;            // current scale factor (member of the class QuokkaSimulation), update by solving the Friedmann equation
-	const amrex::Real a_ratio = a_init / a_now;  // calculated once out of the loop
+	amrex::Real a_now = this->a_now_;	    // current scale factor (member of the class QuokkaSimulation), update by solving the Friedmann equation
+	const amrex::Real a_ratio = a_init / a_now; // calculated once out of the loop
 
 	// Initial conditions: default if not otherwise declared by the user in the .in file
 	amrex::Real rho = ExpansionProblem::rho0_default;
-	amrex::Real P   = ExpansionProblem::P0_default;
-	amrex::Real vx  = ExpansionProblem::vx0_default;
-	amrex::Real vy  = ExpansionProblem::vy0_default;
-	amrex::Real vz  = ExpansionProblem::vz0_default;
+	amrex::Real P = ExpansionProblem::P0_default;
+	amrex::Real vx = ExpansionProblem::vx0_default;
+	amrex::Real vy = ExpansionProblem::vy0_default;
+	amrex::Real vz = ExpansionProblem::vz0_default;
 	amrex::ParmParse pp("problem");
 	pp.query("rho0", rho);
 	pp.query("P0", P);
@@ -116,9 +116,9 @@ void QuokkaSimulation<ExpansionProblem>::computeReferenceSolution(amrex::MultiFa
 	pp.query("vz0", vz);
 
 	// Analytic solutions
-	const amrex::Real e0_int   = P / (gamma - 1);
+	const amrex::Real e0_int = P / (gamma - 1);
 	const amrex::Real eint_sol = get_analytic_energy(e0_int, a_init, a_now, gamma);
-	const amrex::Real rho_sol  = rho;      // comoving density doesn't change
+	const amrex::Real rho_sol = rho; // comoving density doesn't change
 
 	// Peculiar velocity and momentum
 	const amrex::Real vx_sol = vx * a_ratio; // peculiar velocity scales as a^-1
@@ -126,14 +126,14 @@ void QuokkaSimulation<ExpansionProblem>::computeReferenceSolution(amrex::MultiFa
 	const amrex::Real vz_sol = vz * a_ratio;
 	const amrex::Real momx_sol = rho * vx_sol;
 	const amrex::Real momy_sol = rho * vy_sol;
-	const amrex::Real momz_sol = rho * vz_sol;	
+	const amrex::Real momz_sol = rho * vz_sol;
 
 	// Total velocity
 	const amrex::Real v2_sol = (vx_sol * vx_sol + vy_sol * vy_sol + vz_sol * vz_sol); // magnitude of the velocity
-    
-    // Kinetic and total energy
-    const amrex::Real e_kin_sol = 0.5 * rho * v2_sol;
-    const amrex::Real e_tot_sol = eint_sol + e_kin_sol;
+
+	// Kinetic and total energy
+	const amrex::Real e_kin_sol = 0.5 * rho * v2_sol;
+	const amrex::Real e_tot_sol = eint_sol + e_kin_sol;
 
 	// Get the pointers (Array4) of the grid collection MultiFab ref
 	auto const &ref_arrays = ref.arrays();
@@ -157,8 +157,8 @@ auto problem_main() -> int
 	// Instantiate the simulation object for the expansion problem
 	QuokkaSimulation<ExpansionProblem> sim;
 
-	// Read parameters from the .in file 
-	sim.readParameters();  
+	// Read parameters from the .in file
+	sim.readParameters();
 
 	// Set simulation parameters
 	const double yr_to_s = 3.15576e7;
@@ -176,7 +176,7 @@ auto problem_main() -> int
 	pp_quokka.query("cfl", sim.cflNumber_);
 
 	// Retrive density, energy and momentum index
-	const int rho_idx  = HydroSystem<ExpansionProblem>::density_index;
+	const int rho_idx = HydroSystem<ExpansionProblem>::density_index;
 	const int eint_idx = HydroSystem<ExpansionProblem>::internalEnergy_index;
 	const int momx_idx = HydroSystem<ExpansionProblem>::x1Momentum_index;
 	const int momy_idx = HydroSystem<ExpansionProblem>::x2Momentum_index;
@@ -184,14 +184,14 @@ auto problem_main() -> int
 
 	// Set initial conditions and extract initial-state averages for error analysis
 	sim.setInitialConditions();
-	const amrex::Real total_rho = sim.state_new_cc_[0].sum(rho_idx, 0);   // sum(idx, 0) in AMReX is collective for MPI, 0 is the number of ghost cells
-    const amrex::Real total_eint = sim.state_new_cc_[0].sum(eint_idx, 0);
-    const amrex::Real num_pts = sim.boxArray(0).numPts();
+	const amrex::Real total_rho = sim.state_new_cc_[0].sum(rho_idx, 0); // sum(idx, 0) in AMReX is collective for MPI, 0 is the number of ghost cells
+	const amrex::Real total_eint = sim.state_new_cc_[0].sum(eint_idx, 0);
+	const amrex::Real num_pts = sim.boxArray(0).numPts();
 
-    const amrex::Real rho0_avg = total_rho / num_pts;
-    const amrex::Real eint0_avg   = total_eint / num_pts;
+	const amrex::Real rho0_avg = total_rho / num_pts;
+	const amrex::Real eint0_avg = total_eint / num_pts;
 
-    amrex::Print() << "Initial Average Density: " << rho0_avg << "\n";
+	amrex::Print() << "Initial Average Density: " << rho0_avg << "\n";
 	amrex::Print() << "Initial Average Internal Energy: " << eint0_avg << "\n";
 
 	// Initial scale factor (may be overridden in .in file)
@@ -222,45 +222,45 @@ auto problem_main() -> int
 	amrex::MultiFab::Copy(mf_err, mf_sim, 0, 0, mf_sim.nComp(), 0);				// copy all the simulationd data (mf_sim) in mf_err
 	amrex::MultiFab::Subtract(mf_err, mf_ref, 0, 0, mf_sim.nComp(), 0);			// cell error = sim cell - ref cell
 
-	// Density: calculation of the norms
-	const amrex::Real rho_norm = mf_ref.norm1(rho_idx);		  // norm1 sums the absolute values of each cell
+	// Calculation of the norms
+	struct Norms {
+		amrex::Real L1, L2, Linf;
+	};
 
-	amrex::Real L1_rho = mf_err.norm1(rho_idx) / rho_norm;                    // L1 error: mean absolute error
-	amrex::Real L2_rho = mf_err.norm2(rho_idx) / mf_ref.norm2(rho_idx);       // L2 norm: mean square error
-	amrex::Real Linf_rho = mf_err.norminf(rho_idx) / mf_ref.norminf(rho_idx); // Linf norm: max absolute error
+	// Lambda to calculate the norms
+	auto get_norms = [&](int idx) -> Norms
+	{ // Lambda with capture by reference ([&]) to access the external variales mf_ref and mf_err
+		amrex::Real norm_ref = mf_ref.norm1(idx);  // mf_ref is the analytic solution
+		if (norm_ref > 0) {                        // avoid division by 0
+			// return the relative errors {L1, L2, Linf}
+			return {mf_err.norm1(idx) / norm_ref, mf_err.norm2(idx) / mf_ref.norm2(idx), mf_err.norminf(idx) / mf_ref.norminf(idx)};
+		} 
+		else {                               
+			// return the absolute errors {L1, L2, Linf}
+			return {mf_err.norm1(idx), mf_err.norm2(idx), mf_err.norminf(idx)};
+		}
+	};
 
-	// Internal energy: calculation of the norm
-	const amrex::Real eint_norm = mf_ref.norm1(eint_idx);
+	// Calculation of the norms
+	Norms rho_norm  = get_norms(rho_idx);
+	Norms eint_norm = get_norms(eint_idx);
+	Norms momx_norm = get_norms(momx_idx);
+	Norms momy_norm = get_norms(momy_idx);
+	Norms momz_norm = get_norms(momz_idx);
 
-	amrex::Real L1_eint = mf_err.norm1(eint_idx) / eint_norm;                    // L1 norm
-	amrex::Real L2_eint = mf_err.norm2(eint_idx) / mf_ref.norm2(eint_idx);       // L2 norm
-	amrex::Real Linf_eint = mf_err.norminf(eint_idx) / mf_ref.norminf(eint_idx); // Linf norm
-
-	// Momentum: calculation of the norm
-	amrex::Real L1_momx = 0;     // initialization
-	amrex::Real L2_momx = 0;   
-    amrex::Real Linf_momx = 0;
-
-	// Avoid zero division if vx=0
-	if (mf_ref.norm1(momx_idx) > 0)  {     
-		L1_momx = mf_err.norm1(momx_idx) / mf_ref.norm1(momx_idx);       // L1 norm
-		L2_momx = mf_err.norm2(momx_idx) / mf_ref.norm2(momx_idx);       // L2 norm
-		Linf_momx = mf_err.norminf(momx_idx) / mf_ref.norminf(momx_idx); // Linf norm
-	}
-	else {  // Absolute error if the solution is zero
-		L1_momx = mf_err.norm1(momx_idx);       
-		L2_momx = mf_err.norm2(momx_idx);      
-		Linf_momx = mf_err.norminf(momx_idx); 
-	}
-
+	
 	// Final print
 	amrex::Print() << "\nVerification Norms \n";
-	amrex::Print() << "  Density: L1 = " << L1_rho << " | L2 = " << L2_rho << " | Linf = " << Linf_rho << "\n";
-	amrex::Print() << "  Energy : L1 = " << L1_eint << " | L2 = " << L2_eint << " | Linf = " << Linf_eint << "\n";
-	amrex::Print() << "  Momentum x : L1 = " << L1_momx << " | L2 = " << L2_momx << " | Linf = " << Linf_momx << "\n";
+	amrex::Print() << "  Density: L1 = " << rho_norm.L1 << " | L2 = " << rho_norm.L2 << " | Linf = " << rho_norm.Linf << "\n";
+	amrex::Print() << "  Energy : L1 = " << eint_norm.L1 << " | L2 = " << eint_norm.L2 << " | Linf = " << eint_norm.Linf << "\n";
+	amrex::Print() << "  Momentum x: L1 = " << momx_norm.L1 << " | L2 = " << momx_norm.L2 << " | Linf = " << momx_norm.Linf << "\n";
+	amrex::Print() << "  Momentum y: L1 = " << momy_norm.L1 << " | L2 = " << momy_norm.L2 << " | Linf = " << momy_norm.Linf << "\n";
+	amrex::Print() << "  Momentum z: L1 = " << momz_norm.L1 << " | L2 = " << momz_norm.L2 << " | Linf = " << momz_norm.Linf << "\n";
 
+	
 	amrex::Print() << "\nExpansion Test Results:\n";
 	amrex::Print() << "  Final a = " << a_f << "\n";
+
 
 	// Test status
 	int status = 0; // success
@@ -271,7 +271,8 @@ auto problem_main() -> int
 	const amrex::Real tol_mom = 1e-4;
 
 	// L1 norm as a reference for the error
-	if (L1_rho > tol_rho || L1_eint > tol_eint || L1_momx > tol_mom) {
+	if (rho_norm.L1 > tol_rho || eint_norm.L1 > tol_eint || 
+	    momx_norm.L1 > tol_mom || momy_norm.L1 > tol_mom || momz_norm.L1 > tol_mom) {
 		amrex::Print() << "TEST FAILED: Error exceeds tolerances!\n";
 		status = 1;
 	} else {
@@ -279,11 +280,6 @@ auto problem_main() -> int
 	}
 	return status;
 }
-
-
-
-
-
 
 // Controllare se amrex::norm2 estrae gia la radice, altrimenti correggere con:
 // amrex::Real L2_rho = std::sqrt(mf_err.norm2(rho_idx)) / std::sqrt(mf_ref.norm2(rho_idx));

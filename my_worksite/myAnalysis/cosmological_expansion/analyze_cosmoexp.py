@@ -13,7 +13,7 @@ from unyt import Mpc, km, s, g, cm
 
 
 # --- Path to plotfiles ---
-output_dir = "/data/mfulghieri/quokka/outputs/CosmologicalExpansion_11795"
+output_dir = "/data/mfulghieri/quokka/outputs/CosmologicalExpansion_11813"
 
 # retrive the plotfiles 
 # os.path.join joins the folder path with the "plt*" pattern, glob.glob creates a list of all files/folders that begin with "plt"
@@ -243,7 +243,7 @@ ax2.set_xlabel("Time [Gyr]", fontsize=11, labelpad=10, loc="center")
 # Insertion of the Hubble parameter relative error
 ax_ins = inset_axes(ax, width='30%', height = '25%', loc='right', borderpad=3)  # 30% wide and 25% high of the main chart
 ax_ins.plot(a_mid, np.abs(H_rel_err), color='purple', lw=1, ms=3)  # np.abs for log scale
-ax_ins.set_title("RE: $(H_{num}-H_{th})/H_{th}$", fontsize=9)
+ax_ins.set_title("RE $(H_{num}-H_{th})/H_{th}$", fontsize=9)
 ax_ins.tick_params(axis='both', labelsize=8)
 ax_ins.grid(True, linestyle=':', alpha=0.5)
 ax_ins.tick_params(direction='in', which='both')                   # ticks point inward
@@ -551,30 +551,47 @@ print(f"Entropy saved in /data/mfulghieri/quokka/my_worksite/myAnalysis/cosmolog
 momenta    = np.array(momenta)          # moduli of the comoving momenta
 velocities = momenta / densities        # peculiar velocities
 
-print(f"\nGlobal momentum analysis:")
-print(f"  Max Momentum: {np.max(momenta):.6e} g/(cm^2 s)")
-print(f"  Max Peculiar Velocity: {np.max(velocities):.6e} cm/s")
+# 7a. Analyical solution and norms
+analytical_vel = velocities[0] * (a_values[0] / a_values)  # Hubble drag
+
+print(f"\nPeculiar velocity analysis:")
+print(f"  Initial Velocity: {velocities[0]:.2e} cm/s")
+print(f"  Final Velocity:   {velocities[-1]:.2e} cm/s")
+
+# Relative error
+vel_rel_error = (velocities - analytical_vel) / analytical_vel
+
+# Velocity norms
+L1_vel   = np.mean(np.abs(vel_rel_error))         # arithmetic mean of errors
+L2_vel   = np.sqrt(np.mean(vel_rel_error**2))     # square mean
+Linf_vel = np.max(vel_rel_error)                  # worst relative error
+
+# Print the norms
+print(f"\nGlobal error norms (peculiar velocities):")
+print(f"  L1   = {L1_vel:.6e}")
+print(f"  L2   = {L2_vel:.6e}")
+print(f"  Linf = {Linf_vel:.6e}")
 
 # 7a. Velocity noise plot
 fig, ax = plt.subplots()
-ax.plot(a_values, velocities, label="Residual peculiar velocity")
-ax.axhline(1e-15, color='black', lw=0.5, ls='--', label="Machine precision threshold")  # machine precision reference line
+ax.plot(a_values, velocities, 'o', label="Peculiar velocity")
+ax.plot(a_values, analytical_vel, label=r"Analytical solution: $v_0 \cdot \frac{a_{\mathrm{in}}}{a}$")
 
-ax.set_title("Peculiar Velocity (EdS)", pad=25, fontsize=14, fontweight='bold')
+ax.set_title("Peculiar Velocity Decay: Hubble Drag (EdS)", pad=25, fontsize=14, fontweight='bold')
 ax.set_xlabel("Scale factor (a)", fontsize=11)
 ax.set_ylabel(r"Velocity [cm/s]", fontsize=11)
 ax.yaxis.get_offset_text().set_visible(True)    # hid the exponential y upper left scale
 ax.set_xlim(a_values[0], a_values[-1])
-ax.set_ylim(velocities[0] - velocities[0] * 1e-6, velocities[0] + velocities[0] * 1e-6) 
-ax.set_yscale('linear')                          # linear scale useful for inspect a constant value
+ax.set_yscale('log')                          # linear scale useful for inspect a constant value
 ax.tick_params(direction='in', which='both')     # ticks point inward
 ax.grid(True, which='both', linestyle=':', alpha=0.5)
 ax.legend(loc='best', bbox_to_anchor=(0.95, 0.95))
 
 # Text insertion in the figure
-stats_text_mom = (f'Max Momentum: {np.max(momenta):.3e} g/(cm^2 s)\n'
-              f'Max Peculiar Velocity: {np.max(velocities):.3e} cm/s')
-ax.text(0.4, 0.25, stats_text_mom,
+stats_text_mom = (f'L1 Error: {L1_vel:.2e}\n'
+                  f'L2 Error: {L2_vel:.2e}\n'
+                  f'Linf Error: {Linf_vel:.2e}')
+ax.text(0.65, 0.70, stats_text_mom,
         transform=ax.transAxes, fontsize=10, verticalalignment='top',
         bbox=dict(boxstyle='round', facecolor='white', alpha=0.5))
 
@@ -599,18 +616,25 @@ phys_mom = momenta / (a_values**3)   # a^-3 since is a density of momentum
 # 7c. Fit of the momentum slope
 
 # Logarithms to do a linear fit
-log_a = np.log10(a_values)
-log_p = np.log10(phys_mom)
+log_a     = np.log10(a_values)
+log_p     = np.log10(phys_mom)
+log_p_com = np.log10(momenta)
 
 # Linear least squares polynomial fit, slope = -3(gamma - 1)
 slope, intercept = np.polyfit(log_a, log_p, 1)   # 1: linear log(p) = intercept + slope * log(a)
+slope_com_mom, intercept_com_mom = np.polyfit(log_a, log_p_com, 1)
 
-print(f"Momentum density power law analysis:")
+print(f"Physical momentum density power law analysis:")
 print(f"Theoretical exponent (Hubble drag + Volume dilution): -4.0") 
 print(f"Fit of Quokka exponent: {slope:.4f}")
 print(f"Difference: {np.abs(-4.0 - slope):.2e}")
 
-# Physical momenyum plot
+print(f"Comoving momentum density power law analysis:")
+print(f"Theoretical exponent (Hubble drag only): -1.0") 
+print(f"Fit of Quokka exponent: {slope_com_mom:.4f}")
+print(f"Difference: {np.abs(-1.0 - slope_com_mom):.2e}")
+
+# Physical momentum plot
 fig, ax = plt.subplots()
 ax.plot(a_values, phys_mom, label="Quokka Physical Momentum ($p_{\mathrm{com}} / a^3$)", lw =2, zorder=1)
 ax.plot(a_values, momenta, label="Quokka Comoving Momentum ($p_{\mathrm{com}}$)", ls="--", lw=1.5, zorder=2)  # comoving momentum
@@ -619,14 +643,15 @@ ax.set_title("Physical vs comoving momentum (EdS)", pad=25, fontsize=14, fontwei
 ax.set_xlabel("Scale factor (a)", fontsize=11)
 ax.set_ylabel(r"Momentum [$\mathrm{g/cm^2 s}$]", fontsize=11)
 ax.set_xlim(a_values[0], a_values[-1])
-ax.set_yscale('symlog', linthresh=1e-6)          # symlog to account for positive and negative values,linthresh define the linear region to prevent the log diverge                         
+ax.set_yscale('log')                                   
 ax.tick_params(direction='in', which='both')     # ticks point inward
 ax.grid(True, which='both', linestyle=':', alpha=0.5)
 ax.legend(loc='best', frameon=True)
 
 # Text insertion in the figure
-stats_text = (f'Fit slope: {slope:.4f} (expected: {-4.0})')
-ax.text(0.45, 0.25, stats_text,
+stats_text = (f'Physical fit slope:    {slope:.4f} (expected: {-4.0})\n'
+              f'Comoving fit slope: {slope_com_mom:.4f} (expected: {-1.0})')
+ax.text(0.35, 0.75, stats_text,
         transform=ax.transAxes, fontsize=10, verticalalignment='top',
         bbox=dict(boxstyle='round', facecolor='white', alpha=0.5))
 
@@ -711,10 +736,14 @@ print(f"Internal energy VC plot saved in /data/mfulghieri/quokka/my_worksite/myA
 
 
 
-# studiare una a una le simulazioni e riportare i risultati nel logbook
 
-# verificare inserendo un momento in una direzione che calcolo correttamente il momento fisico:
-# sia Hubble drag (implementato in Cosmology.hpp) che diluzione del volume (densità di momento)
+# verificare per curiosità se i parametri di hubble e gli omega sono già parsabili
+# con una simulazione test breve
+
+# verificare la differenza tra le norme amrex e quelle dell'analisi python
+
+# Diagonal Test" e "Long-term Stress Test, aggiornare il max_timestep di blocco
+# e lo stop_time di conseguenza.
 
 # provare il test con budget diversi di omega. Modelli in cui posso confrontare con una soluzione
 # analitic semplice e nota
