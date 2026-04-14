@@ -281,6 +281,8 @@ auto problem_main() -> int
 	return status;
 }
 
+
+
 // Controllare se amrex::norm2 estrae gia la radice, altrimenti correggere con:
 // amrex::Real L2_rho = std::sqrt(mf_err.norm2(rho_idx)) / std::sqrt(mf_ref.norm2(rho_idx));
 // amrex::Real L2_eint = std::sqrt(mf_err.norm2(eint_idx)) / std::sqrt(mf_ref.norm2(eint_idx));

@@ -102,8 +102,12 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE auto HubbleFactor(amrex::Real a, Cosmol
 /// [[nodiscard]]: the compiler warns if the caller discards the return value.
 [[nodiscard]] inline auto evolveScaleFactor(amrex::Real a_old, amrex::Real dt, CosmologyParams const &cosmo, amrex::Real max_frac_step = 0.01) -> amrex::Real
 {
+	// Check the scale factor is not negative
+	AMREX_ASSERT_WITH_MESSAGE(a_old > 0.0, "Scale factor a_old must be positive to avoid divergence in HubbleFactor!");
+	
 	// Estimate how many sub-steps we need: H*dt < max_frac_step per sub-step
 	const amrex::Real H_est = cosmo.H0 * HubbleFactor(a_old, cosmo);
+	// Number of a steps (nsteps) required for a (prop to H_est) does't vary more than max_frac_step
 	const int nsteps = std::max(1, static_cast<int>(std::ceil(H_est * dt / max_frac_step)));
 	const amrex::Real dt_sub = dt / static_cast<amrex::Real>(nsteps);
 
@@ -112,7 +116,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE auto HubbleFactor(amrex::Real a, Cosmol
 		// Midpoint (RK2): evaluate derivative at start, step to midpoint,
 		// re-evaluate at midpoint, use midpoint derivative for the full step.
 		const amrex::Real k1 = a * cosmo.H0 * HubbleFactor(a, cosmo);	      // da/dt at t
-		const amrex::Real a_mid = a + 0.5 * dt_sub * k1;		      // a at t+dt/2
+		const amrex::Real a_mid = a + 0.5 * dt_sub * k1;	         	      // a at t+dt/2
 		const amrex::Real k2 = a_mid * cosmo.H0 * HubbleFactor(a_mid, cosmo); // da/dt at t+dt/2
 		a += dt_sub * k2;
 	}
