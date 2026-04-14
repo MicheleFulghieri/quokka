@@ -1,9 +1,0 @@
-HydroWave Convergence Summary
------------------------------
-Resolution Nx | L1 Error
-           32 | 3.53e-08
-           64 | 8.26e-09
-          128 | 2.39e-09
-          256 | 5.06e-10
-
-Measured Average Order: 2.04
