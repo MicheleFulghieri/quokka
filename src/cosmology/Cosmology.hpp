@@ -58,11 +58,11 @@ namespace quokka::cosmology
 
 /// @brief Parameters for the cosmological model (LCDM by default)
 struct CosmologyParams {
-	amrex::Real H0{C::Hubble_const}; ///< Hubble constant at z=0 [s^-1]
-	amrex::Real Omega_m{0.315};	 ///< Matter density parameter
-	amrex::Real Omega_r{9.2618e-5};	 ///< Radiation density parameter
-	amrex::Real Omega_L{0.685};	 ///< Dark energy (Lambda) density parameter
-					 // Omega_k = 1 - (Omega_m + Omega_r + Omega_L)  [derived]
+	amrex::Real H0{C::Hubble_const};  ///< Hubble constant at z=0: 32.407764868e-19 s^-1, from quokka//extern/Microphysics/constants/fundamental_constants.H
+	amrex::Real Omega_m{0.315};	      ///< Matter density parameter
+	amrex::Real Omega_r{9.2618e-5};	  ///< Radiation density parameter
+	amrex::Real Omega_L{0.685};	      ///< Dark energy (Lambda) density parameter
+	// Omega_k = 1 - (Omega_m + Omega_r + Omega_L)  [derived]
 };
 
 /// @brief Compute the dimensionless Hubble factor E(a) = H(a)/H0
@@ -140,14 +140,14 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE auto HubbleFactor(amrex::Real a, Cosmol
 /// \param a_new  Scale factor at the end of this sub-step
 template <typename problem_t> void applyCosmologicalSourceTerms(amrex::MultiFab &state, amrex::Real const a_old, amrex::Real const a_new)
 {
-	// Ratio of scale factors: ratio < 1 for an expanding universe (a grows)
+	// Ratio of scale factors
 	const amrex::Real ratio = a_old / a_new;
 
-	// Momentum scales as p_c ∝ 1/a  →  p_new = p_old * (a_old/a_new)
+	// Momentum scales as p_c ∝ 1/a  -> p_new = p_old * (a_old/a_new)
 	const amrex::Real mom_ratio = ratio;
 
-	// Internal energy scales as e_c ∝ a^{-3(gamma-1)}  →  e_new = e_old * ratio^{3(gamma-1)}
-	// We read gamma here on the CPU because static constexpr members of template classes
+	// Internal energy scales as e_c ∝ a^{-3(gamma-1)}  ->  e_new = e_old * ratio^{3(gamma-1)}
+	// Here gamma is read on the CPU because static constexpr members of template classes
 	// can be ill-formed inside AMREX_GPU_DEVICE lambdas under some NVCC versions.
 	const amrex::Real gamma = quokka::EOS_Traits<problem_t>::gamma;
 	const amrex::Real eint_ratio = std::pow(ratio, 3.0 * (gamma - 1.0));
@@ -155,11 +155,11 @@ template <typename problem_t> void applyCosmologicalSourceTerms(amrex::MultiFab 
 	// Read variable indices once on the CPU and capture by value into the GPU lambda.
 	// These are static enum integers, so the capture is trivially cheap.
 	const int density_idx = HydroSystem<problem_t>::density_index;
-	const int px_idx = HydroSystem<problem_t>::x1Momentum_index;
-	const int py_idx = HydroSystem<problem_t>::x2Momentum_index;
-	const int pz_idx = HydroSystem<problem_t>::x3Momentum_index;
-	const int etot_idx = HydroSystem<problem_t>::energy_index;
-	const int eint_idx = HydroSystem<problem_t>::internalEnergy_index;
+	const int px_idx      = HydroSystem<problem_t>::x1Momentum_index;
+	const int py_idx      = HydroSystem<problem_t>::x2Momentum_index;
+	const int pz_idx      = HydroSystem<problem_t>::x3Momentum_index;
+	const int etot_idx    = HydroSystem<problem_t>::energy_index;
+	const int eint_idx    = HydroSystem<problem_t>::internalEnergy_index;
 
 	// state.arrays() returns a MultiArray4 proxy that covers ALL patches (boxes) on this
 	// MPI rank simultaneously, enabling a single batch kernel launch across all boxes.
@@ -193,9 +193,9 @@ template <typename problem_t> void applyCosmologicalSourceTerms(amrex::MultiFab 
 		const amrex::Real etot_new = eint_new + KE_new;
 
 		// Write back all updated quantities
-		state_arrs[bx](i, j, k, px_idx) = px_new;
-		state_arrs[bx](i, j, k, py_idx) = py_new;
-		state_arrs[bx](i, j, k, pz_idx) = pz_new;
+		state_arrs[bx](i, j, k, px_idx)   = px_new;
+		state_arrs[bx](i, j, k, py_idx)   = py_new;
+		state_arrs[bx](i, j, k, pz_idx)   = pz_new;
 		state_arrs[bx](i, j, k, eint_idx) = eint_new;
 		state_arrs[bx](i, j, k, etot_idx) = etot_new;
 	});

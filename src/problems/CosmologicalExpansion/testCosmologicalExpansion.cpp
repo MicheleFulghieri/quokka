@@ -48,7 +48,7 @@ template <> struct Physics_Traits<ExpansionProblem> {
 	static constexpr double omega_r = 0.0;
 	static constexpr double omega_lambda = 0.0;
 	static constexpr double hubble_constant = 0.7;	   // h = 0.7 (H0 = 70 km/s/Mpc)
-	static constexpr double a_init = 1.0;		   // start at z=0
+	static constexpr double a_init = 1.0;		       // start at z=0
 	static constexpr double cosmology_dt_limit = 1e-4; // very small for accuracy
 };
 
@@ -71,8 +71,8 @@ template <> void QuokkaSimulation<ExpansionProblem>::setInitialConditionsOnGrid(
 	pp.query("vy0", vy);
 	pp.query("vz0", vz);
 
-	const amrex::Box &indexRange = grid_elem.indexRange_;	  // set of the indices of the grid patch
-	const amrex::Array4<double> &state_cc = grid_elem.array_; // Array4 is a ponter to the data
+	const amrex::Box &indexRange = grid_elem.indexRange_;	  // set of the indices of the grid patch (e.g. from 0 to 31 in x, y, z)
+	const amrex::Array4<double> &state_cc = grid_elem.array_; // Array4 is a pointer to the data
 
 	amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 		state_cc(i, j, k, HydroSystem<ExpansionProblem>::density_index) = rho;
@@ -161,7 +161,7 @@ auto problem_main() -> int
 	sim.readParameters();
 
 	// Set simulation parameters
-	const double yr_to_s = 3.15576e7;
+	const amrex::Real yr_to_s = 3.15576e7;
 	sim.stopTime_ = 1.0e8 * yr_to_s; // 100 Myr
 	sim.maxTimesteps_ = 1000;
 	sim.cflNumber_ = 0.3;
@@ -286,6 +286,8 @@ auto problem_main() -> int
 // Controllare se amrex::norm2 estrae gia la radice, altrimenti correggere con:
 // amrex::Real L2_rho = std::sqrt(mf_err.norm2(rho_idx)) / std::sqrt(mf_ref.norm2(rho_idx));
 // amrex::Real L2_eint = std::sqrt(mf_err.norm2(eint_idx)) / std::sqrt(mf_ref.norm2(eint_idx));
+
+// introdurre un pp.query per static constexpr double cosmology_dt_limit e metterlo negli input
 
 // Introdurre opzioni scelta sia da pp per costante di hubble e omega_, lasciando EdS come default
 // Forse non è necessario, perché in QuokkaSimulation.hpp già imposta questa gerarchia di precedenze.
