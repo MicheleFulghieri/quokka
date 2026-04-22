@@ -220,6 +220,30 @@ template <typename problem_t> class QuokkaSimulation : public AMRSimulation<prob
 	amrex::Real cosmology_dt_limit_ = PhysicsTraits<problem_t>::cosmology_dt_limit;
 	std::unique_ptr<quokka::turbulence::turbulentDriving<problem_t>> td;
 
+	auto getCosmologyScaleFactor() const -> amrex::Real override
+	{
+		return a_now_;
+	}
+
+	void particleCosmologyPreKick(amrex::Real dt) override
+	{
+		if constexpr (PhysicsTraits<problem_t>::is_cosmology_enabled) {
+			const amrex::Real a_old = a_now_;
+			const amrex::Real a_half = quokka::cosmology::evolveScaleFactor(a_old, 0.5 * dt, cosmology_params_);
+			this->particleRegister_.applyHubbleDragAllLevels(this->finest_level, a_old, a_half);
+		}
+	}
+
+	void particleCosmologyPostKick(amrex::Real dt) override
+	{
+		if constexpr (PhysicsTraits<problem_t>::is_cosmology_enabled) {
+			const amrex::Real a_new = a_now_;
+			// Integrate backwards from a_new to a_half
+			const amrex::Real a_half = quokka::cosmology::evolveScaleFactor(a_new, -0.5 * dt, cosmology_params_);
+			this->particleRegister_.applyHubbleDragAllLevels(this->finest_level, a_half, a_new);
+		}
+	}
+
 	// member functions
 	explicit QuokkaSimulation(amrex::Vector<amrex::BCRec> &BCs_cc, amrex::Vector<amrex::BCRec> &BCs_fc) : AMRSimulation<problem_t>(BCs_cc, BCs_fc)
 	{

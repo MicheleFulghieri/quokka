@@ -303,6 +303,12 @@ template <typename problem_t> class AMRSimulation : public amrex::AmrCore
 	virtual void createInitialStochasticStellarPopParticles() = 0;
 	virtual void createInitialSinkParticles() = 0;
 	virtual void createInitialTestParticles() = 0;
+
+	// Particle cosmology hooks
+	virtual auto getCosmologyScaleFactor() const -> amrex::Real { return 1.0; }
+	virtual void particleCosmologyPreKick(amrex::Real /*dt*/) {}
+	virtual void particleCosmologyPostKick(amrex::Real /*dt*/) {}
+
 	// Test particles have integer components, and InitFromAsciiFile does not support integer components, so we do not allow creating them at the start
 	// of the simulation
 #endif // AMREX_SPACEDIM == 3
@@ -1399,6 +1405,9 @@ template <typename problem_t> void AMRSimulation<problem_t>::evolve()
 		if constexpr (Particle_Traits<problem_t>::particle_switch != ParticleSwitch::None) {
 			// do particle leapfrog (first kick at time t)
 			if constexpr (PhysicsTraits<problem_t>::is_self_gravity_enabled) {
+				if constexpr (PhysicsTraits<problem_t>::is_cosmology_enabled) {
+					particleCosmologyPreKick(dt_[0]);
+				}
 				kickParticlesAllLevels(dt_[0]);
 			}
 		}
@@ -1416,7 +1425,8 @@ template <typename problem_t> void AMRSimulation<problem_t>::evolve()
 			if (particleRegister_.HasMassiveParticles()) {
 				// drift particles from t to (t + dt)
 				// N.B.: MUST be done *before* Poisson solve at new time!
-				particleRegister_.driftParticlesAllLevels(dt_[0], finest_level);
+				const amrex::Real a_cosmo = getCosmologyScaleFactor();
+				particleRegister_.driftParticlesAllLevels(dt_[0], finest_level, a_cosmo);
 			}
 		}
 #endif
@@ -1429,6 +1439,9 @@ template <typename problem_t> void AMRSimulation<problem_t>::evolve()
 		if constexpr (Particle_Traits<problem_t>::particle_switch != ParticleSwitch::None) {
 			if constexpr (PhysicsTraits<problem_t>::is_self_gravity_enabled) {
 				kickParticlesAllLevels(dt_[0]);
+				if constexpr (PhysicsTraits<problem_t>::is_cosmology_enabled) {
+					particleCosmologyPostKick(dt_[0]);
+				}
 			}
 
 			// Stellar evolution and SN deposition; only apply to star particles
@@ -1700,8 +1713,9 @@ template <typename problem_t> void AMRSimulation<problem_t>::calculateGpotAllLev
 					rhs_buffer[lev].setVal(0);
 				}
 
-				// deposit mass into temporary buffer
-				particleRegister_.depositMass(amrex::GetVecOfPtrs(rhs_buffer), finest_level, Gconst_);
+				// deposit particle mass to grid
+				const amrex::Real a_cosmo = getCosmologyScaleFactor();
+				particleRegister_.depositMass(amrex::GetVecOfPtrs(rhs_buffer), finest_level, Gconst_, a_cosmo);
 
 				// apply roundoff to buffer before adding to rhs
 				for (int lev = 0; lev <= finest_level; ++lev) {
@@ -1934,6 +1948,8 @@ template <typename problem_t> void AMRSimulation<problem_t>::kickParticlesAllLev
 	}
 
 	// Compute accelerations and kick particles
+	const amrex::Real a_cosmo = getCosmologyScaleFactor();
+
 	for (int lev = 0; lev <= finest_level; ++lev) {
 		// NOTE: CIC interpolation requires 1, but particles may have drifted
 		// 	into 1 ghost cell since last particle redistribute.
@@ -2015,6 +2031,11 @@ template <typename problem_t> void AMRSimulation<problem_t>::kickParticlesAllLev
 		amrex::Gpu::streamSynchronize();
 
 		// accel_cc is guaranteed to be free of NaN as long as phi_extended does not contain NaN.
+
+		if (a_cosmo != 1.0) {
+			const amrex::Real a_inv = 1.0 / a_cosmo;
+			accel_cc.mult(a_inv);
+		}
 
 		// Kick particles using the acceleration field
 		particleRegister_.kickParticlesAtLevel(lev, dt, accel_cc);

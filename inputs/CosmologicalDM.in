@@ -12,7 +12,7 @@ do_subcycle         = 0            # Poisson solver doesn't support AMR subcycli
 
 quokka.bc = periodic periodic periodic
 
-amr.stop_time     = 1.0e8     # 100 Myr
+#amr.stop_time     = 1.0e8     # set by the collapse timespan in the .cpp
 amr.max_timesteps = 20000000
 quokka.cfl        = 0.3
 
@@ -30,9 +30,7 @@ cosmology.a_init          = 0.01
 # *****************************************************************
 # Simulation control
 # *****************************************************************
-amr.plot_int = 50                 # save a plotfile every amr.plot_int steps
-amr.plot_file = plt_DM_cosmo_     # names: plt_DM_cosmo_00050, etc.
-particles.v = 1                   # specific verbosity for the ParticleContainer
+plotfile_interval = 50            # save a plotfile every plotfile_interval timestepsparticles.v = 1                   # specific verbosity for the ParticleContainer
 amr.v = 1                         # AMReX verbosity level: 0=quiet, 1=verbose, 2=very verbose
 tiny_profiler.enabled = 1         # AMReX profiles the performances
 
@@ -41,5 +39,4 @@ tiny_profiler.enabled = 1         # AMReX profiles the performances
 #*********
 # not used
 #*********
-#plotfile_interval = 500         # save a plotfile every plotfile_interval timesteps
 #amr.max_grid_size   = 16         # at least 128 for GPUs
