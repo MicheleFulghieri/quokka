@@ -102,14 +102,20 @@ template <> void QuokkaSimulation<DMExpansionTest>::createInitialCICParticles()
 	const int lev = 0;
 
 	// Geometric setup (this is pointer to the current class, QuokkaSimulation)
-	const amrex::Geometry &geom = this->geom[lev]; // AMReX object for dimensions, conversion to real space from indices and periodicity
-	const amrex::Real L = geom.ProbLength(0);      // physical length along the 0 ax  (0 = x, 1 = y, 2 = z)
+	const amrex::Geometry &geom = this->geom[lev];  // AMReX object for dimensions, conversion to real space from indices and periodicity
+	
+	amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> L; // physical length along the axes  (0 = x, 1 = y, 2 = z)
+	L[0] = geom.ProbLength(0);
+	L[1] = geom.ProbLength(1);
+	L[2] = geom.ProbLength(2);
+
 	
     // Physical quanties
-    const amrex::Real Mpc_to_cm = 3.08567758e24;
-	const amrex::Real h = PhysicsTraits<DMExpansionTest>::hubble_constant;
-	const amrex::Real H0 = (h * 100.0 * 1e5) / Mpc_to_cm;   // Hubble parameter today (s^-1)
 	const amrex::Real G = PhysicsTraits<DMExpansionTest>::gravitational_constant;
+	const amrex::Real h = PhysicsTraits<DMExpansionTest>::hubble_constant;
+
+	const amrex::Real Mpc_to_cm = 3.08567758e24;
+	const amrex::Real H0 = (h * 100.0 * 1e5) / Mpc_to_cm;   // Hubble parameter today (s^-1)
 	const amrex::Real rho_crit_0 = 3.0 * H0 * H0 / (8.0 * amrex::Math::pi<amrex::Real>() * G);
 	const amrex::Real rho_mean = rho_crit_0;                // comoving mean density = critical density (EdS flat universe)
 
@@ -118,13 +124,21 @@ template <> void QuokkaSimulation<DMExpansionTest>::createInitialCICParticles()
 	const amrex::Real H_init = H0 * std::pow(a_init, -1.5);  // initial Hubble paramter for EdS from H0
 
 	// Distribution of the particles along the volume and mass assignement
-	const int n_part_1d             = 64;                     // number of CICs
-	const amrex::Real dx_particles  = L / n_part_1d;          // x separation between each particle
-	const amrex::Real total_mass    = rho_mean * (L * L * L); // inject a total mass of particles corresponding to the mean density (== critical for EdS)
 
-	const amrex::Long n_part_total  = static_cast<amrex::Long>(n_part_1d) * n_part_1d * n_part_1d; // amrex::Long to prevent overflow
-	const amrex::Real particle_mass = total_mass / n_part_total; // distributing equal mass to the parts
+	// Number of cells of the level 0 (base) grid
+	amrex::Box const& domain = geom.Domain();  // return the domain indices ( (lo_x,hi_x), (lo_y,hi_y), (lo_z,hi_z) )
+	const auto dom_len = domain.length();      // number of cell along x, y, z (nx, ny, nz)
 
+
+	// Set the number of particles == number of cells (1 particle per cell)
+	const int n_part_x = dom_len[0];
+	const int n_part_y = dom_len[1];
+	const int n_part_z = dom_len[2];
+
+	// Total particles number and mass assignement
+	const amrex::Long n_part_total = static_cast<amrex::Long>(n_part_x) * n_part_y * n_part_z;  // amrex::Long to prevent overflow
+	const amrex::Real total_mass   = rho_mean * L[0] * L[1] * L[2];  // inject a total mass of particles corresponding to the mean density (== critical for EdS)
+	const amrex::Real particle_mass = total_mass / n_part_total;     // distribute equal mass to the parts
 
 	amrex::Print() << "DM particles initialization...\n";
 	amrex::Print() << "Mean density set: " << rho_mean << " g/cm^3\n";
@@ -140,98 +154,60 @@ template <> void QuokkaSimulation<DMExpansionTest>::createInitialCICParticles()
 	// Collapse parameters: force the collapse at a_collapse
 	const amrex::Real a_collapse = 0.5;                  // target collapse moment (z=1, universe dimensions half of today)
 	const amrex::Real amplitude  = a_init / a_collapse;  // force the amplitude to be such that collapse happens at a_collapse
-	const amrex::Real k_wave     = 2.0 * amrex::Math::pi<amrex::Real>() / L;  // wave vector
-
-
-	// Fictious particle grid for the initial unperturbed, to avoid 3 nested for
-	amrex::IntVect part_lo(0, 0, 0);                                     // origin of the fictious particle grid
-	amrex::IntVect part_hi(n_part_1d - 1, n_part_1d - 1, n_part_1d - 1); // -1 since the indices start from 0
-	amrex::Box part_grid_full(part_lo, part_hi);                         // rectangular region in the indices space, stores the range of the available indices
+	const amrex::Real k_wave     = 2.0 * amrex::Math::pi<amrex::Real>() / L[0];  // wave vector
 
 
 	// Compute how many CICs are in the tile AMR
-	for (amrex::MFIter mfi(state_new_cc_[lev]); mfi.isValid(); ++mfi) { // state_new_cc_[lev] stores hydro data at level lev
-	// Iteration over all the boxes assigned to current processor
-
+	for (amrex::MFIter mfi(state_new_cc_[lev]); mfi.isValid(); ++mfi) {// state_new_cc_[lev] stores hydro data at level lev
+		
 		// Access to the particles of the conteiner for the local tile
-		auto &particles = pc.GetParticles(lev)[std::make_pair(mfi.index(), mfi.LocalTileIndex())]; // map of the particles at level lev, with key [Global box, tile of the box]
-		const amrex::Box& tile_box = mfi.tilebox();  // amrex::Box contains integer indices of the current calculation region (e.g. i: 0-31, j: 0-31, k: 0-31) 
+		const amrex::Box& tile_box = mfi.tilebox();  // amrex::Box contains integer indices of the current tile (e.g. i: 0-31, j: 0-31, k: 0-31) 
+		auto& particles = pc.GetParticles(lev)[std::make_pair(mfi.index(), mfi.LocalTileIndex())];   // map of the particles at level lev, with key [Global box, tile of the box]
+	
+		// Iterate over the 3D integer indices (i, j, k) of the grid: no particle is skipped or double-counted at tile boundaries
+		amrex::Loop(tile_box, [=, &particles](int i, int j, int k) noexcept {
 
-		// Physical borders of the current tile
-		amrex::Real x_min = prob_lo[0] + tile_box.smallEnd(0) * dx[0];     // smallEnd(0) for the inclusive lower bound in x (0)
-		amrex::Real x_max = prob_lo[0] + (tile_box.bigEnd(0) + 1) * dx[0]; // bigEnd for the inclusive upper bound, +1 to include the right border of the last cell
+		// Calculate initial unperturbed Lagrangian position (q) directly from integer indices
+        // prob_lo[0] + (i + 0.5) * dx[0] is the exact cell center
+        amrex::Real qx = prob_lo[0] + (i + 0.5) * dx[0];  // i index is the cell left edge
+        amrex::Real qy = prob_lo[1] + (j + 0.5) * dx[1];
+        amrex::Real qz = prob_lo[2] + (k + 0.5) * dx[2];
 
-   		amrex::Real y_min = prob_lo[1] + tile_box.smallEnd(1) * dx[1];
-   		amrex::Real y_max = prob_lo[1] + (tile_box.bigEnd(1) + 1) * dx[1];
+		// Velocity and displacement due to the perturbation (Zel'dovich Approximation)
+		// x = q - [D(t)/k] * sin(k*q); 1/k scales the dimensionless amplitude to physical comoving distance
+		// For the growing mode, velocity must be in the same direction as the displacement.
+		// Since we use x = q - displacement, the velocity must be -a*H*displacement.
+		const amrex::Real displacement = (amplitude / k_wave) * std::sin(k_wave * qx); 
+		const amrex::Real v_pec        = -a_init * H_init * displacement; 
 
-   		amrex::Real z_min = prob_lo[2] + tile_box.smallEnd(2) * dx[2];
-   		amrex::Real z_max = prob_lo[2] + (tile_box.bigEnd(2) + 1) * dx[2];
+		// CIC initialization
+		using ParticleType = quokka::CICParticleContainer::ParticleType;  // create the alias ParticleType as a type for the struct of the single particles in quokka::CICParticleContainer: pos, vels, mass
+		ParticleType p;   // instantiation of the stack memory space for the CIC data
+		p.id() = ParticleType::NextID();  // method that assigns uniquely a 64 bit ID to the single particle
+		p.cpu() = amrex::ParallelDescriptor::MyProc(); // call to the ParallelDescriptor function: locate the processor that is currently handlig the particle
 
+		// Comoving position: sinusoidal perturbation in x
+		p.pos(0) = qx - displacement; // perturbation
+		p.pos(1) = qy;
+		p.pos(2) = qz;
 
-		// Conversion of the cell indices in spatial coordinates for the begin and end of the tile
-		amrex::IntVect p_tile_lo(//small offset (1e-10) for numerical precision at borders
-       	static_cast<int>(std::floor((x_min - prob_lo[0] + 1e-10) / dx_particles)), // floor rounds to the closest smaller integer
-       	static_cast<int>(std::floor((y_min - prob_lo[1] + 1e-10) / dx_particles)),
-       	static_cast<int>(std::floor((z_min - prob_lo[2] + 1e-10) / dx_particles))
-   		);
+		// Physical CIC properties: mass, vx, vy, vz
+		p.rdata(quokka::CICParticleMassIdx) = particle_mass;     // mass
+		p.rdata(quokka::CICParticleVxIdx)   = v_pec;		     // peculiar vx
+		p.rdata(quokka::CICParticleVyIdx)   = 0.0;		         // peculiar vy
+		p.rdata(quokka::CICParticleVzIdx)   = 0.0;		         // peculiar vz
 
-		// Find the indices of the CICs that falls in this x, y, z range: index = position / spacing
-   		amrex::IntVect p_tile_hi(
-       	static_cast<int>(std::floor((x_max - prob_lo[0] - 1e-10) / dx_particles)),
-       	static_cast<int>(std::floor((y_max - prob_lo[1] - 1e-10) / dx_particles)),
-       	static_cast<int>(std::floor((z_max - prob_lo[2] - 1e-10) / dx_particles))
-   		);
+		particles.push_back(p);
 
-		// Intersection: a new box with only the indies both in part_grid_full and the current processor tile: the first is the physical limit, preventing local processor generate unphysical particles
-		amrex::Box local_part_box = amrex::Box(p_tile_lo, p_tile_hi) & part_grid_full;  // amrex::Box(p_tile_lo, p_tile_hi): temporary grid with physical space handled by the processor
+		}); // end amrex::Loop
+	} // enf for amrex::MFIter mfi
 
+// Rearrange the particles between the processors (MPI rank) according to their position
+pc.Redistribute();
 
-		// amrex::Loop(tile_box,...) = 3 nested loops of the shape: for (int k = lo.z; k <= hi.z; ++k)
-		if (local_part_box.ok()) { // proceed only if there are particles in this tile (.ok() is true if at least one point, ie intersection successful)
-			amrex::Loop(local_part_box, [=, &particles](int i, int j, int k) noexcept { // capure by ref the conteiner &particles, with current index of the particle grid (i,j,k)
-				
-				// Unperturbed initial lagrangian position (center of the particle cell)
-				amrex::Real qx = (i + 0.5) * dx_particles;   // i index is the cell left edge
-           		amrex::Real qy = (j + 0.5) * dx_particles;
-           		amrex::Real qz = (k + 0.5) * dx_particles;
+amrex::Print() << "DM particles initialization completed.\n" << std::endl;
 
-
-				// Velocity and displacement due to the perturbation (Zel'dovich Approximation)
-				//  x = q - [D(t)/k] * sin(k*q); 1/k scales the dimensionless amplitude to physical comoving distance
-				const amrex::Real displacement = (amplitude / k_wave) * std::sin(k_wave * qx); //  x = q - [D(t)/k] * sin(k*q)
-				const amrex::Real v_pec        = a_init * H_init * displacement;               // contrast the decay mode, set to match the growing mode
-
-
-				// CIC initialization
-				using ParticleType = quokka::CICParticleContainer::ParticleType;  // create the alias ParticleType as a type for the struct of the single particles in quokka::CICParticleContainer: pos, vels, mass
-				ParticleType p;   // instantiation of the stack memory space for the CIC data
-				p.id() = ParticleType::NextID();  // method that assigns uniquely a 64 bit ID to the single particle
-				p.cpu() = amrex::ParallelDescriptor::MyProc(); // call to the ParallelDescriptor function: locate the processor that is currently handlig the particle
-
-
-				// Sinusoidal perturbation in x
-				p.pos(0) = qx - displacement; // perturbation
-				p.pos(1) = qy;
-				p.pos(2) = qz;
-
-				// Physical CIC properties: mass, vx, vy, vz
-				p.rdata(quokka::CICParticleMassIdx) = particle_mass;     // mass
-				p.rdata(quokka::CICParticleVxIdx)   = v_pec;		     // peculiar vx
-				p.rdata(quokka::CICParticleVyIdx)   = 0.0;		         // peculiar vy
-				p.rdata(quokka::CICParticleVzIdx)   = 0.0;		         // peculiar vz
-
-				particles.push_back(p);
-
-			}); // end amrex::Loop
-		} // end if(local_part_box.ok())
-	} // end MFIter
-
-	// Rearrange the particles between the processors (MPI rank) according to their position
-	pc.Redistribute();
-
-	amrex::Print() << "DM particles initialization completed.\n" << std::endl;
-}
-
+}  // end createInitialCICParticles
 
 
 
@@ -338,6 +314,10 @@ auto problem_main() -> int
 // per rendere CosmologicalExpansion un test
 
 // poi estendere il collasso da 1d a 3d
+
+// Magari Zel'dovich comolessivo con hydro + CIC
+
+// capire come funziona il Poisson solver
 
 
 // OBS: Griglia Euleriana: lo spazio è diviso in celle fisse. Calcoli come le quantità (massa, momento) fluiscono da una cella all'altra.

@@ -52,6 +52,7 @@
 #include "fundamental_constants.H"
 #include "hydro/hydro_system.hpp"
 #include "physics_info.hpp"
+#include "math/ODEIntegrate.hpp"  
 
 namespace quokka::cosmology
 {
@@ -87,41 +88,56 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE auto HubbleFactor(amrex::Real a, Cosmol
 	return std::sqrt(std::max(E2, static_cast<amrex::Real>(0.0)));
 }
 
-/// @brief Evolve the scale factor a(t) from a_old to a_old+dt using an RK2 sub-stepped integrator
-///
-/// We integrate da/dt = a*H0*E(a) with the midpoint method (second-order Runge-Kutta).
-/// The step size is automatically sub-divided so that each sub-step changes a by at most
-/// max_frac_step (default 1%), ensuring accuracy even for large outer timesteps.
+
+/// @brief Evolve the scale factor a(t) from a_old to a_old+dt using an adaptive (according to the
+/// relative error) RK12 (Heun and Euler)
 ///
 /// \param a_old        Starting scale factor
 /// \param dt           Time interval to integrate over
 /// \param cosmo        Cosmology parameters
-/// \param max_frac_step Maximum fractional change in a per internal sub-step
 /// \return             New scale factor a(t+dt)
-///
-/// [[nodiscard]]: the compiler warns if the caller discards the return value.
-[[nodiscard]] inline auto evolveScaleFactor(amrex::Real a_old, amrex::Real dt, CosmologyParams const &cosmo, amrex::Real max_frac_step = 0.01) -> amrex::Real
-{
-	// Check the scale factor is not negative
-	AMREX_ASSERT_WITH_MESSAGE(a_old > 0.0, "Scale factor a_old must be positive to avoid divergence in HubbleFactor!");
-	
-	// Estimate how many sub-steps we need: H*dt < max_frac_step per sub-step
-	const amrex::Real H_est = cosmo.H0 * HubbleFactor(a_old, cosmo);
-	// Number of a steps (nsteps) required for a (prop to H_est) does't vary more than max_frac_step
-	const int nsteps = std::max(1, static_cast<int>(std::ceil(H_est * dt / max_frac_step)));
-	const amrex::Real dt_sub = dt / static_cast<amrex::Real>(nsteps);
 
-	amrex::Real a = a_old;
-	for (int step = 0; step < nsteps; ++step) {
-		// Midpoint (RK2): evaluate derivative at start, step to midpoint,
-		// re-evaluate at midpoint, use midpoint derivative for the full step.
-		const amrex::Real k1 = a * cosmo.H0 * HubbleFactor(a, cosmo);	      // da/dt at t
-		const amrex::Real a_mid = a + 0.5 * dt_sub * k1;	         	      // a at t+dt/2
-		const amrex::Real k2 = a_mid * cosmo.H0 * HubbleFactor(a_mid, cosmo); // da/dt at t+dt/2
-		a += dt_sub * k2;
+// Definition of the functor (class object callable as a function, overload of () operator) for the ODE
+struct FriedmannRhsFunctor {
+	// Data member for the ODE
+	CosmologyParams const &cosmo;
+
+	// Constructor (explicit to prevent accidental data coversion)
+	AMREX_GPU_HOST_DEVICE explicit FriedmannRhsFunctor(CosmologyParams const &cosmo_in) : cosmo(cosmo_in) {
+	}  
+
+	// Functor for the Friedmann rhs: overloading of the () operator:
+	// t is the current time
+	// y_data is the input current status
+	// y_rhs is the output, the derivative dy/dt
+	AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+	auto operator()(amrex::Real /* t */, quokka::valarray<amrex::Real, 1> const &y_data, quokka::valarray<Real, 1> &y_rhs) const -> int {
+		const amrex::Real a = y_data[0];                   // initial scale factor value from the state vector
+		y_rhs[0] = a * cosmo.H0 * HubbleFactor(a, cosmo);  // da/dt = a * H(a)
+		return 0;
 	}
-	return a;
+};
+
+/// [[nodiscard]]: the compiler warns if the caller discards the return value.
+// SEvolve the scale factor solving the Friedmann equation
+[[nodiscard]] inline auto evolveScaleFactor(amrex::Real a_old, amrex::Real dt, CosmologyParams const &cosmo) -> amrex::Real {
+
+	// Check the scale factor is not negative
+	AMREX_ASSERT_WITH_MESSAGE(a_old > 0.0, "Scale factor a_old must be positive!");
+
+	// Inputs for the integrator
+	FriedmannRhsFunctor rhs(cosmo);
+	quokka::valarray<amrex::Real, 1> y ={a_old};
+    quokka::valarray<amrex::Real, 1> abstol = {1.0e-12 * a_old}; // absolute tolerance
+    const Real rtol = 1.0e-8;                                    // relative tolerance
+
+	int steps_taken = 0;   // counter of the substeps to cover the integration dt
+	rk_adaptive_integrate(rhs, 0, y, dt, rtol, abstol, steps_taken);
+
+	return y[0];           // new scale factor a(t+dt)
 }
+
+
 
 /// @brief Apply cosmological source terms (Hubble drag + expansion cooling) over [a_old, a_new]
 ///

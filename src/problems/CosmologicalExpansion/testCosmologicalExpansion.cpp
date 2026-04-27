@@ -16,7 +16,7 @@
 struct ExpansionProblem {
 	static constexpr double rho0_default = 1.0e-30; // low density
 	static constexpr double P0_default = 1.0e-25;	// low pressure (enough to have low sound speed and thus small dt)
-	static constexpr double vx0_default = 0;	// for a pure expansion test
+	static constexpr double vx0_default = 0;	    // for a pure expansion test
 	static constexpr double vy0_default = 0;
 	static constexpr double vz0_default = 0;
 };
@@ -71,7 +71,7 @@ template <> void QuokkaSimulation<ExpansionProblem>::setInitialConditionsOnGrid(
 	pp.query("vy0", vy);
 	pp.query("vz0", vz);
 
-	const amrex::Box &indexRange = grid_elem.indexRange_;	  // set of the indices of the grid patch (e.g. from 0 to 31 in x, y, z)
+	const amrex::Box &indexRange = grid_elem.indexRange_;	  // set of the indices of the grid patch (e.g. from 0 to 31 in x, y, z) 
 	const amrex::Array4<double> &state_cc = grid_elem.array_; // Array4 is a pointer to the data
 
 	amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) {

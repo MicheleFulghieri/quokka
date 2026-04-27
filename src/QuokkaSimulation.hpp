@@ -218,6 +218,10 @@ template <typename problem_t> class QuokkaSimulation : public AMRSimulation<prob
 	amrex::Real a_now_ = 1.0;
 	amrex::Real comoving_mean_density_ = 0.0;
 	amrex::Real cosmology_dt_limit_ = PhysicsTraits<problem_t>::cosmology_dt_limit;
+	// a_half_ = a(t_n + dt/2): cached by particleCosmologyComputeHalfStep() before the hydro
+	// advance so that the drift and the Strang-split post-kick drag can both use the same
+	// bitwise-identical midpoint scale factor.
+	amrex::Real a_half_ = 1.0;
 	std::unique_ptr<quokka::turbulence::turbulentDriving<problem_t>> td;
 
 	auto getCosmologyScaleFactor() const -> amrex::Real override
@@ -225,22 +229,42 @@ template <typename problem_t> class QuokkaSimulation : public AMRSimulation<prob
 		return a_now_;
 	}
 
-	void particleCosmologyPreKick(amrex::Real dt) override
+	// Returns the mid-step scale factor a(t_n + dt/2), cached before the hydro advance.
+	// Non-cosmological specialisations inherit the default { return 1.0; } from AMRSimulation.
+	auto getCosmologyScaleFactorHalf() const -> amrex::Real override
 	{
 		if constexpr (PhysicsTraits<problem_t>::is_cosmology_enabled) {
-			const amrex::Real a_old = a_now_;
-			const amrex::Real a_half = quokka::cosmology::evolveScaleFactor(a_old, 0.5 * dt, cosmology_params_);
-			this->particleRegister_.applyHubbleDragAllLevels(this->finest_level, a_old, a_half);
+			return a_half_;
+		}
+		return 1.0;
+	}
+
+	// Integrate a from t_n to t_n+dt/2 and store the result in a_half_.
+	// Called once per coarse step, BEFORE timeStepWithSubcycling modifies a_now_.
+	void particleCosmologyComputeHalfStep(amrex::Real dt) override
+	{
+		if constexpr (PhysicsTraits<problem_t>::is_cosmology_enabled) {
+			a_half_ = quokka::cosmology::evolveScaleFactor(a_now_, 0.5 * dt, cosmology_params_);
 		}
 	}
 
-	void particleCosmologyPostKick(amrex::Real dt) override
+	// Pre-kick Hubble drag: v_pec *= a_old / a_half  (1st half of Strang split)
+	// Uses a_half_ cached by particleCosmologyComputeHalfStep — no recomputation.
+	void particleCosmologyPreKick(amrex::Real /*dt*/) override
 	{
 		if constexpr (PhysicsTraits<problem_t>::is_cosmology_enabled) {
-			const amrex::Real a_new = a_now_;
-			// Integrate backwards from a_new to a_half
-			const amrex::Real a_half = quokka::cosmology::evolveScaleFactor(a_new, -0.5 * dt, cosmology_params_);
-			this->particleRegister_.applyHubbleDragAllLevels(this->finest_level, a_half, a_new);
+			this->particleRegister_.applyHubbleDragAllLevels(this->finest_level, a_now_, a_half_);
+		}
+	}
+
+	// Post-kick Hubble drag: v_pec *= a_half / a_new  (2nd half of Strang split)
+	// Reuses the same a_half_ stored in the pre-kick step for bitwise consistency:
+	// both halves of the Strang split operate on exactly the same midpoint value.
+	void particleCosmologyPostKick(amrex::Real /*dt*/) override
+	{
+		if constexpr (PhysicsTraits<problem_t>::is_cosmology_enabled) {
+			// a_now_ here is a_new (updated by addStrangSplitSourcesWithBuiltin)
+			this->particleRegister_.applyHubbleDragAllLevels(this->finest_level, a_half_, a_now_);
 		}
 	}
 

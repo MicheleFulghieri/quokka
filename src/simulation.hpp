@@ -305,7 +305,15 @@ template <typename problem_t> class AMRSimulation : public amrex::AmrCore
 	virtual void createInitialTestParticles() = 0;
 
 	// Particle cosmology hooks
+	// getCosmologyScaleFactor()     : returns a_now (current scale factor)
+	// getCosmologyScaleFactorHalf() : returns a_half = a(t_n + dt/2), stored by
+	//                                 particleCosmologyComputeHalfStep before the hydro advance
+	// particleCosmologyComputeHalfStep : integrates a from t_n to t_n+dt/2 and stores a_half_
+	// particleCosmologyPreKick  : Hubble drag  v *= a_n     / a_{n+1/2}  (before 1st kick)
+	// particleCosmologyPostKick : Hubble drag  v *= a_{n+1/2} / a_{n+1}  (after  2nd kick)
 	virtual auto getCosmologyScaleFactor() const -> amrex::Real { return 1.0; }
+	virtual auto getCosmologyScaleFactorHalf() const -> amrex::Real { return 1.0; }
+	virtual void particleCosmologyComputeHalfStep(amrex::Real /*dt*/) {}
 	virtual void particleCosmologyPreKick(amrex::Real /*dt*/) {}
 	virtual void particleCosmologyPostKick(amrex::Real /*dt*/) {}
 
@@ -1199,7 +1207,10 @@ template <typename problem_t> auto AMRSimulation<problem_t>::computeTimestepAtLe
 		}
 		// avoid division by zero by only computing dt if max_particle_speed is not too small
 		if (max_particle_speed.value > 1e-5 * (dx_min / hydro_dt.value)) {
-			particle_dt.value = particleCflNumber_ * (dx_min / max_particle_speed.value);
+			// Comoving CFL: |v_pec| * dt / a <= CFL * dx  =>  dt <= CFL * a * dx / |v_pec|
+			// Without the factor a, particles can drift up to dx/a per step (100x too far at a=0.01).
+			const amrex::Real a_cfl = getCosmologyScaleFactor(); // a_old at timestep start
+			particle_dt.value = particleCflNumber_ * a_cfl * (dx_min / max_particle_speed.value);
 		}
 		if (verbose) {
 			amrex::Print() << std::format("...[level {}] estimated particle timestep: {:e}\n", lev, particle_dt.value);
@@ -1403,11 +1414,23 @@ template <typename problem_t> void AMRSimulation<problem_t>::evolve()
 
 #if AMREX_SPACEDIM == 3
 		if constexpr (Particle_Traits<problem_t>::particle_switch != ParticleSwitch::None) {
-			// do particle leapfrog (first kick at time t)
+			// --- Cosmological KDK leapfrog ---
+			//
+			// The scale factor a(t) is updated inside timeStepWithSubcycling (via
+			// addStrangSplitSourcesWithBuiltin), so we must capture a_half = a(t+dt/2) BEFORE
+			// the hydro advance. This ensures:
+			//   Drift  : Δx = v_pec * dt / a_half   (midpoint rule, 2nd-order accurate)
+			//   Drag   : v *= a_old/a_half  (pre),  v *= a_half/a_new (post)
+			// a_half_ is stored in QuokkaSimulation and retrieved via getCosmologyScaleFactorHalf().
+			if constexpr (PhysicsTraits<problem_t>::is_cosmology_enabled) {
+				// Integrate a from t_n to t_n+dt/2 and cache as a_half_.
+				// Must be called before timeStepWithSubcycling modifies a_now_.
+				particleCosmologyComputeHalfStep(dt_[0]);
+				// Pre-kick Hubble drag: v *= a_old / a_half  (1st half of Strang split)
+				particleCosmologyPreKick(dt_[0]);
+			}
+			// 1st half-kick: v += 0.5*dt * g(x_n) / a_old
 			if constexpr (PhysicsTraits<problem_t>::is_self_gravity_enabled) {
-				if constexpr (PhysicsTraits<problem_t>::is_cosmology_enabled) {
-					particleCosmologyPreKick(dt_[0]);
-				}
 				kickParticlesAllLevels(dt_[0]);
 			}
 		}
@@ -1416,6 +1439,7 @@ template <typename problem_t> void AMRSimulation<problem_t>::evolve()
 		// hyperbolic advance over all levels
 		// (N.B. when AMR is enabled, regridding may happen during this function!)
 		// Particle redistribution is done here.
+		// N.B.: addStrangSplitSourcesWithBuiltin inside this call updates a_now_: a_old -> a_new.
 		int lev = 0;		 // coarsest level
 		const int iteration = 1; // this is the first call to advance level 'lev'
 		timeStepWithSubcycling(lev, cur_time, iteration);
@@ -1423,25 +1447,31 @@ template <typename problem_t> void AMRSimulation<problem_t>::evolve()
 #if AMREX_SPACEDIM == 3
 		if constexpr (Particle_Traits<problem_t>::particle_switch != ParticleSwitch::None) {
 			if (particleRegister_.HasMassiveParticles()) {
-				// drift particles from t to (t + dt)
-				// N.B.: MUST be done *before* Poisson solve at new time!
-				const amrex::Real a_cosmo = getCosmologyScaleFactor();
-				particleRegister_.driftParticlesAllLevels(dt_[0], finest_level, a_cosmo);
+				// Full drift: x_{n+1} = x_n + v_{n+1/2} * dt / a_{n+1/2}
+				// Use a_half (midpoint) for 2nd-order accuracy in comoving coordinates.
+				// a_half was computed and cached before the hydro advance above.
+				// N.B.: MUST be done *before* the Poisson solve at new time!
+				const amrex::Real a_cosmo_half = getCosmologyScaleFactorHalf();
+				particleRegister_.driftParticlesAllLevels(dt_[0], finest_level, a_cosmo_half);
 			}
 		}
 #endif
 
 		// elliptic solve over entire AMR grid (post-timestep)
+		// Poisson RHS uses a_new (particles are now at t+dt positions) — correct.
 		ellipticSolveAllLevels(dt_[0]);
 
 		// do particle leapfrog (second kick at t + dt)
 #if AMREX_SPACEDIM == 3
 		if constexpr (Particle_Traits<problem_t>::particle_switch != ParticleSwitch::None) {
+			// 2nd half-kick: v += 0.5*dt * g(x_{n+1}) / a_new
 			if constexpr (PhysicsTraits<problem_t>::is_self_gravity_enabled) {
 				kickParticlesAllLevels(dt_[0]);
-				if constexpr (PhysicsTraits<problem_t>::is_cosmology_enabled) {
-					particleCosmologyPostKick(dt_[0]);
-				}
+			}
+			// Post-kick Hubble drag: v *= a_half / a_new  (2nd half of Strang split)
+			// Uses the same a_half_ cached before the hydro advance for bitwise consistency.
+			if constexpr (PhysicsTraits<problem_t>::is_cosmology_enabled) {
+				particleCosmologyPostKick(dt_[0]);
 			}
 
 			// Stellar evolution and SN deposition; only apply to star particles
