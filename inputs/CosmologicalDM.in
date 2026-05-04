@@ -1,20 +1,28 @@
 # *****************************************************************
-# Problem size, geometry and resolution
+# Problem size, geometry and resolution  (1 Mpc = 3.08567758e24 cm)
 # *****************************************************************
 geometry.prob_lo       =  0.0  0.0  0.0 
-geometry.prob_hi       =  1.0e26 1.0e26 1.0e26   # 32 Mpc 32 Mpc 32 Mpc   
+geometry.prob_hi       =  3.086e25 3.086e25 3.086e25   # 10 Mpc 10 Mpc 10 Mpc   
 geometry.is_periodic   =  1 1 1
 
-amr.n_cell          = 32 32 32     # 1Mpc/cell resolution
+amr.n_cell          = 128 128 128  # resolution
 amr.max_level       = 0            # number of levels = max_level + 1
 amr.blocking_factor = 8            # grid size must be divisible by this
 do_subcycle         = 0            # Poisson solver doesn't support AMR subcycling in quokka
 
 quokka.bc = periodic periodic periodic
 
-#amr.stop_time     = 1.0e8     # set by the collapse timespan in the .cpp
 amr.max_timesteps = 20000000
 quokka.cfl        = 0.3
+
+
+
+# *****************************************************************
+# Hydro floor
+# *****************************************************************
+problem.rho0_gas = 1.0e-30
+problem.P0_gas   = 1.0e-40
+problem.gamma    = 5.0 / 3.0
 
 
 
@@ -22,7 +30,8 @@ quokka.cfl        = 0.3
 # Cosmology
 # *****************************************************************
 cosmology.hubble_constant = 0.7
-cosmology.omega_m         = 1.0    # Einstein-de Sitter    
+cosmology.omega_m         = 1.0    # Einstein-de Sitter  
+cosmology.omega_r         = 0.0  
 cosmology.omega_lambda    = 0.0
 cosmology.a_init          = 0.01
 
@@ -30,9 +39,11 @@ cosmology.a_init          = 0.01
 # *****************************************************************
 # Simulation control
 # *****************************************************************
-plotfile_interval = 50            # save a plotfile every plotfile_interval timestepsparticles.v = 1                   # specific verbosity for the ParticleContainer
+plotfile_interval = 25            # save a plotfile every plotfile_interval 
+particles.v = 1                   # specific verbosity for the ParticleContainer
 amr.v = 1                         # AMReX verbosity level: 0=quiet, 1=verbose, 2=very verbose
 tiny_profiler.enabled = 1         # AMReX profiles the performances
+#quokka.derived_vars = gpot        # keep track of the gravitational potential
 
 
 

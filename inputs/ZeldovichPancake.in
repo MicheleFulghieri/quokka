@@ -4,8 +4,8 @@ geometry.prob_hi     =  6.172e25  3.086e24  3.086e24 # 20 Mpc x 1 Mpc x 1 Mpc (x
 geometry.is_periodic =  1 1 1   # periodic boundary conditions
 
 amr.n_cell          = 1024 8 8   # initial number of cells in each dimension
-amr.max_level       = 0         # maximum level of refinement
-amr.blocking_factor = 8         # factor by which the number of cells is multiplied at each level
+amr.max_level       = 0          # maximum level of refinement
+amr.blocking_factor = 8          # factor by which the number of cells is multiplied at each level
 
 quokka.bc = periodic periodic periodic   # boundary conditions for each dimension (x, y, z)   
 

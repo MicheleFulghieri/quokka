@@ -14,11 +14,11 @@
 #include <cmath>
 
 struct ExpansionProblem {
-	static constexpr double rho0_default = 1.0e-30; // low density
-	static constexpr double P0_default = 1.0e-25;	// low pressure (enough to have low sound speed and thus small dt)
-	static constexpr double vx0_default = 0;	    // for a pure expansion test
-	static constexpr double vy0_default = 0;
-	static constexpr double vz0_default = 0;
+	static constexpr amrex::Real rho0_default = 1.0e-30; // low density
+	static constexpr amrex::Real P0_default = 1.0e-40;   // low pressure (enough to have low sound speed and thus small dt)
+	static constexpr amrex::Real vx0_default = 0;	     // for a pure expansion test
+	static constexpr amrex::Real vy0_default = 0;
+	static constexpr amrex::Real vz0_default = 0;
 };
 
 // energy evolution for the analytical solution
@@ -28,8 +28,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE auto get_analytic_energy(amrex::Real e_
 }
 
 template <> struct quokka::EOS_Traits<ExpansionProblem> {
-	static constexpr double gamma = 5.0 / 3.0;
-	static constexpr double mean_molecular_weight = C::m_u;
+	static constexpr amrex::Real gamma = 5.0 / 3.0;
+	static constexpr amrex::Real mean_molecular_weight = C::m_u;
 };
 
 template <> struct Physics_Traits<ExpansionProblem> {
@@ -56,7 +56,7 @@ template <> struct Physics_Traits<ExpansionProblem> {
 template <> void QuokkaSimulation<ExpansionProblem>::setInitialConditionsOnGrid(quokka::grid const &grid_elem)
 {
 	// Initial conditions: default of the problem
-	const double gamma = quokka::EOS_Traits<ExpansionProblem>::gamma;
+	const amrex::Real gamma = quokka::EOS_Traits<ExpansionProblem>::gamma;
 	amrex::Real rho = ExpansionProblem::rho0_default;
 	amrex::Real P = ExpansionProblem::P0_default;
 	amrex::Real vx = ExpansionProblem::vx0_default;

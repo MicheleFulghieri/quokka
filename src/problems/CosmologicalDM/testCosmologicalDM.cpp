@@ -14,18 +14,20 @@
 
 #include <AMReX_Math.H>   // for pi
 
-#include <utility>        // for std::make_pairconst amrex::Real total_mass = rho_mean * (L * L * L);
+#include <utility>        // for std::make_pairconst 
 #include <cmath>          // for std::sin, std::floor
 
 
 
-// Empty struct, tag for the templates
+// Struct tag for the templates, with the defalt hydro values
 struct DMExpansionTest{
+	static constexpr amrex::Real rho_gas_default = 1.0e-30;    // low density
+	static constexpr amrex::Real P_gas_default   = 1.0e-40;    // low pressure (enough to have low sound speed and thus small dt)
 };
 
 template <> struct quokka::EOS_Traits<DMExpansionTest> {
-	static constexpr double gamma = 5.0 / 3.0;
-	static constexpr double mean_molecular_weight = C::m_u;
+	static constexpr amrex::Real gamma = 5.0 / 3.0;
+	static constexpr amrex::Real mean_molecular_weight = C::m_u;
 };
 
 // Traits: physics and particles
@@ -34,20 +36,21 @@ template <> struct Particle_Traits<DMExpansionTest>{
     static constexpr ParticleSwitch particle_switch = ParticleSwitch::CIC;
 };
 
+
 // Physics traits
 template <> struct Physics_Traits<DMExpansionTest> {
-    static constexpr bool is_hydro_enabled = true;
-	static constexpr bool is_cosmology_enabled = true;
+    static constexpr bool is_hydro_enabled        = true;
+	static constexpr bool is_cosmology_enabled    = true;
 	static constexpr bool is_self_gravity_enabled = true;
-	static constexpr bool is_radiation_enabled = false;
-	static constexpr bool is_mhd_enabled = false;
-	static constexpr int numMassScalars = 0;
-	static constexpr int numPassiveScalars = 0;
-	static constexpr bool is_dust_enabled = false;
+	static constexpr bool is_radiation_enabled    = false;
+	static constexpr bool is_mhd_enabled          = false;
+	static constexpr int numMassScalars           = 0;
+	static constexpr int numPassiveScalars        = 0;
+	static constexpr bool is_dust_enabled         = false;
 	static constexpr UnitSystem unit_system = UnitSystem::CGS;
 
 // Cosmology parameters
-	static constexpr double omega_m = 1.0;
+	static constexpr double omega_m = 1.0;             // EdS universe
 	static constexpr double omega_r = 0.0;
 	static constexpr double omega_lambda = 0.0;
 	static constexpr double hubble_constant = 0.7;	   // h = 0.7 (H0 = 70 km/s/Mpc)
@@ -56,23 +59,30 @@ template <> struct Physics_Traits<DMExpansionTest> {
 };
 
 
-// Grid initialization (only background, no hydro solver enabled, only the floor state_cc)
+// Grid initialization (only background, hydro only in the floor state_cc)
 template <> void QuokkaSimulation<DMExpansionTest>::setInitialConditionsOnGrid(quokka::grid const &grid_elem) {
+
+    // Floor hydro values to avoid nan: default 
+    amrex::Real rho_floor = DMExpansionTest::rho_gas_default;
+    amrex::Real p_floor   = DMExpansionTest::P_gas_default;
+    amrex::Real gamma = quokka::EOS_Traits<DMExpansionTest>::gamma;
+
+	// Initial conditions: precedence to user-entered values (override if present in the .in file)
+	amrex::ParmParse pp("problem");
+	pp.query("rho0_gas", rho_floor);
+	pp.query("P0_gas", p_floor);
+	pp.query("gamma", gamma);
+
+    amrex::Print() << "Grid initialization: setting floor density and pressure...\n";
 
     const amrex::Box &indexRange = grid_elem.indexRange_;       // set of the indices of the grid patch (e.g. from 0 to 31 in x, y, z)
     const amrex::Array4<double> & state_cc = grid_elem.array_;  // Array4 is a pointer to the data
 
-    // Floor hydro values to avoid nan 
-    const Real rho_floor = 1.0e-30;
-    const Real p_floor = 1.0e-35;
-    const amrex::Real gamma = quokka::EOS_Traits<DMExpansionTest>::gamma;
-    amrex::Print() << "Grid initialization: setting floor density to 1.0e-30\n";
-
     // Parallel loop over the spatial indices on GPU
     amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
         // Small floor placeholder value (avoid /0 in vel but not affect gravity)
-        state_cc(i, j, k, HydroSystem<DMExpansionTest>::density_index) = 1.0e-30; 
-        state_cc(i, j, k, HydroSystem<DMExpansionTest>::x1Momentum_index) = rho_floor;
+        state_cc(i, j, k, HydroSystem<DMExpansionTest>::density_index) = rho_floor; 
+        state_cc(i, j, k, HydroSystem<DMExpansionTest>::x1Momentum_index) = 0;
         state_cc(i, j, k, HydroSystem<DMExpansionTest>::x2Momentum_index) = 0;
         state_cc(i, j, k, HydroSystem<DMExpansionTest>::x3Momentum_index) = 0;
         state_cc(i, j, k, HydroSystem<DMExpansionTest>::energy_index) = p_floor / (gamma - 1.0);
@@ -81,7 +91,7 @@ template <> void QuokkaSimulation<DMExpansionTest>::setInitialConditionsOnGrid(q
 }
 
 
-// Particles initialization and gravitational collapse
+// Particles initialization and gravitational collapse (https://amrex-codes.github.io/amrex/docs_html/Particle.html)
 template <> void QuokkaSimulation<DMExpansionTest>::createInitialCICParticles()
 {
 	// --- Particle initialization using the Zel'dovich Approximation ---
@@ -177,7 +187,7 @@ template <> void QuokkaSimulation<DMExpansionTest>::createInitialCICParticles()
 		// x = q - [D(t)/k] * sin(k*q); 1/k scales the dimensionless amplitude to physical comoving distance
 		// For the growing mode, velocity must be in the same direction as the displacement.
 		// Since we use x = q - displacement, the velocity must be -a*H*displacement.
-		const amrex::Real displacement = (amplitude / k_wave) * std::sin(k_wave * qx); 
+		const amrex::Real displacement = - (amplitude / k_wave) * std::sin(k_wave * qx); 
 		const amrex::Real v_pec        = -a_init * H_init * displacement; 
 
 		// CIC initialization
@@ -210,6 +220,25 @@ amrex::Print() << "DM particles initialization completed.\n" << std::endl;
 }  // end createInitialCICParticles
 
 
+// Keep track of the gravitational potential
+// lev, the current AMR level, dname, the name of the requested variable, mf, the MultiFab container where write the data to be saved, ncomp_cc_in, column index where insert the output data
+template <> void QuokkaSimulation<DMExpansionTest>::ComputeDerivedVar(int lev, std::string const &dname, amrex::MultiFab &mf, const int ncomp_cc_in) const
+{
+	// compute derived variables and save in 'mf'
+	if (dname == "gpot") {               // activate the function for the gravitational potential as derivate quantity
+		const int ncomp = ncomp_cc_in;   // copy the target index into a local variable to allow the GPU to capture it correctly in the next lambda function
+		auto const &phi_arr = phi[lev].const_arrays();  // phi[lev] contains the potential calculated by the gravity solver, const_arrays() retrives the read-only data as Array4 pointer
+		auto output = mf.arrays();       // returns the pointers of writing of the output grid mf
+
+		// Paste the gravitational potential (phi_arr) into the output container (output) as Array4 pointers
+		amrex::ParallelFor(mf, [=] AMREX_GPU_DEVICE(int bx, int i, int j, int k) noexcept {  // iteration over all the cells of the mf container
+			// For each grid cell at the coordinate (i, j, k) of the bx box, takes the value of the gravitational potential (phi_arr) and pastes it into the corresponding cell of the output memory for the plot file (output).
+			output[bx](i, j, k, ncomp) = phi_arr[bx](i, j, k); 
+		});
+	}
+}
+
+
 
 auto problem_main() -> int
 {
@@ -238,6 +267,7 @@ auto problem_main() -> int
 	amrex::Print() << "Initial scale factor (a_init): " << PhysicsTraits<DMExpansionTest>::a_init << "\n";
 	amrex::Print() << "Expected simulation time (t_collapse - t_init): " << sim.stopTime_ << "\n";
 
+
 	// Initialization
 	sim.setInitialConditions();
 
@@ -253,6 +283,23 @@ auto problem_main() -> int
 
 
 
+
+
+// vedere se con il nuovo solver integrato 	static constexpr double cosmology_dt_limit = 0.01; // according to the default
+// nei Traits ha ancora senso
+
+// per isolare meglio la fisica, provare anche il test nel caso di gamma = 1
+// eds isoterma
+
+// valutare se un floor di pressione e densità troppo basso può
+// influenzare il test (Con densità così basse, piccole oscillazioni numeriche
+// causate dal potenziale gravitazionale delle particelle possono
+// produrre pressioni o energie negative. La velocità del suono 
+// potrebbe dare un valore negativo -> crash con un errore aritmetico.)
+// const Real rho_floor = 1.0e-20; // Almeno qualche ordine di grandezza in più
+// const Real p_floor   = 1.0e-25;
+
+// vedere se renderlo test di regressione
 
 // mettere il parser dei parametri
 // fare file di input, vedere se mettere input del solver gt, magari rendere parsable a_collapse,
@@ -319,9 +366,13 @@ auto problem_main() -> int
 
 // capire come funziona il Poisson solver
 
+// aggiungere stampa periodica del numero delle statistiche delle particelle come 
+// prima del problem:main in BinaryOrbitCIC
+
 
 // OBS: Griglia Euleriana: lo spazio è diviso in celle fisse. Calcoli come le quantità (massa, momento) fluiscono da una cella all'altra.
 //      Griglia Lagrangiana: le celle si muovono con il fluido.
 // Quokka è un codice IBRIDO: idrodinamica (Gas): Usa una griglia Euleriana (AMR). Il gas "scorre" attraverso le celle fisse.
 // Materia Oscura (Particelle): Usa un approccio Lagrangiano. Le particelle si muovono liberamente nello spazio seguendo le equazioni del moto.
-// L'unione (CIC): Il metodo Cloud-in-Cell (CIC) che stai usando è il "ponte": proietta la massa lagrangiana delle particelle sulla griglia euleriana per calcolare il potenziale gravitazionale (Poisson solver).
+// L'unione (CIC): Il metodo Cloud-in-Cell (CIC) che stai usando è il "ponte": proietta la massa lagrangiana delle particelle sulla griglia euleriana per calcolare il potenziale gravitazionale (Poisson solver)._self_gravity_enabled = true;
+	
