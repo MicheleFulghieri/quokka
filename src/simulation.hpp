@@ -1209,8 +1209,12 @@ template <typename problem_t> auto AMRSimulation<problem_t>::computeTimestepAtLe
 		if (max_particle_speed.value > 1e-5 * (dx_min / hydro_dt.value)) {
 			// Comoving CFL: |v_pec| * dt / a <= CFL * dx  =>  dt <= CFL * a * dx / |v_pec|
 			// Without the factor a, particles can drift up to dx/a per step (100x too far at a=0.01).
-			const amrex::Real a_cfl = getCosmologyScaleFactor(); // a_old at timestep start
-			particle_dt.value = particleCflNumber_ * a_cfl * (dx_min / max_particle_speed.value);
+			if constexpr (PhysicsTraits<problem_t>::is_cosmology_enabled) {
+				const amrex::Real a_cfl = getCosmologyScaleFactor(); // a_old at timestep start
+				particle_dt.value = particleCflNumber_ * a_cfl * (dx_min / max_particle_speed.value);
+			} else {
+				particle_dt.value = particleCflNumber_ * (dx_min / max_particle_speed.value);
+			}
 		}
 		if (verbose) {
 			amrex::Print() << std::format("...[level {}] estimated particle timestep: {:e}\n", lev, particle_dt.value);
@@ -1978,7 +1982,6 @@ template <typename problem_t> void AMRSimulation<problem_t>::kickParticlesAllLev
 	}
 
 	// Compute accelerations and kick particles
-	const amrex::Real a_cosmo = getCosmologyScaleFactor();
 
 	for (int lev = 0; lev <= finest_level; ++lev) {
 		// NOTE: CIC interpolation requires 1, but particles may have drifted
@@ -2062,7 +2065,8 @@ template <typename problem_t> void AMRSimulation<problem_t>::kickParticlesAllLev
 
 		// accel_cc is guaranteed to be free of NaN as long as phi_extended does not contain NaN.
 
-		if (a_cosmo != 1.0) {
+		if constexpr (PhysicsTraits<problem_t>::is_cosmology_enabled) {
+			const amrex::Real a_cosmo = getCosmologyScaleFactor();
 			const amrex::Real a_inv = 1.0 / a_cosmo;
 			accel_cc.mult(a_inv);
 		}
