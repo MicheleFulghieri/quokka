@@ -176,7 +176,7 @@ auto problem_main() -> int
 	pp_quokka.query("cfl", sim.cflNumber_);
 
 	// Retrive density, energy and momentum index
-	const int rho_idx = HydroSystem<ExpansionProblem>::density_index;
+	const int rho_idx  = HydroSystem<ExpansionProblem>::density_index;
 	const int eint_idx = HydroSystem<ExpansionProblem>::internalEnergy_index;
 	const int momx_idx = HydroSystem<ExpansionProblem>::x1Momentum_index;
 	const int momy_idx = HydroSystem<ExpansionProblem>::x2Momentum_index;

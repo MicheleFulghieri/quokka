@@ -188,7 +188,7 @@ template <> void QuokkaSimulation<DMExpansionTest>::createInitialCICParticles()
 		// For the growing mode, velocity must be in the same direction as the displacement.
 		// Since we use x = q - displacement, the velocity must be -a*H*displacement.
 		const amrex::Real displacement = - (amplitude / k_wave) * std::sin(k_wave * qx); 
-		const amrex::Real v_pec        = -a_init * H_init * displacement; 
+		const amrex::Real v_pec        = - a_init * H_init * displacement; 
 
 		// CIC initialization
 		using ParticleType = quokka::CICParticleContainer::ParticleType;  // create the alias ParticleType as a type for the struct of the single particles in quokka::CICParticleContainer: pos, vels, mass
@@ -271,8 +271,31 @@ auto problem_main() -> int
 	// Initialization
 	sim.setInitialConditions();
 
+	// Retrive the descriptor for the CIC (via getParticleDescriptor), processing the particles on the finest available level
+	sim.particleRegister_.getParticleDescriptor(quokka::ParticleType::CIC)->setForceFinestLevel(true);
+
 	// Temporal evolution
 	sim.evolve();
+
+
+	// ---- Check against the analytical solution ----
+
+	amrex::Print() << "\n Start testing against the anlytical solution (Zel'dovich approximation)...\n";
+
+	// Get the number of particles
+	const int n_particles = sim.particleRegister_.getParticleDescriptor(quokka::ParticleType::CIC)->getNumParticles();
+	amrex::Print() << " Total DM particles = " << n_particles;
+
+
+	// Variable for the status of the test
+	int status = 0;   //  0 = Pass, 1 = Fail  
+
+
+
+	////////// Proseguire //////////
+	// calcolo posizioni analitiche
+	
+
 
 	amrex::Print() << "\nCIC + cosmology Results:\n";
 	amrex::Print() << "  Final a = " << sim.a_now_ << " (expected " << a_collapse << ")\n";
@@ -355,7 +378,9 @@ auto problem_main() -> int
 // magari mettere bounds sulla tolleranza rispetto a un riferimento /sol an se possibile
 
 // magari, se il test funziona, pensare se aggiungere hydro, il gas, con tutti
-// i suoi gamma, press, densità, ...
+// i suoi gamma, press, densità, ... 
+// OSS: in simulation.hpp righe circa 950 ci sono density, temperature, ... floor
+// vedere se tornano utili e eleganti per questo test
 
 // vedere nella cartella src/problems il file /data/mfulghieri/quokka/src/problems/ProblemHelpers.cmake
 // per rendere CosmologicalExpansion un test
@@ -368,6 +393,9 @@ auto problem_main() -> int
 
 // aggiungere stampa periodica del numero delle statistiche delle particelle come 
 // prima del problem:main in BinaryOrbitCIC
+
+// vedere se aggiungere le particles tracers (vedi prime 1000 righe di simulation.hpp)
+// per tracciare
 
 
 // OBS: Griglia Euleriana: lo spazio è diviso in celle fisse. Calcoli come le quantità (massa, momento) fluiscono da una cella all'altra.
