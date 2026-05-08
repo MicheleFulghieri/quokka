@@ -34,6 +34,7 @@ cosmology.omega_m         = 1.0    # Einstein-de Sitter
 cosmology.omega_r         = 0.0  
 cosmology.omega_lambda    = 0.0
 cosmology.a_init          = 0.01
+cosmology.a_collapse      = 0.5
 
 
 # *****************************************************************

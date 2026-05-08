@@ -18,12 +18,15 @@
 #include <cmath>          // for std::sin, std::floor
 
 
+// Global variable for the stutus of the test
+static amrex::Real error_at_08 = 0;  // NOLINT
 
 // Struct tag for the templates, with the defalt hydro values
 struct DMExpansionTest{
 	static constexpr amrex::Real rho_gas_default = 1.0e-30;    // low density
 	static constexpr amrex::Real P_gas_default   = 1.0e-40;    // low pressure (enough to have low sound speed and thus small dt)
 };
+
 
 template <> struct quokka::EOS_Traits<DMExpansionTest> {
 	static constexpr amrex::Real gamma = 5.0 / 3.0;
@@ -73,8 +76,6 @@ template <> void QuokkaSimulation<DMExpansionTest>::setInitialConditionsOnGrid(q
 	pp.query("P0_gas", p_floor);
 	pp.query("gamma", gamma);
 
-    amrex::Print() << "Grid initialization: setting floor density and pressure...\n";
-
     const amrex::Box &indexRange = grid_elem.indexRange_;       // set of the indices of the grid patch (e.g. from 0 to 31 in x, y, z)
     const amrex::Array4<double> & state_cc = grid_elem.array_;  // Array4 is a pointer to the data
 
@@ -105,7 +106,17 @@ template <> void QuokkaSimulation<DMExpansionTest>::createInitialCICParticles()
 	//    This ensures that the particles possess the correct initial momentum to overcome 
 	//    Hubble expansion and collapse into a "pancake" at the predicted time.
 
-	// Descriptor to access the container
+	// --- Geometry ---
+	// 00. amrex::Geometry &geom information about physical dimension of the simulation and how many cells it contains; this->geom[lev] asks for data for a certain level of resolution
+	
+	// 1. geom.ProbLength() for the physical length of the domain (geometry.prob_lo - geometry.prob_hi); 0, 1, 2 for x, y, z
+	// 2. geom.Domain() returns an amrex::Box representing the entire domain expressed in integer indices (ind_x, ind_y, ind_z), indices from 0 to amr.n_cell
+	//    .length() for the number of cells per sides
+	// 3. geom.ProbLo() and geom.ProbHi() physical coordinates of the lower left (Lo) and upper right (Hi) corners of the entire domain
+	// 4. geom.CellSizeArray() physical size of a single cell along the three axes, calculated internally as (ProbHi - ProbLo) / number_cells.
+
+
+	// Alias to access the container
 	auto &pc = *CICParticles;   // takes by ref the content of the unique_ptr CICParticles (from amrex::AmrParticleContainer), with the CIC params and methods
 
 	// Set the base 0 level of the AMR
@@ -129,11 +140,19 @@ template <> void QuokkaSimulation<DMExpansionTest>::createInitialCICParticles()
 	const amrex::Real rho_crit_0 = 3.0 * H0 * H0 / (8.0 * amrex::Math::pi<amrex::Real>() * G);
 	const amrex::Real rho_mean = rho_crit_0;                // comoving mean density = critical density (EdS flat universe)
 
+	// Scale factors (precedence to the inputs)
+	amrex::Real a_init = PhysicsTraits<DMExpansionTest>::a_init;
+	amrex::Real a_collapse = 0.5;      // target collapse moment (z=1, universe dimensions half of today)
+
+	amrex::ParmParse pp_cosmo("cosmology");
+	pp_cosmo.query("a_init", a_init);
+	pp_cosmo.query("a_collapse", a_collapse);
+
 	// H(a) for Einstein-de Sitter: H = H0 * a^(-3/2)
-	const amrex::Real a_init = PhysicsTraits<DMExpansionTest>::a_init;
 	const amrex::Real H_init = H0 * std::pow(a_init, -1.5);  // initial Hubble paramter for EdS from H0
 
-	// Distribution of the particles along the volume and mass assignement
+
+	// --- Distribution of the particles along the volume and mass assignement ---
 
 	// Number of cells of the level 0 (base) grid
 	amrex::Box const& domain = geom.Domain();  // return the domain indices ( (lo_x,hi_x), (lo_y,hi_y), (lo_z,hi_z) )
@@ -162,17 +181,21 @@ template <> void QuokkaSimulation<DMExpansionTest>::createInitialCICParticles()
 	const auto dx = geom.CellSizeArray();  // amrex::GpuArray<amrex::Real, 3> with the dimensions of the grid cells dx[0], dx[1], dx[2]
 
 	// Collapse parameters: force the collapse at a_collapse
-	const amrex::Real a_collapse = 0.5;                  // target collapse moment (z=1, universe dimensions half of today)
 	const amrex::Real amplitude  = a_init / a_collapse;  // force the amplitude to be such that collapse happens at a_collapse
 	const amrex::Real k_wave     = 2.0 * amrex::Math::pi<amrex::Real>() / L[0];  // wave vector
 
 
-	// Compute how many CICs are in the tile AMR
+	// Create a particle on each cell of the grid
 	for (amrex::MFIter mfi(state_new_cc_[lev]); mfi.isValid(); ++mfi) {// state_new_cc_[lev] stores hydro data at level lev
 		
 		// Access to the particles of the conteiner for the local tile
 		const amrex::Box& tile_box = mfi.tilebox();  // amrex::Box contains integer indices of the current tile (e.g. i: 0-31, j: 0-31, k: 0-31) 
+		// getParticles(le) access all the particle in the level lev
+		// make_pair() creates a pair (key, val)
+		// the int mfi.index() is the global box ID, the int mfi.LocalTileIndex() is local tile ID
+		// returns the ParticleTile object particles, containing the intrinsic data (Struct-of-Arrays): Positions, IDs, CPUs and the additional data (rdata and idata)
 		auto& particles = pc.GetParticles(lev)[std::make_pair(mfi.index(), mfi.LocalTileIndex())];   // map of the particles at level lev, with key [Global box, tile of the box]
+	
 	
 		// Iterate over the 3D integer indices (i, j, k) of the grid: no particle is skipped or double-counted at tile boundaries
 		amrex::Loop(tile_box, [=, &particles](int i, int j, int k) noexcept {
@@ -189,6 +212,9 @@ template <> void QuokkaSimulation<DMExpansionTest>::createInitialCICParticles()
 		// Since we use x = q - displacement, the velocity must be -a*H*displacement.
 		const amrex::Real displacement = - (amplitude / k_wave) * std::sin(k_wave * qx); 
 		const amrex::Real v_pec        = - a_init * H_init * displacement; 
+
+
+		// --- Filling of the ParticleType struct of the particle ---
 
 		// CIC initialization
 		using ParticleType = quokka::CICParticleContainer::ParticleType;  // create the alias ParticleType as a type for the struct of the single particles in quokka::CICParticleContainer: pos, vels, mass
@@ -239,6 +265,99 @@ template <> void QuokkaSimulation<DMExpansionTest>::ComputeDerivedVar(int lev, s
 }
 
 
+//  ---- Test against the analytical solution ----
+
+// Override the (empty) hook computeAfterTimestep() in QuokkaSimulation.hhp to compare with the theory when 
+// the analytical solution is valid (before the collapse)
+template <> void QuokkaSimulation<DMExpansionTest>::computeAfterTimestep()
+{
+	// Retrive the physical parameters for the test, static variable not to re-read from the file at every step
+	static amrex::Real a_collapse = 0.5; 
+	static amrex::Real last_test_a = 0.0;   // check if the test was already performed
+	static bool params_read = false;        // ensure params to be read once even if the function is called more times
+
+	if(!params_read) {   // if params not still read 
+		// Precedence to the inputs
+		amrex::ParmParse pp_cosmo("cosmology");
+		pp_cosmo.query("a_collapse", a_collapse);
+		params_read = true;   // no params reading again
+	}
+
+	amrex::Real a_target  = 0.8 * a_collapse;   // analytical solution is valid before the collapse
+	amrex::Real a_current = this->a_now_;       // access the a_now_, member of the class QuokkaSimulation
+
+    // Define decimal step when triggering the test  (0.1, 0.2...)*a_collapse
+	amrex::Real step_fraction = std::floor(a_current / (0.1 * a_collapse)) * 0.1;
+
+	 // Trigger the test if: 1. We are below 0.8 (safe analytical regime), 2. We are within a new tenth of the last test
+    if (step_fraction <= 0.8 && step_fraction > (last_test_a / a_collapse + 0.01)) {
+
+		amrex::Print() << "\n--- [MONITORING] a = " << a_current 
+					   << " (Fraction: " << step_fraction << " of a_coll) ---";
+
+
+		// Access to the particle descriptor via a pointer with all the CIC's parameters 
+		auto* descPtr = this->particleRegister_.getParticleDescriptor(quokka::ParticleType::CIC);
+
+		// getParticleDataAtAllLevels() collects the data from all AMR levels and processors via structured binding
+		const auto [particle_ids, particle_real_data, particle_int_data] = descPtr->getParticleDataAtAllLevels();
+
+		amrex::Real sum_sq_err = 0;    // sum of the squares of the errors
+    	amrex::Long count = 0;         // particle counter
+
+    	const amrex::Geometry &geom = this->geom[0];    // level 0 geometry information
+    	const amrex::Real L0 = geom.ProbLength(0);      // physical x domain length
+    	const amrex::Real dx = geom.CellSize(0);        // x cell separation    
+    	const amrex::Real prob_lo = geom.ProbLo(0);     // low-left domain coordinates
+
+    	const amrex::Real k_wave = 2.0 * amrex::Math::pi<amrex::Real>() / L0;  // k = 2* pi / L
+		const amrex::Real current_amplitude = (a_current / a_collapse) * (1.0 / k_wave);
+
+	
+		for (std::size_t n = 0; n < particle_ids.size(); ++n) {   // iteration over all the particles
+
+			// Retrive particle position and ID
+			const amrex::Real x_num = static_cast<amrex::Real>(particle_real_data[n][0]);   // take the data of the n-th particle and get the X coordinate
+			const uint64_t id = static_cast<uint64_t>(particle_ids[n]);
+
+			// Retrive the initial index i of the particle
+			const int nx = geom.Domain().length(0);     // number of cells along x
+			const int i = static_cast<int>(id % static_cast<uint64_t>(nx));   // % module for the x index i
+
+			// Compute the analytical evolution of the particle postion
+			const amrex::Real qx = prob_lo + (i + 0.5) * dx;   // initial position of the particle with index i
+			const amrex::Real x_analytical = qx - current_amplitude * std::sin(k_wave * qx);
+
+			// Difference numerical position - analytical position
+			amrex::Real diff = x_num - x_analytical;
+
+			// For periodic boundary condition, if the particle crossed the border
+			diff = std::remainder(diff, L0);   // std::remainder keep the difference in [-L0/2, L0/2]
+
+			sum_sq_err += diff * diff;
+        	count++;
+		}  // end for loop over the particles
+
+	
+		// MPI reduction: sum the results of all processors: sums from all MPI ranks 
+		amrex::ParallelDescriptor::ReduceRealSum(sum_sq_err);
+    	amrex::ParallelDescriptor::ReduceLongSum(count);
+
+    	if (count > 0) {  // if there are particles
+        	amrex::Real rms_err = std::sqrt(sum_sq_err / count);
+        	amrex::Print() << " RMS Error: " << rms_err << " (Rel: " << (rms_err/dx) << ")\n";
+
+			// Store the relative rms error at 0.8a_collapse
+			error_at_08 = rms_err / dx;   // error relative to cell size
+    	}  // end if count > 0
+
+    	last_test_a = a_current; 
+	} // end on the if for the decimal steps	
+}  // end of the computeAfterTimestep() overriding
+
+
+
+
 
 auto problem_main() -> int
 {
@@ -246,14 +365,19 @@ auto problem_main() -> int
 	QuokkaSimulation<DMExpansionTest> sim; // cretates the object sim of QuokkaSImulation, specializing the templates
 
 	// Simulation parameters
-	const amrex::Real a_collapse = 0.5;    // target collapse moment (z=1, universe dimensions half of today)
-	const amrex::Real z_collapse = (1.0 - a_collapse) / a_collapse;
-	const amrex::Real a_init = PhysicsTraits<DMExpansionTest>::a_init;
+	amrex::Real a_collapse = 0.5;    // target collapse moment (z=1, universe dimensions half of today)
+	amrex::Real a_init     = PhysicsTraits<DMExpansionTest>::a_init;
+
+	amrex::ParmParse pp_cosmo("cosmology");
+	pp_cosmo.query("a_init", a_init);
+	pp_cosmo.query("a_collapse", a_collapse);
 
 	// Einstein-de Sitter age: t(a) = (2/3) * (1/H0) * a^(3/2)
 	const amrex::Real Mpc_to_cm = 3.08567758e24;
 	const amrex::Real h = PhysicsTraits<DMExpansionTest>::hubble_constant;
 	const amrex::Real H0 = (h * 100.0 * 1e5) / Mpc_to_cm;
+	const amrex::Real z_collapse = (1.0 - a_collapse) / a_collapse;
+
 
 	// Set the simulation duration to have the collapse
 	const amrex::Real t_init = (2.0 / 3.0) * (1.0 / H0) * std::pow(a_init, 1.5);
@@ -261,10 +385,12 @@ auto problem_main() -> int
 	sim.stopTime_ = t_collapse - t_init;
 	
 	// Parameters print
-	amrex::Print() << "\n--- DM cosmological test parameters ---" << "\n";
+	amrex::Print() << "\n--- DM cosmological test parameters initialization ---" << "\n";
+	amrex::Print() << "a_init = " << a_init << ", "
+                   << "a_collapse = " << a_collapse << std::endl;
+
 	amrex::Print() << "Hubble Constant (h): " << PhysicsTraits<DMExpansionTest>::hubble_constant << "\n";
 	amrex::Print() << "Omega_m: " << PhysicsTraits<DMExpansionTest>::omega_m << "\n";
-	amrex::Print() << "Initial scale factor (a_init): " << PhysicsTraits<DMExpansionTest>::a_init << "\n";
 	amrex::Print() << "Expected simulation time (t_collapse - t_init): " << sim.stopTime_ << "\n";
 
 
@@ -274,39 +400,53 @@ auto problem_main() -> int
 	// Retrive the descriptor for the CIC (via getParticleDescriptor), processing the particles on the finest available level
 	sim.particleRegister_.getParticleDescriptor(quokka::ParticleType::CIC)->setForceFinestLevel(true);
 
+	amrex::Print() << "  Final a = " << sim.a_now_ << " (expected " << a_collapse << ")\n";
+
 	// Temporal evolution
 	sim.evolve();
 
 
-	// ---- Check against the analytical solution ----
+	// ---- Test conclusion ----
 
 	amrex::Print() << "\n Start testing against the anlytical solution (Zel'dovich approximation)...\n";
 
-	// Get the number of particles
-	const int n_particles = sim.particleRegister_.getParticleDescriptor(quokka::ParticleType::CIC)->getNumParticles();
-	amrex::Print() << " Total DM particles = " << n_particles;
+	amrex::Print() << "\nSimulation reached a_now = " << sim.a_now_ << " (Collapse point).\n";
+	amrex::Print() << "Final verification (based on 0.8*a_collapse checkpoint):\n";
+	amrex::Print() << "Relative L2 Error at 0.8*a_coll: " << error_at_08 << "\n";
 
+	// Status of the test
+	int status = 0;
+	const amrex::Real tolerance = 0.10;    // relative tolerance of 10%
 
-	// Variable for the status of the test
-	int status = 0;   //  0 = Pass, 1 = Fail  
+	if (error_at_08 > tolerance || error_at_08 == 0) { // fail if over tolerance of if the check doesn't start
+		amrex::Print() << "TEST FAILED: Error exceeds the relative tolerance of" << tolerance << " at linear regime!\n";
+		status = 1;
+	}
+	else {
+		amrex::Print() << "TEST PASSED.\n";
+	}
 
-
-
-	////////// Proseguire //////////
-	// calcolo posizioni analitiche
-	
-
-
-	amrex::Print() << "\nCIC + cosmology Results:\n";
-	amrex::Print() << "  Final a = " << sim.a_now_ << " (expected " << a_collapse << ")\n";
-
-	return 0;
+	return status;	
 }
 
 
 
 
 
+// capire la logica di static: le variabili così definite mi valgono ovunque?
+// quindi anche fuori dall'overrding di computeAfterTimestep()?
+// nel caso static amrex::Real a_collapse = 0.5; conviene dichiararla una sola
+// volta all'inizio del programma!!
+
+
+// amr.n_cell = 128 4 4  # Risoluzione alta in X, minima in Y e Z
+// geometry.prob_lo = 0 0 0
+// geometry.prob_hi = 100 3.125 3.125 # Mantiene le celle cubiche (100/128 * 4 = 3.125)
+
+
+
+// vedere se tutti i parametri geometrici che ho riscritto nel problem_main() per
+// la soluzione analitica sono necessari
 
 // vedere se con il nuovo solver integrato 	static constexpr double cosmology_dt_limit = 0.01; // according to the default
 // nei Traits ha ancora senso
