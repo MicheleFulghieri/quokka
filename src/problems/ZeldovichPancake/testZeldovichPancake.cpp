@@ -69,7 +69,6 @@ template <> void QuokkaSimulation<ZeldovichProblem>::setInitialConditionsOnGrid(
 		//
 		// Growing mode peculiar velocity in EdS (f=1, D=a):
 		//   v_pec = a(t) * H(a) * (amplitude / k) * sin(k*q)
-		// Note: the factor is a*H, NOT a^2*H.
 		const amrex::Real k_wave = 2.0 * M_PI / L;
 		const amrex::Real amplitude = a_init / a_collapse;
 

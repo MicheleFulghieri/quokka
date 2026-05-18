@@ -27,7 +27,7 @@ static amrex::Real density_error_at_08 = 0.0;  // NOLINT
 
 // Struct tag for the templates, with the defalt hydro values
 struct DMExpansionTest{
-	static constexpr amrex::Real rho_gas_default = 1.0e-30;    // 1
+	static constexpr amrex::Real rho_gas_default = 1.0e-30;    
 	static constexpr amrex::Real P_gas_default   = 1.0e-40;    // low pressure (enough to have low sound speed and thus small dt)
 };
 
@@ -80,7 +80,7 @@ template <> void QuokkaSimulation<DMExpansionTest>::setInitialConditionsOnGrid(q
 	pp.query("gamma", gamma);
 
     const amrex::Box &indexRange = grid_elem.indexRange_;       // set of the indices of the grid patch (e.g. from 0 to 31 in x, y, z)
-    const amrex::Array4<double> & state_cc = grid_elem.array_;  // Array4 is a pointer to the data
+    const amrex::Array4<double> &state_cc = grid_elem.array_;  // Array4 is a pointer to the data
 
     // Parallel loop over the spatial indices on GPU
     amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
@@ -107,6 +107,7 @@ template <> void QuokkaSimulation<DMExpansionTest>::createInitialCICParticles()
 
 
 	// --- Geometry ---
+	// Test pass/fail logic based on the errors
 	// 00. amrex::Geometry &geom information about physical dimension of the simulation and how many cells it contains; this->geom[lev] asks for data for a certain level of resolution
 	
 	// 1. geom.ProbLength() for the physical length of the domain (geometry.prob_lo - geometry.prob_hi); 0, 1, 2 for x, y, z
@@ -130,6 +131,8 @@ template <> void QuokkaSimulation<DMExpansionTest>::createInitialCICParticles()
 	L[1] = geom.ProbLength(1);
 	L[2] = geom.ProbLength(2);
 
+	// Or, better
+	// const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> prob_lo = geom.ProbLoArray();
 	
     // Physical quanties
 	const amrex::Real G = PhysicsTraits<DMExpansionTest>::gravitational_constant;
@@ -211,7 +214,7 @@ template <> void QuokkaSimulation<DMExpansionTest>::createInitialCICParticles()
 		// For the growing mode, velocity must be in the same direction as the displacement.
 		// Since we use x = q - displacement, the velocity must be -a*H*displacement.
 		const amrex::Real displacement = (amplitude / k_wave) * std::sin(k_wave * qx); 
-		const amrex::Real v_pec        = - a_init * H_init * displacement; 
+		const amrex::Real v_pec        =  a_init * H_init * displacement; 
 
 
 		// --- Filling of the ParticleType struct of the particle ---
@@ -225,7 +228,7 @@ template <> void QuokkaSimulation<DMExpansionTest>::createInitialCICParticles()
 		p.cpu() = amrex::ParallelDescriptor::MyProc(); // call to the ParallelDescriptor function: locate the processor that is currently handlig the particle
 
 		// Comoving position: sinusoidal perturbation in x
-		p.pos(0) = qx - displacement; // perturbation
+		p.pos(0) = qx + displacement; // perturbation
 		p.pos(1) = qy;
 		p.pos(2) = qz;
 
@@ -266,6 +269,7 @@ template <> void QuokkaSimulation<DMExpansionTest>::ComputeDerivedVar(int lev, s
 		});
 	}
 }
+
 
 
 //  ---- Test against the analytical solution ----
@@ -696,6 +700,8 @@ auto problem_main() -> int
 // }
 
 
+// vedere se fare file di input distinti per il test e per la simulazione fisica
+
 
 
 // Forzare in qualche modo il salvataggio del potenziale gravitazionale
@@ -733,7 +739,7 @@ auto problem_main() -> int
 // mettere risoluzione maggiore in x che in y e z. Magari modificare anche con meno particelle
 // lungo y e z: n_particles_1d -> n_particles_x, L -> Lx, Ly, Lz, ...
 
-// analisi yt e python
+// aggiungere sigma8 ai parametri della struct in Cosmology.hpp
 
 // implementare il tempo di free falling, che una particella impiega per cadere al centro della perturbazione
 // se non ci fosse espansione
