@@ -126,44 +126,46 @@ template <> void QuokkaSimulation<CosmoSphereDM>::createInitialCICParticles() {
     amrex::Real const vy_dm   = 0.0;
     amrex::Real const vz_dm   = 0.0;
 
-	for (amrex::MFIter mfi(state_new_cc_[lev]); mfi.isValid(); ++mfi) {  // over the local boxes assigned to this processor
-        const amrex::Box& valid_box = mfi.validbox();
+	if (amrex::ParallelDescriptor::IOProcessor()) {   // only Rank MPI 0: only 1 particle
+		using ParticleType = quokka::CICParticleContainer::ParticleType; // alias
+		ParticleType p;  
+		p.id()  = ParticleType::NextID();               // ID assignement 
+		p.cpu() = amrex::ParallelDescriptor::MyProc();  // processor assignement (0 by construction)
 
-		if (valid_box.contains(center_index)) { // only the core of the central cell
-			
-			// Access the vector of particles of the correct tile
-			auto& particles = CICParticles->GetParticles(lev)[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
-			
-			using ParticleType = quokka::CICParticleContainer::ParticleType;  // create the alias
-			ParticleType p;
-			p.id() = ParticleType::NextID();                   // ID assignement
-			p.cpu() = amrex::ParallelDescriptor::MyProc();     // processor assignement
+		p.pos(0) = X0;
+        p.pos(1) = Y0;
+        p.pos(2) = Z0;
+		p.rdata(quokka::CICParticleMassIdx) = mass_dm;
+		p.rdata(quokka::CICParticleVxIdx)   = vx_dm;
+		p.rdata(quokka::CICParticleVyIdx)   = vy_dm;
+		p.rdata(quokka::CICParticleVzIdx)   = vz_dm;
 
-			p.pos(0) = X0;
-        	p.pos(1) = Y0;
-        	p.pos(2) = Z0;
-			p.rdata(quokka::CICParticleMassIdx) = mass_dm;
-			p.rdata(quokka::CICParticleVxIdx)   = vx_dm;
-			p.rdata(quokka::CICParticleVyIdx)   = vy_dm;
-			p.rdata(quokka::CICParticleVzIdx)   = vz_dm;
-
-			particles.push_back(p);  // push the local particle in the local core memory
+		amrex::MFIter mfi(state_new_cc_[lev]); // creation of the iterator over the hydro local boxes of processor 0
+		if (mfi.isValid()) {   // if processor 0 has at least one level 0 grid
+			auto const key = std::make_pair(mfi.index(), mfi.LocalTileIndex());  // extact the local indices of that grid
+        	CICParticles->GetParticles(lev)[key].push_back(p);  //  temporarily store the particle in the memory of that box
+		} else {
+			amrex::Abort("Error: 'IOProcessor has no local grid assigned to level 0!");
 		}
 	}
-	CICParticles->Redistribute(); // assign the particle to the right mpi core
+	CICParticles->Redistribute(); // assign the particle to the right mpi core according to the physical position
 }
 #endif   // AMREX_SPACEDIM == 3
 
 
+
 template <> void QuokkaSimulation<CosmoSphereDM>::ComputeDerivedVar(int lev, std::string const &dname, amrex::MultiFab &mf, const int ncomp_cc_in) const
 {
-	// compute derived variables and save in 'mf'
-	if (dname == "gpot") {
-		const int ncomp = ncomp_cc_in;
-		auto const &phi_arr = phi[lev].const_arrays();
-		auto output = mf.arrays();
-		amrex::ParallelFor(mf, [=] AMREX_GPU_DEVICE(int bx, int i, int j, int k) noexcept { output[bx](i, j, k, ncomp) = phi_arr[bx](i, j, k); });
-	}
+	if constexpr (Physics_Traits<CosmoSphereDM>::is_self_gravity_enabled) {
+
+		// compute derived variables and save in 'mf'
+		if (dname == "gpot") {
+			const int ncomp = ncomp_cc_in;
+			auto const &phi_arr = phi[lev].const_arrays();
+			auto output = mf.arrays();
+			amrex::ParallelFor(mf, [=] AMREX_GPU_DEVICE(int bx, int i, int j, int k) noexcept { output[bx](i, j, k, ncomp) = phi_arr[bx](i, j, k); });
+		}
+	}  // end if self gravity
 }
 
 
@@ -174,33 +176,103 @@ auto problem_main() -> int {
 	sim.setInitialConditions();
 	sim.evolve();
 
+	amrex::Print() << "Computing particle-gas distance for the test...\n";
+
+	// Sphere center as the gas density weighted mean cell center position 
+	const int finest_level = sim.finestLevel();
+	const amrex::Geometry &geom = sim.geom[finest_level];
+	const auto &dx            = geom.CellSizeArray();
+	const auto &prob_lo       = geom.ProbLoArray();
+	const amrex::MultiFab &mf = sim.state_new_cc_[finest_level];
+
+	amrex::Real total_mass_density = 0.0;
+	amrex::Real sum_x = 0.0;
+	amrex::Real sum_y = 0.0;
+	amrex::Real sum_z = 0.0;
+
+	// AMReX reductor operator for the 4 sums
+	amrex::ReduceOps<amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
+	amrex::ReduceData<amrex::Real, amrex::Real, amrex::Real, amrex::Real> reduce_data(reduce_ops);   // memory preallocation for the sums
+
+	for (amrex::MFIter mfi(mf); mfi.isValid(); ++mfi) {
+		const amrex::Box &box = mfi.validbox(); // no ghost cells
+		auto const &state_arr = mf.array(mfi);  // cell data array
+
+		reduce_ops.eval(box, reduce_data,
+			[=] AMREX_GPU_DEVICE(int i, int j, int k) -> amrex::GpuTuple<amrex::Real, amrex::Real, amrex::Real, amrex::Real> {
+				amrex::Real cell_center_x = prob_lo[0] + (i + 0.5) * dx[0];  // x center of the cell
+				amrex::Real cell_center_y = prob_lo[1] + (j + 0.5) * dx[1];
+				amrex::Real cell_center_z = prob_lo[2] + (k + 0.5) * dx[2];
+				amrex::Real rho = state_arr(i, j, k, 0);                     // density (0 component of state_cc)
+
+				// Values to be summed (rho*x, rho*y, rho*z, rho)
+				return {rho * cell_center_x, rho * cell_center_y, rho * cell_center_z, rho};
+			});  // at each call at each cell, partially sums the each cell result
+	}  // end mfi interation
+
+	// Structure binding with the partial MPI sums
+	auto [g_sum_x, g_sum_y, g_sum_z, g_total_rho] = reduce_data.value();
+
+	// Global MPI reduction
+	amrex::ParallelDescriptor::ReduceRealSum(g_sum_x);
+	amrex::ParallelDescriptor::ReduceRealSum(g_sum_y);
+	amrex::ParallelDescriptor::ReduceRealSum(g_sum_z);
+	amrex::ParallelDescriptor::ReduceRealSum(g_total_rho);
+
+	// Gas center
+	amrex::Real gas_center_x = g_sum_x / g_total_rho;
+	amrex::Real gas_center_y = g_sum_y / g_total_rho;
+	amrex::Real gas_center_z = g_sum_z / g_total_rho;
+
+	// Get particle data using the particle descriptor
+	const auto [real_data, int_data] = sim.particleRegister_.getParticleDescriptor(quokka::ParticleType::CIC)->getParticleDataAtLevel(finest_level);
+
+	if (amrex::ParallelDescriptor::IOProcessor()) {
+		if (real_data.size() > 0) {   // there is the particle
+			const auto p = real_data[0];
+			const amrex::Real px = p[0]; // position x
+			const amrex::Real py = p[1]; // position y
+			const amrex::Real pz = p[2]; // position z
+
+			// Euclidean distance
+			amrex::Real dx = px - gas_center_x;
+			amrex::Real dy = py - gas_center_y;
+			amrex::Real dz = pz - gas_center_z;
+			amrex::Real distance_mpc = std::sqrt(dx * dx + dy * dy + dz* dz);
+			amrex::Real distance_cell = distance_mpc / dx;
+			amrex::Real tolerance_cell = 1.5;  // since 1 cell error can be due to the CIC algorithm
+			amrex::Real tolerance_mpc = tolerance_cell * dx;
+
+			if (distance_cell > tolerance_cell) {
+			amrex::Print() << "\n========================================================\n"
+							   << "[TEST FAILED]: CosmoSphereDM misalignment detected!\n"
+							   << "  - Particle position : (" << px << ", " << py << ", " << pz << ") Mpc\n"
+							   << "  - Gas center of mass: (" << gas_center_x << ", " << gas_center_y << ", " << gas_center_z << ") Mpc\n"
+							   << "  - Absolute distance : " << distance_mpc << " Mpc (Tol: " << tolerance_mpc << " Mpc)\n"
+							   << "  - Relative distance : " << distance_cell << " cell widths (Tol: " << tolerance_cell << " cell widths)\n"
+							   << "========================================================\n\n";	
+			status = 1;
+			} // end if distance > tolerance
+			else {
+				amrex::Print() << "\n========================================================\n"
+							   << "[TEST PASSED]: CosmoSphereDM alignment check successful!\n"
+							   << "  - Particle position : (" << px << ", " << py << ", " << pz << ") Mpc\n"
+							   << "  - Gas center of mass: (" << gas_center_x << ", " << gas_center_y << ", " << gas_center_z << ") Mpc\n"
+							   << "  - Absolute distance : " << distance_mpc << " Mpc (Tol: " << tolerance_mpc << " Mpc)\n"
+							   << "  - Relative distance : " << distance_cell << " cell widths (Tol: " << tolerance_cell << " cell widths)\n"
+							   << "========================================================\n\n";
+				status = 0;
+			} // end else (distance < tolerance)
+		} // end real_data.size() > 0)
+		else {
+			amrex::Print() << "[TEST FAILED]: Particle not found. ";
+			status = 1;
+			}
+	} // end if IOProcessor
+	
+	// MPI Broadcast, update status from IOprocessor to the others
+	amrex::ParallelDescriptor::Bcast(&status, 1, amrex::ParallelDescriptor::IOProcessorNumber());
     return status;
 }
 
 
-
-
-// vedere se spegnere la self gravity
-
-// aggiungere il test
-
-
-
-
-
-	// if (amrex::ParallelDescriptor::IOProcessor()) { // only processor 0
-	// 	using ParticleType = quokka::CICParticleContainer::ParticleType;  // create the alias
-	// 	ParticleType p;
-	// 	p.id() = ParticleType::NextID();                   // ID assignement
-	// 	p.cpu() = amrex::ParallelDescriptor::MyProc();     // processor assignement
-
-	// 	p.pos(0) = X0;
-    //     p.pos(1) = Y0;
-    //     p.pos(2) = Z0;
-	// 	p.rdata(quokka::CICParticleMassIdx) = mass_dm;
-	// 	p.rdata(quokka::CICParticleVxIdx)   = vx_dm;
-	// 	p.rdata(quokka::CICParticleVyIdx)   = vy_dm;
-	// 	p.rdata(quokka::CICParticleVzIdx)   = vz_dm;
-
-	// 	// Place the particle temporary in grid 0 and tile 0 of the processor 0 regardless of the real coordinates
-	// 	CICParticles->GetParticles(lev)[std::make_pair(0, 0)].push_back(p);

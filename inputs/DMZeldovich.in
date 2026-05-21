@@ -23,9 +23,9 @@ do_tracers = 0          # turn on tracer particles
 # *****************************************************************
 # Hydro floor
 # *****************************************************************
-problem.rho0_gas = 1.0e-20
-problem.P0_gas   = 1.0e-30
-problem.gamma    = 5.0 / 3.0
+#problem.rho0_gas = 1.0e-20
+#problem.P0_gas   = 1.0e-30
+#problem.gamma    = 5.0 / 3.0
 
 
 
@@ -47,10 +47,12 @@ plotfile_interval = 25            # save a plotfile every plotfile_interval
 #particles.verbose = 1             # specific verbosity for the ParticleContainer
 amr.v = 1                         # AMReX verbosity level: 0=quiet, 1=verbose, 2=very verbose
 tiny_profiler.enabled = 1         # AMReX profiles the performances
+poisson_reltol = 1.0e-5
+poisson_abstol = 1.0e-12
 
 derived_vars = gpot               # keep track of the gravitational potential
-debug_density_floor_plot = 1
-temperature_floor        = 1
+#debug_density_floor_plot = 1
+#temperature_floor        = 1
 
 
 
