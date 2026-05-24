@@ -83,7 +83,7 @@ template <> void QuokkaSimulation<CosmoSphereDM>::setInitialConditionsOnGrid(quo
 		amrex::Real const R_smooth = 1.543e23;   // 1/20 R_sphere
 		amrex::Real const rho = std::max(rho_min, rho_max * ((std::tanh((R_sphere - r) / R_smooth) + 1.0) / 2.0));
 		amrex::Real const P  = 1.0e-15;
-		amrex::Real const vx = 1.0e6;            // 10 km/s
+		amrex::Real const vx = 1.0e10;            // 100 000 km/s
 		amrex::Real const vy = 0.0;
 		amrex::Real const vz = 0.0;
 
@@ -122,7 +122,7 @@ template <> void QuokkaSimulation<CosmoSphereDM>::createInitialCICParticles() {
     amrex::Real const mass_gas = (4.0 / 3.0) * M_PI * std::pow(R_sphere, 3) * rho_max;
 
 	amrex::Real const mass_dm  = 5.0 * mass_gas; // DM fivefolds the gas
-    amrex::Real const vx_dm   = 1.0e6;    
+    amrex::Real const vx_dm   = 1.0e10;    
     amrex::Real const vy_dm   = 0.0;
     amrex::Real const vz_dm   = 0.0;
 
@@ -151,22 +151,6 @@ template <> void QuokkaSimulation<CosmoSphereDM>::createInitialCICParticles() {
 	CICParticles->Redistribute(); // assign the particle to the right mpi core according to the physical position
 }
 #endif   // AMREX_SPACEDIM == 3
-
-
-
-template <> void QuokkaSimulation<CosmoSphereDM>::ComputeDerivedVar(int lev, std::string const &dname, amrex::MultiFab &mf, const int ncomp_cc_in) const
-{
-	if constexpr (Physics_Traits<CosmoSphereDM>::is_self_gravity_enabled) {
-
-		// compute derived variables and save in 'mf'
-		if (dname == "gpot") {
-			const int ncomp = ncomp_cc_in;
-			auto const &phi_arr = phi[lev].const_arrays();
-			auto output = mf.arrays();
-			amrex::ParallelFor(mf, [=] AMREX_GPU_DEVICE(int bx, int i, int j, int k) noexcept { output[bx](i, j, k, ncomp) = phi_arr[bx](i, j, k); });
-		}
-	}  // end if self gravity
-}
 
 
 auto problem_main() -> int {
@@ -235,34 +219,34 @@ auto problem_main() -> int {
 			const amrex::Real pz = p[2]; // position z
 
 			// Euclidean distance
-			amrex::Real dx = px - gas_center_x;
-			amrex::Real dy = py - gas_center_y;
-			amrex::Real dz = pz - gas_center_z;
-			amrex::Real distance_mpc = std::sqrt(dx * dx + dy * dy + dz* dz);
-			amrex::Real distance_cell = distance_mpc / dx;
-			amrex::Real tolerance_cell = 1.5;  // since 1 cell error can be due to the CIC algorithm
-			amrex::Real tolerance_mpc = tolerance_cell * dx;
+			amrex::Real shift_x = px - gas_center_x;
+			amrex::Real shift_y = py - gas_center_y;
+			amrex::Real shift_z = pz - gas_center_z;
+			amrex::Real shift_mpc = std::sqrt(shift_x * shift_x + shift_y * shift_y + shift_z* shift_z);
+			amrex::Real shift_cell = shift_mpc / dx[0];
+			amrex::Real tolerance_cell = 1.5;  
+			amrex::Real tolerance_mpc = tolerance_cell * dx[0];
 
-			if (distance_cell > tolerance_cell) {
+			if (shift_cell > tolerance_cell) {
 			amrex::Print() << "\n========================================================\n"
 							   << "[TEST FAILED]: CosmoSphereDM misalignment detected!\n"
 							   << "  - Particle position : (" << px << ", " << py << ", " << pz << ") Mpc\n"
 							   << "  - Gas center of mass: (" << gas_center_x << ", " << gas_center_y << ", " << gas_center_z << ") Mpc\n"
-							   << "  - Absolute distance : " << distance_mpc << " Mpc (Tol: " << tolerance_mpc << " Mpc)\n"
-							   << "  - Relative distance : " << distance_cell << " cell widths (Tol: " << tolerance_cell << " cell widths)\n"
+							   << "  - Absolute distance : " << shift_mpc << " Mpc (Tol: " << tolerance_mpc << " Mpc)\n"
+							   << "  - Relative distance : " << shift_cell << " cell widths (Tol: " << tolerance_cell << " cell widths)\n"
 							   << "========================================================\n\n";	
 			status = 1;
-			} // end if distance > tolerance
+			} // end if shift > tolerance
 			else {
 				amrex::Print() << "\n========================================================\n"
 							   << "[TEST PASSED]: CosmoSphereDM alignment check successful!\n"
 							   << "  - Particle position : (" << px << ", " << py << ", " << pz << ") Mpc\n"
 							   << "  - Gas center of mass: (" << gas_center_x << ", " << gas_center_y << ", " << gas_center_z << ") Mpc\n"
-							   << "  - Absolute distance : " << distance_mpc << " Mpc (Tol: " << tolerance_mpc << " Mpc)\n"
-							   << "  - Relative distance : " << distance_cell << " cell widths (Tol: " << tolerance_cell << " cell widths)\n"
+							   << "  - Absolute distance : " << shift_mpc << " Mpc (Tol: " << tolerance_mpc << " Mpc)\n"
+							   << "  - Relative distance : " << shift_cell << " cell widths (Tol: " << tolerance_cell << " cell widths)\n"
 							   << "========================================================\n\n";
 				status = 0;
-			} // end else (distance < tolerance)
+			} // end else (shift < tolerance)
 		} // end real_data.size() > 0)
 		else {
 			amrex::Print() << "[TEST FAILED]: Particle not found. ";
