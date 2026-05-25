@@ -18,14 +18,14 @@
 #include <cmath>
 
 
-
 // Struct tag for the templates, with the defalt hydro values
 struct CosmoSphereDM {
+	static constexpr amrex::Real drift_vel = 1.0e8;     // 1000 km/s both for gas and DM
 };
 
 template <> struct quokka::EOS_Traits<CosmoSphereDM> {
-    static constexpr Real gamma = 5.0 / 3.0;
-    static constexpr Real mean_molecular_weight = C::m_u;
+    static constexpr amrex::Real gamma = 5.0 / 3.0;
+    static constexpr amrex::Real mean_molecular_weight = C::m_u;
 };
  
 template <> struct Particle_Traits<CosmoSphereDM> { // CIC from particle_types.hpp
@@ -83,7 +83,7 @@ template <> void QuokkaSimulation<CosmoSphereDM>::setInitialConditionsOnGrid(quo
 		amrex::Real const R_smooth = 1.543e23;   // 1/20 R_sphere
 		amrex::Real const rho = std::max(rho_min, rho_max * ((std::tanh((R_sphere - r) / R_smooth) + 1.0) / 2.0));
 		amrex::Real const P  = 1.0e-15;
-		amrex::Real const vx = 1.0e8;            // 1000 km/s
+		amrex::Real const vx = CosmoSphereDM::drift_vel;
 		amrex::Real const vy = 0.0;
 		amrex::Real const vz = 0.0;
 
@@ -126,7 +126,7 @@ template <> void QuokkaSimulation<CosmoSphereDM>::createInitialCICParticles() {
     amrex::Real const mass_gas = (4.0 / 3.0) * M_PI * std::pow(R_sphere, 3) * rho_max;
 
 	amrex::Real const mass_dm  = 5.0 * mass_gas; // DM fivefolds the gas
-    amrex::Real const vx_dm   = 1.0e8;    
+    amrex::Real const vx_dm   = CosmoSphereDM::drift_vel;    
     amrex::Real const vy_dm   = 0.0;
     amrex::Real const vz_dm   = 0.0;
 
