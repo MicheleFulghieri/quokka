@@ -14,7 +14,7 @@ do_subcycle         = 0            # Poisson solver doesn't support AMR subcycli
 quokka.bc = periodic periodic periodic
 
 amr.max_timesteps = 20000000
-stop_time = 3.15e18        # 100 Gyr
+stop_time = 3.15e17        # 10 Gyr
 quokka.cfl        = 0.3
 
 # Provare

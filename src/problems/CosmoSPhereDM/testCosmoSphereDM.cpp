@@ -83,7 +83,7 @@ template <> void QuokkaSimulation<CosmoSphereDM>::setInitialConditionsOnGrid(quo
 		amrex::Real const R_smooth = 1.543e23;   // 1/20 R_sphere
 		amrex::Real const rho = std::max(rho_min, rho_max * ((std::tanh((R_sphere - r) / R_smooth) + 1.0) / 2.0));
 		amrex::Real const P  = 1.0e-15;
-		amrex::Real const vx = 1.0e10;            // 100 000 km/s
+		amrex::Real const vx = 1.0e8;            // 1000 km/s
 		amrex::Real const vy = 0.0;
 		amrex::Real const vz = 0.0;
 
@@ -97,6 +97,10 @@ template <> void QuokkaSimulation<CosmoSphereDM>::setInitialConditionsOnGrid(quo
 		state_cc(i, j, k, HydroSystem<CosmoSphereDM>::x3Momentum_index)     = 0;
 		state_cc(i, j, k, HydroSystem<CosmoSphereDM>::internalEnergy_index) = quokka::EOS<CosmoSphereDM>::ComputeEintFromPres(rho, P);
 		state_cc(i, j, k, HydroSystem<CosmoSphereDM>::energy_index)         = quokka::EOS<CosmoSphereDM>::ComputeEintFromPres(rho, P) + 0.5 * rho * (vx * vx + vy * vy + vz * vz); // eint + ekin
+
+		if (amrex::ParallelDescriptor::IOProcessor()) {
+			amrex::Print() << "  Gas sphere drift velocity = " << vx / 100000 << " km/s \n";
+		}
 	});
 }
 
@@ -122,7 +126,7 @@ template <> void QuokkaSimulation<CosmoSphereDM>::createInitialCICParticles() {
     amrex::Real const mass_gas = (4.0 / 3.0) * M_PI * std::pow(R_sphere, 3) * rho_max;
 
 	amrex::Real const mass_dm  = 5.0 * mass_gas; // DM fivefolds the gas
-    amrex::Real const vx_dm   = 1.0e10;    
+    amrex::Real const vx_dm   = 1.0e8;    
     amrex::Real const vy_dm   = 0.0;
     amrex::Real const vz_dm   = 0.0;
 
@@ -147,6 +151,7 @@ template <> void QuokkaSimulation<CosmoSphereDM>::createInitialCICParticles() {
 		} else {
 			amrex::Abort("Error: 'IOProcessor has no local grid assigned to level 0!");
 		}
+		amrex::Print() << "  DM drift velocity = " << vx_dm / 100000 << " km/s \n";
 	}
 	CICParticles->Redistribute(); // assign the particle to the right mpi core according to the physical position
 }
@@ -224,7 +229,7 @@ auto problem_main() -> int {
 			amrex::Real shift_z = pz - gas_center_z;
 			amrex::Real shift_mpc = std::sqrt(shift_x * shift_x + shift_y * shift_y + shift_z* shift_z);
 			amrex::Real shift_cell = shift_mpc / dx[0];
-			amrex::Real tolerance_cell = 1.5;  
+			amrex::Real tolerance_cell = 2;  
 			amrex::Real tolerance_mpc = tolerance_cell * dx[0];
 
 			if (shift_cell > tolerance_cell) {
