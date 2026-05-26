@@ -5,7 +5,7 @@ geometry.prob_lo       =  0.0  0.0  0.0
 geometry.prob_hi       =  3.086e25 3.086e25 3.086e25   # 10 Mpc 10 Mpc 10 Mpc   
 geometry.is_periodic   =  1 1 1
 
-amr.n_cell          = 256 256 256  # resolution
+amr.n_cell          = 512 512 512  # resolution
 amr.max_level       = 0            # number of levels = max_level + 1
 amr.blocking_factor = 8            # grid size must be divisible by this
 amr.max_grid_size   = 64           # at least 128 for GPUs
@@ -14,7 +14,7 @@ do_subcycle         = 0            # Poisson solver doesn't support AMR subcycli
 quokka.bc = periodic periodic periodic
 
 amr.max_timesteps = 20000000
-stop_time = 3.15e17        # 10 Gyr
+stop_time = 3.16e17        # 10 Gyr
 quokka.cfl        = 0.3
 
 # Provare

@@ -97,10 +97,6 @@ template <> void QuokkaSimulation<CosmoSphereDM>::setInitialConditionsOnGrid(quo
 		state_cc(i, j, k, HydroSystem<CosmoSphereDM>::x3Momentum_index)     = 0;
 		state_cc(i, j, k, HydroSystem<CosmoSphereDM>::internalEnergy_index) = quokka::EOS<CosmoSphereDM>::ComputeEintFromPres(rho, P);
 		state_cc(i, j, k, HydroSystem<CosmoSphereDM>::energy_index)         = quokka::EOS<CosmoSphereDM>::ComputeEintFromPres(rho, P) + 0.5 * rho * (vx * vx + vy * vy + vz * vz); // eint + ekin
-
-		if (amrex::ParallelDescriptor::IOProcessor()) {
-			amrex::Print() << "  Gas sphere drift velocity = " << vx / 100000 << " km/s \n";
-		}
 	});
 }
 
@@ -151,7 +147,6 @@ template <> void QuokkaSimulation<CosmoSphereDM>::createInitialCICParticles() {
 		} else {
 			amrex::Abort("Error: 'IOProcessor has no local grid assigned to level 0!");
 		}
-		amrex::Print() << "  DM drift velocity = " << vx_dm / 100000 << " km/s \n";
 	}
 	CICParticles->Redistribute(); // assign the particle to the right mpi core according to the physical position
 }
@@ -173,6 +168,17 @@ auto problem_main() -> int {
 	const auto &dx            = geom.CellSizeArray();
 	const auto &prob_lo       = geom.ProbLoArray();
 	const amrex::MultiFab &mf = sim.state_new_cc_[finest_level];
+	
+	// Extract Domain information (Physical and Index space)
+	const amrex::Box &domain_box = geom.Domain();
+	const auto domain_lo = domain_box.smallEnd();
+	const auto domain_hi = domain_box.bigEnd();
+	const auto prob_hi   = geom.ProbHiArray();
+
+	// Calculate total cells per dimension
+	int n_cells_x = domain_hi[0] - domain_lo[0] + 1;
+	int n_cells_y = domain_hi[1] - domain_lo[1] + 1;
+	int n_cells_z = domain_hi[2] - domain_lo[2] + 1;
 
 	amrex::Real total_mass_density = 0.0;
 	amrex::Real sum_x = 0.0;
@@ -217,6 +223,15 @@ auto problem_main() -> int {
 	const auto [real_data, int_data] = sim.particleRegister_.getParticleDescriptor(quokka::ParticleType::CIC)->getParticleDataAtLevel(finest_level);
 
 	if (amrex::ParallelDescriptor::IOProcessor()) {
+
+		amrex::Print() << "\n=================== DOMAIN & RESOLUTION ===================\n"
+					   << "  - Cell Resolution (dx, dy, dz) : (" << dx[0] << ", " << dx[1] << ", " << dx[2] << ") Mpc\n"
+					   << "  - Domain Cells (Nx, Ny, Nz)    : (" << n_cells_x << ", " << n_cells_y << ", " << n_cells_z << ") cells\n"
+					   << "  - Domain Size X [Lo / Hi]      : [" << prob_lo[0] << " / " << prob_hi[0] << "] Mpc\n"
+					   << "  - Domain Size Y [Lo / Hi]      : [" << prob_lo[1] << " / " << prob_hi[1] << "] Mpc\n"
+					   << "  - Domain Size Z [Lo / Hi]      : [" << prob_lo[2] << " / " << prob_hi[2] << "] Mpc\n"
+					   << "-----------------------------------------------------------\n";
+
 		if (real_data.size() > 0) {   // there is the particle
 			const auto p = real_data[0];
 			const amrex::Real px = p[0]; // position x
@@ -230,7 +245,13 @@ auto problem_main() -> int {
 			amrex::Real shift_mpc = std::sqrt(shift_x * shift_x + shift_y * shift_y + shift_z* shift_z);
 			amrex::Real shift_cell = shift_mpc / dx[0];
 			amrex::Real tolerance_cell = 2;  
-			amrex::Real tolerance_mpc = tolerance_cell * dx[0];
+			amrex::Real tolerance_mpc = tolerance_cell * dx[0];	
+			
+			amrex::Print() << "  - Gas Center of Mass           : (" << gas_center_x << ", " << gas_center_y << ", " << gas_center_z << ") Mpc\n"
+						   << "  - Particle Position            : (" << px << ", " << py << ", " << pz << ") Mpc\n"
+						   << "  - Calculated Distance          : " << shift_mpc << " Mpc (" << shift_cell << " cells)\n"
+						   << "  - Allowed Tolerance            : " << tolerance_mpc << " Mpc (" << tolerance_cell << " cells)\n"
+						   << "-----------------------------------------------------------\n";
 
 			if (shift_cell > tolerance_cell) {
 			amrex::Print() << "\n========================================================\n"
@@ -257,6 +278,7 @@ auto problem_main() -> int {
 			amrex::Print() << "[TEST FAILED]: Particle not found. ";
 			status = 1;
 			}
+		amrex::Print() << "  Gas sphere and DM drift velocity = " << CosmoSphereDM::drift_vel / 100000 << " km/s \n";
 	} // end if IOProcessor
 	
 	// MPI Broadcast, update status from IOprocessor to the others
