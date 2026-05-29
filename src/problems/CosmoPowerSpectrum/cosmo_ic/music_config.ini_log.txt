@@ -1,0 +1,35 @@
+
+[0m [0m           __    __     __  __     ______     __     ______      
+[0m [0m          /\ "-./  \   /\ \/\ \   /\  ___\   /\ \   /\  ___\  
+[0m [0m          \ \ \-./\ \  \ \ \_\ \  \ \___  \  \ \ \  \ \ \____ 
+[0m [0m           \ \_\ \ \_\  \ \_____\  \/\_____\  \ \_\  \ \_____\ 
+[0m [0m            \/_/  \/_/   \/_____/   \/_____/   \/_/   \/_____/ 
+[0m
+[0m [0m                                   this is music! version 2.0a
+[0m
+[0m [0mVersion: git rev.: 967651b, tag: N/A, branch: master
+[0m [0mThis RelWithDebInfo build was compiled at 16:14:25 on May 28 2026
+[0m [0mCompiled with GNU C++ version 15.2.0
+[0m [0mOpening log file 'music_config.ini_log.txt'.
+[0m [0m-------------------------------------------------------------------------------
+[0m [0mCPU vendor string                : Intel(R) Xeon(R) Silver 4310 CPU @ 2.10GHz
+[0m [0mAvailable HW threads / task      : 48 (48 used)
+[0m [0mTotal system memory (phys)       : 193062 Mb
+[0m [0mUsed system memory (phys)        : Max: 308936 Mb, Min: 308936 Mb
+[0m [0mAvailable system memory (phys)   : Max: 4294851422 Mb, Min: 4294851422 Mb
+[0m [0mOS/Kernel version                : Linux version 5.15 build 92
+[0m [0mFFTW version                     : fftw-3.3.11-sse2-avx
+[0m [0mFFTW supports multi-threading    : yes
+[0m [0mFFTW mode                        : FFTW_ESTIMATE
+[0m [0m-------------------------------------------------------------------------------
+[0m [0m-------------------------------------------------------------------------------
+[0m [0mCosmological parameters are: 
+[0m [0m h        = 0.675           sigma_8  = 0.811           n_s     = 0.965           
+[0m [0m Omega_c  = 0.26635         Omega_b  = 0.048285        Omega_m = 0.316049        
+[0m [0m Omega_r  = 0               Omega_nu = 0.00141386      ∑m_nu   = 0.06eV
+[0m [0m Omega_DE = 0.683951        w_0      = -1              w_a     = 0               
+[0m [0mLinear growth factors: D+_target = 1, D+_start = 0.0126837
+[0m [0m-------------------------------------------------------------------------------
+[0m [0mReading tabulated transfer function data from file     './CAMB_lcdm_matter_power_z99.0.txt'
+[0m [0mCAUTION: make sure that this transfer function 	 has been output for z=99.000000!
+[0m[31mError : Error reading the transfer function file (corrupt or not in expected format)!

@@ -2,7 +2,7 @@
 # Problem size, geometry and resolution  (1 Mpc = 3.08567758e24 cm)
 # *****************************************************************
 geometry.prob_lo       =  0.0  0.0  0.0 
-geometry.prob_hi       =  3.086e25 3.086e25 3.086e25   # 10 Mpc 10 Mpc 10 Mpc   
+geometry.prob_hi       =  3.086e26 3.086e26 3.086e26   # 100 Mpc 100 Mpc 100 Mpc   
 geometry.is_periodic   =  1 1 1
 
 amr.n_cell          = 512 512 512  # resolution
@@ -34,11 +34,11 @@ do_tracers = 1          # turn on tracer particles
 # *****************************************************************
 # Cosmology
 # *****************************************************************
-cosmology.hubble_constant = 0.7
-cosmology.omega_m         = 0.315       # LCDM
-cosmology.omega_r         = 9.2618e-5  
-cosmology.omega_lambda    = 0.685
-cosmology.a_init          = 0.00001
+cosmology.hubble_constant = 0.675
+cosmology.omega_m         = 0.316049       # LCDM
+cosmology.omega_r         = 0.0  
+cosmology.omega_lambda    = 0.683951
+cosmology.a_init          = 0.01
 
 
 # *****************************************************************
