@@ -79,8 +79,8 @@ template <> void QuokkaSimulation<CosmoSphereDM>::setInitialConditionsOnGrid(quo
 
 		amrex::Real const rho_min  = 1.0e-28;
 		amrex::Real const rho_max  = 1.0e-24;
-		amrex::Real const R_sphere = 3.086e24;   // 1 Mpc
-		amrex::Real const R_smooth = 1.543e23;   // 1/20 R_sphere
+		amrex::Real const R_sphere = 3.086e23;   // 100 kpc
+		amrex::Real const R_smooth = 1.543e22;   // 1/20 R_sphere
 		amrex::Real const rho = std::max(rho_min, rho_max * ((std::tanh((R_sphere - r) / R_smooth) + 1.0) / 2.0));
 		amrex::Real const P  = 1.0e-15;
 		amrex::Real const vx = CosmoSphereDM::drift_vel;
@@ -117,7 +117,7 @@ template <> void QuokkaSimulation<CosmoSphereDM>::createInitialCICParticles() {
 	amrex::RealVect const center_coords{X0, Y0, Z0};
 	amrex::IntVect const center_index = geom.CellIndex(center_coords.dataPtr());
 
-	amrex::Real const R_sphere = 3.086e24; // 1 Mpc
+	amrex::Real const R_sphere = 3.086e23; // 100 kpc
     amrex::Real const rho_max  = 1.0e-24;
     amrex::Real const mass_gas = (4.0 / 3.0) * M_PI * std::pow(R_sphere, 3) * rho_max;
 

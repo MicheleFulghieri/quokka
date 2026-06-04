@@ -2,10 +2,10 @@
 # Problem size, geometry and resolution  (1 Mpc = 3.08567758e24 cm)
 # *****************************************************************
 geometry.prob_lo       =  0.0  0.0  0.0 
-geometry.prob_hi       =  3.086e25 3.086e25 3.086e25   # 10 Mpc 10 Mpc 10 Mpc   
+geometry.prob_hi       =  3.086e24 3.086e24 3.086e24   # 1 Mpc 1 Mpc 1 Mpc   
 geometry.is_periodic   =  1 1 1
 
-amr.n_cell          = 512 512 512  # resolution
+amr.n_cell          = 128 128 128  # resolution
 amr.max_level       = 0            # number of levels = max_level + 1
 amr.blocking_factor = 32           # grid size must be divisible by this
 amr.max_grid_size   = 128          # at least 128 for GPUs

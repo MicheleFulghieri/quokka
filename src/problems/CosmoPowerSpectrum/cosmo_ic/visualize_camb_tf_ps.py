@@ -38,6 +38,7 @@ results = camb.get_results(pars)   # solve via the undelying Fortran the Boltzma
 trans = results.get_matter_transfer_data()   # returns the quantities divided by k^2
 kh = trans.transfer_data[0, :, 0]            # (222,) array values of k/h
 
+# Indices in the transfer_data array are the variable type, the k index, and the redshift index
 # [camb.model.desired_variable, range of values, redshift]
 trans_cdm = trans.transfer_data[model.Transfer_cdm - 1, :, 0]  # k/h, 0 for z=z_start (the only present)
 trans_bar = trans.transfer_data[model.Transfer_b - 1, : , 0]   # ordinary matter
@@ -68,15 +69,15 @@ plt.close()
 # ---- Native Power spectrum inspection ----
 
 # Extract the spectrum as arrays (Mpc with h units, already MUSIC optimized)
-kh, z, pk = results.get_matter_power_spectrum(
+kh_ps, z_ps, pk_ps = results.get_matter_power_spectrum(
     minkh=1e-4,      # large scale max
     maxkh=100.0,     # small scale min
     npoints = 1000   # number of sampled points
 )
 
-# Formattation and exportation to MUSIC
-PS_to_save = np.column_stack((kh, pk[0,:]))   # stack k and pk (with the only z=z_start) in two columns: npoints rows [(kh_i, ph_i)] for i=0,..., npoints
-np.savetxt(f'CAMB_PS_check_z{z_start}.txt', PS_to_save, header='k/h (Mpc^-1) | P(k) (Mpc/h)^3')
+
+PS_to_save = np.column_stack((kh_ps, pk_ps[0,:]))   # stack k and pk (with the only z=z_start) in two columns: npoints rows [(kh_i, ph_i)] for i=0,..., npoints
+# np.savetxt(f'CAMB_PS_check_z{z_start}.txt', PS_to_save, header='k/h (Mpc^-1) | P(k) (Mpc/h)^3')
 
 # PS function
 fig, ax = plt.subplots()
@@ -85,7 +86,7 @@ ax.set_xscale('log')
 ax.set_yscale('log')
 ax.set_xlabel(r'$k (Mpc/h)^{-1}$')
 ax.set_ylabel(r'$P(k) (Mpc/h)^{3}$')
-ax.set_title(f'LCDM matter power spectrum at z={z}')
+ax.set_title(f'LCDM matter power spectrum at z={z_start}')
 ax.legend()
 ax.grid(True, alpha=0.5)
 
@@ -99,26 +100,24 @@ print(f"\nPower spectrum plot saved in: {analysis_path}")
 # ---- Power spectrum from transfert function comparison ----
 
 # PS from the tranfert function
-kh_native = trans.transfer_data[0, :, 0]  
-k_physical = kh_native * results.Params.h   # k = (k/h) * h
+kh_original = trans.transfer_data[0, :, 0]  
+k_physical = kh_original * results.Params.h   # k = (k/h) * h
 primordial_PK = results.Params.scalar_power(k_physical)
-matter_power = primordial_PK * trans_tot**2 * k_physical**4 / (k_physical**3 / (2 * np.pi**2))
-
-
-
+matter_power = (2.0 * np.pi**2) * primordial_PK * (trans_tot**2) * k_physical * (results.Params.h**3) # (Mpc/h)^3
 
 # Native PS
-kh2, zs, PK = results.get_linear_matter_power_spectrum(hubble_units=False)
+kh_check, zs_chek, PK_check = results.get_linear_matter_power_spectrum(hubble_units=True, 
+                                                                       have_power_spectra=True)
 
 # Graphical comparison
 fig_comp, ax_comp = plt.subplots()
 ax_comp.plot(k_physical, matter_power, label='Power spectrum from Transfert func')
-ax_comp.plot(kh, PK[0, :], label='CAMB native Power spectrum')
+ax_comp.plot(kh_check, PK_check[0, :], label='CAMB native Power spectrum')
 ax_comp.set_xscale('log')
 ax_comp.set_yscale('log')
 ax_comp.set_xlabel(r'$k\, [h Mpc^{-1}]$')
 ax_comp.set_ylabel(r'$P(k) (Mpc/h)^{3}$')
-ax_comp.set_title(f'Comparison CAMB matter power spectrum at z={z}')
+ax_comp.set_title(f'Comparison CAMB matter power spectrum at z={z_start}')
 ax_comp.legend()
 ax_comp.grid(True, alpha=0.5)
 
@@ -141,4 +140,3 @@ print(f"Omega_L = {Omega_L:.6f}")
 print(f"-" * 75)
 
 
-# sistemare ultimo plot di confronto

@@ -41,12 +41,17 @@ kh = trans.transfer_data[0, :, 0]            # (222,) array values of k/h
 # [camb.model.desired_variable, range of values, redshift]
 trans_cdm = trans.transfer_data[model.Transfer_cdm - 1, :, 0]  # k/h, 0 for z=z_start (the only present)
 trans_bar = trans.transfer_data[model.Transfer_b - 1, : , 0]   # ordinary matter
+tras_phot = trans.transfer_data[model.Transfer_g - 1, :, 0]    # photons
+tras_nu   = trans.transfer_data[model.Transfer_nu - 1, :, 0]   # nu
+tras_de   =trans.transfer_data[model.Transfer_tot_de - 1, :, 0]
 trans_tot = trans.transfer_data[model.Transfer_tot - 1, :, 0]  # DM + ordinary matter + nu
 
-trans_to_save = np.column_stack((kh, trans_cdm, trans_bar, trans_tot))
-np.savetxt(f'CAMB_lcdm_transfer_z{z_start}.dat', trans_to_save, 
-           fmt='%12.6e',  # % min_fieldwidth number_of_digits exponential_notatation  
-           header='k/h          CDM          Baryons      Total')
+trans_to_save = np.column_stack((kh, trans_cdm, trans_bar, tras_phot, tras_nu, tras_de, trans_tot))
+np.savetxt(f'CAMB_lcdm_transfer_z{z_start}.dat', trans_to_save, fmt='%12.6e')
+
+# np.savetxt(f'CAMB_lcdm_transfer_z{z_start}.dat', trans_to_save, 
+#            fmt='%12.6e',  # % min_fieldwidth number_of_digits exponential_notatation  
+#            header='k/h          CDM          Baryons          Photons          Neutrino          DE      Total')
 
 print(f"\nTransfert data saved in: {ic_path}\n")
 

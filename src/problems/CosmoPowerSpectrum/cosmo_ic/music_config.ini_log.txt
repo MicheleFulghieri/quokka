@@ -15,8 +15,8 @@
 [0m [0mCPU vendor string                : Intel(R) Xeon(R) Silver 4310 CPU @ 2.10GHz
 [0m [0mAvailable HW threads / task      : 48 (48 used)
 [0m [0mTotal system memory (phys)       : 193062 Mb
-[0m [0mUsed system memory (phys)        : Max: 308936 Mb, Min: 308936 Mb
-[0m [0mAvailable system memory (phys)   : Max: 4294851422 Mb, Min: 4294851422 Mb
+[0m [0mUsed system memory (phys)        : Max: 309257 Mb, Min: 309257 Mb
+[0m [0mAvailable system memory (phys)   : Max: 4294851101 Mb, Min: 4294851101 Mb
 [0m [0mOS/Kernel version                : Linux version 5.15 build 92
 [0m [0mFFTW version                     : fftw-3.3.11-sse2-avx
 [0m [0mFFTW supports multi-threading    : yes
@@ -30,6 +30,6 @@
 [0m [0m Omega_DE = 0.683951        w_0      = -1              w_a     = 0               
 [0m [0mLinear growth factors: D+_target = 1, D+_start = 0.0126837
 [0m [0m-------------------------------------------------------------------------------
-[0m [0mReading tabulated transfer function data from file     './CAMB_lcdm_matter_power_z99.0.txt'
+[0m [0mReading tabulated transfer function data from file     './CAMB_lcdm_transfer_z99.0.dat'
 [0m [0mCAUTION: make sure that this transfer function 	 has been output for z=99.000000!
 [0m[31mError : Error reading the transfer function file (corrupt or not in expected format)!
