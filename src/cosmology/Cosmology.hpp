@@ -60,10 +60,18 @@ namespace quokka::cosmology
 /// @brief Parameters for the cosmological model (LCDM by default)
 struct CosmologyParams {
 	amrex::Real H0{C::Hubble_const};  ///< Hubble constant at z=0: 32.407764868e-19 s^-1, from quokka//extern/Microphysics/constants/fundamental_constants.H
-	amrex::Real Omega_m{0.315};	      ///< Matter density parameter
-	amrex::Real Omega_r{9.2618e-5};	  ///< Radiation density parameter
-	amrex::Real Omega_L{0.685};	      ///< Dark energy (Lambda) density parameter
+	amrex::Real Omega_m{0.30966};	      ///< Matter density parameter
+	amrex::Real Omega_r{9.13896e-05};	  ///< Radiation density parameter
+	amrex::Real Omega_L{0.68885};	      ///< Dark energy (Lambda) density parameter
 	// Omega_k = 1 - (Omega_m + Omega_r + Omega_L)  [derived]
+
+	amrex::Real Omega_b{0.04897};         ///< Ordinary matter density parameter
+	amrex::Real Omega_dm{0.26069};	      ///< DM density parameter
+
+	void validate() const {
+		AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(Omega_b + Omega_dm - Omega_m) < 1e-6, 
+    	"Error: The sum of Omega_b and Omega_dm must equal Omega_m!");
+	}
 };
 
 /// @brief Compute the dimensionless Hubble factor E(a) = H(a)/H0
@@ -255,6 +263,8 @@ inline void printCosmologyInfo(CosmologyParams const &cosmo, amrex::Real a_now)
 	amrex::Print() << "\nCosmological parameters:\n";
 	amrex::Print() << "  H0      = " << H0_km_s_Mpc << " km/s/Mpc\n";
 	amrex::Print() << "  Omega_m = " << cosmo.Omega_m << "\n";
+	amrex::Print() << "  Omega_b = " << cosmo.Omega_b << "\n";
+	amrex::Print() << "  Omega_dm = " << cosmo.Omega_dm << "\n";
 	amrex::Print() << "  Omega_r = " << cosmo.Omega_r << "\n";
 	amrex::Print() << "  Omega_L = " << cosmo.Omega_L << "\n";
 	amrex::Print() << "  Omega_k = " << Omega_k << " (derived, 0 = flat)\n";

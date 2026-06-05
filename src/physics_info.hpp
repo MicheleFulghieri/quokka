@@ -22,12 +22,14 @@ template <typename problem_t> struct Physics_Traits {
 	static constexpr bool is_mhd_enabled = false;
 	// default values for cosmology (can be overridden in specializations)
 	static constexpr bool is_cosmology_enabled = false;
-	static constexpr double omega_m = 0.315;
-	static constexpr double omega_r = 9.2618e-5;
-	static constexpr double omega_lambda = 0.685;
-	static constexpr double hubble_constant = 1.0;
-	static constexpr double a_init = 1.0;
-	static constexpr double cosmology_dt_limit = 0.01;
+	static constexpr amrex::Real omega_m = 0.30966;
+	static constexpr amrex::Real omega_r = 9.13896e-05;
+	static constexpr amrex::Real omega_lambda = 0.68885;
+	static constexpr amrex::Real omega_b = 0.04897;        
+	static constexpr amrex::Real omega_dm = 0.26069;
+	static constexpr amrex::Real hubble_constant = 1.0;
+	static constexpr amrex::Real a_init = 1.0;
+	static constexpr amrex::Real cosmology_dt_limit = 0.01;
 };
 
 // detect if traits exist and provide a default if not (handles missing members in specializations)
@@ -101,49 +103,49 @@ template <typename problem_t> struct PhysicsTraits {
 		}
 		return UnitSystem::CGS;
 	}();
-	static constexpr double boltzmann_constant = []() constexpr {
+	static constexpr amrex::Real boltzmann_constant = []() constexpr {
 		if constexpr (requires { T::boltzmann_constant; }) {
 			return T::boltzmann_constant;
 		}
 		return C::k_B;
 	}();
-	static constexpr double gravitational_constant = []() constexpr {
+	static constexpr amrex::Real gravitational_constant = []() constexpr {
 		if constexpr (requires { T::gravitational_constant; }) {
 			return T::gravitational_constant;
 		}
 		return C::Gconst;
 	}();
-	static constexpr double c_light = []() constexpr {
+	static constexpr amrex::Real c_light = []() constexpr {
 		if constexpr (requires { T::c_light; }) {
 			return T::c_light;
 		}
 		return C::c_light;
 	}();
-	static constexpr double radiation_constant = []() constexpr {
+	static constexpr amrex::Real radiation_constant = []() constexpr {
 		if constexpr (requires { T::radiation_constant; }) {
 			return T::radiation_constant;
 		}
 		return C::a_rad;
 	}();
-	static constexpr double unit_length = []() constexpr {
+	static constexpr amrex::Real unit_length = []() constexpr {
 		if constexpr (requires { T::unit_length; }) {
 			return T::unit_length;
 		}
 		return 1.0;
 	}();
-	static constexpr double unit_mass = []() constexpr {
+	static constexpr amrex::Real unit_mass = []() constexpr {
 		if constexpr (requires { T::unit_mass; }) {
 			return T::unit_mass;
 		}
 		return 1.0;
 	}();
-	static constexpr double unit_time = []() constexpr {
+	static constexpr amrex::Real unit_time = []() constexpr {
 		if constexpr (requires { T::unit_time; }) {
 			return T::unit_time;
 		}
 		return 1.0;
 	}();
-	static constexpr double unit_temperature = []() constexpr {
+	static constexpr amrex::Real unit_temperature = []() constexpr {
 		if constexpr (requires { T::unit_temperature; }) {
 			return T::unit_temperature;
 		}
@@ -157,37 +159,49 @@ template <typename problem_t> struct PhysicsTraits {
 		}
 		return false;
 	}();
-	static constexpr double omega_m = []() constexpr {
+	static constexpr amrex::Real omega_m = []() constexpr {
 		if constexpr (requires { T::omega_m; }) {
 			return T::omega_m;
 		}
-		return 0.315;
+		return 0.30966;
 	}();
-	static constexpr double omega_r = []() constexpr {
+	static constexpr amrex::Real omega_r = []() constexpr {
 		if constexpr (requires { T::omega_r; }) {
 			return T::omega_r;
 		}
-		return 9.2618e-5;
+		return 9.13896e-05;
 	}();
-	static constexpr double omega_lambda = []() constexpr {
+	static constexpr amrex::Real omega_lambda = []() constexpr {
 		if constexpr (requires { T::omega_lambda; }) {
 			return T::omega_lambda;
 		}
-		return 0.685;
+		return 0.68885;
 	}();
-	static constexpr double hubble_constant = []() constexpr {
+	static constexpr amrex::Real omega_b = []() constexpr {
+		if constexpr (requires { T::omega_b; }) {
+			return T::omega_b;
+		}
+		return 0.04897;
+	}();
+	static constexpr amrex::Real omega_dm = []() constexpr {
+		if constexpr (requires { T::omega_dm; }) {
+			return T::omega_dm;
+		}
+		return 0.26069;
+	}();
+	static constexpr amrex::Real hubble_constant = []() constexpr {
 		if constexpr (requires { T::hubble_constant; }) {
 			return T::hubble_constant;
 		}
 		return 1.0;
 	}();
-	static constexpr double a_init = []() constexpr {
+	static constexpr amrex::Real a_init = []() constexpr {
 		if constexpr (requires { T::a_init; }) {
 			return T::a_init;
 		}
 		return 1.0;
 	}();
-	static constexpr double cosmology_dt_limit = []() constexpr {
+	static constexpr amrex::Real cosmology_dt_limit = []() constexpr {
 		if constexpr (requires { T::cosmology_dt_limit; }) {
 			return T::cosmology_dt_limit;
 		}

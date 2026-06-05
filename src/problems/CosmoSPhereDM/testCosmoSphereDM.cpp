@@ -44,9 +44,11 @@ template <> struct Physics_Traits<CosmoSphereDM> {
 	static constexpr UnitSystem unit_system = UnitSystem::CGS;
 
 // Cosmology parameters (LCDM)
-	static constexpr double omega_m = 0.315;            
-	static constexpr double omega_r = 9.2618e-5;
-	static constexpr double omega_lambda = 0.685;
+	static constexpr amrex::Real omega_m = 0.30966;
+	static constexpr amrex::Real omega_r = 9.13896e-05;
+	static constexpr amrex::Real omega_lambda = 0.68885;
+	static constexpr amrex::Real omega_b = 0.04897;        
+	static constexpr amrex::Real omega_dm = 0.26069;
 	static constexpr double hubble_constant = 0.7;	   // h = 0.7 (H0 = 70 km/s/Mpc)
 	static constexpr double a_init = 0.01;		       // start at z = 99
 	static constexpr double cosmology_dt_limit = 0.01; // according to the default
