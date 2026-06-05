@@ -67,7 +67,7 @@ struct CosmologyParams {
 
 	amrex::Real Omega_b{0.04897};         ///< Ordinary matter density parameter
 	amrex::Real Omega_dm{0.26069};	      ///< DM density parameter
-
+	
 	void validate() const {
 		AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(Omega_b + Omega_dm - Omega_m) < 1e-6, 
     	"Error: The sum of Omega_b and Omega_dm must equal Omega_m!");

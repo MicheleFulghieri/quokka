@@ -4,8 +4,9 @@
 // Released under the MIT license. See LICENSE file included in the GitHub repo.
 //==============================================================================
 /// \file testCosmologicalDarkMatter.cpp
-/// \brief Defines a test problem including cosmology and dark matter in 
-/// an EdS universe
+/// \brief This problem tests the interplay between hydro, CIC particles, gravity and
+/// cosmological expansion. A caustic formation in the center of the domain with
+/// a density and temperature peak is expected (Zel’dovich, 1970).
 ///
 
 #include "QuokkaSimulation.hpp"

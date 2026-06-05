@@ -2,10 +2,10 @@
 # Problem size, geometry and resolution  (1 Mpc = 3.08567758e24 cm)
 # *****************************************************************
 geometry.prob_lo       =  0.0  0.0  0.0 
-geometry.prob_hi       =  3.086e24 3.086e24 3.086e24   # 1 Mpc 1 Mpc 1 Mpc   
+geometry.prob_hi       =  1.543e24 1.543e24 1.543e24   # 0.5 Mpc 0.5 Mpc 0.5 Mpc   
 geometry.is_periodic   =  1 1 1
 
-amr.n_cell          = 128 128 128  # resolution
+amr.n_cell          = 256 256 256  # resolution
 amr.max_level       = 0            # number of levels = max_level + 1
 amr.blocking_factor = 32           # grid size must be divisible by this
 amr.max_grid_size   = 128          # at least 128 for GPUs
@@ -35,9 +35,12 @@ do_tracers = 1          # turn on tracer particles
 # Cosmology
 # *****************************************************************
 cosmology.hubble_constant = 0.7
-cosmology.omega_m         = 0.315       # LCDM
-cosmology.omega_r         = 9.2618e-5  
-cosmology.omega_lambda    = 0.685
+cosmology.omega_m         = 0.30966       # LCDM
+cosmology.omega_r         = 9.13896e-05  
+cosmology.omega_lambda    = 0.68885
+cosmology.omega_m         = 0.30966
+cosmology.omega_b         = 0.04897
+cosmology.omega_dm        = 0.26069
 cosmology.a_init          = 0.00001
 
 
