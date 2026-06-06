@@ -771,8 +771,8 @@ template <typename problem_t> void QuokkaSimulation<problem_t>::readParmParse()
 		cpp.query("dt_limit", cosmology_dt_limit_);
 
 		// convert h to H0 [s^-1]
-		const double Mpc_to_cm = C::parsec * 1.0e6;
-		const double H0_cgs = (h * 100.0 * 1e5) / Mpc_to_cm;
+		const amrex::Real Mpc_to_cm = C::parsec * 1.0e6;
+		const amrex::Real H0_cgs = (h * 100.0 * 1e5) / Mpc_to_cm;
 
 		// Sanity check for Poisson solver consistency
 		if constexpr (PhysicsTraits<problem_t>::is_self_gravity_enabled) {

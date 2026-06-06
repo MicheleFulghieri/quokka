@@ -33,9 +33,11 @@ do_tracers = 0          # turn on tracer particles
 # Cosmology
 # *****************************************************************
 cosmology.hubble_constant = 0.7
-cosmology.omega_m         = 1.0    # Einstein-de Sitter  
-cosmology.omega_r         = 0.0  
-cosmology.omega_lambda    = 0.0
+cosmology.omega_m         = 1.00000    # Einstein-de Sitter
+cosmology.omega_r         = 0.00000  
+cosmology.omega_lambda    = 0.00000
+cosmology.omega_b         = 0.01000     
+cosmology.omega_dm        = 0.99000    # 99% DM
 cosmology.a_init          = 0.01
 cosmology.a_collapse      = 0.5
 

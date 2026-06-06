@@ -289,3 +289,4 @@ auto problem_main() -> int {
 }
 
 
+// ridurre dimensioni sfera e renderla isoterma?
