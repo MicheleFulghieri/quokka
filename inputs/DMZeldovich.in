@@ -5,9 +5,9 @@ geometry.prob_lo       =  0.0  0.0  0.0
 geometry.prob_hi       =  3.086e25 3.086e25 3.086e25   # 10 Mpc 10 Mpc 10 Mpc   
 
 
-amr.n_cell          = 1024 32 32   # resolution
+amr.n_cell          = 256 256 256    # resolution (full cube)
 amr.max_level       = 0            # number of levels = max_level + 1
-amr.blocking_factor = 8            # grid size must be divisible by this
+amr.blocking_factor = 32           # grid size must be divisible by this
 do_subcycle         = 0            # Poisson solver doesn't support AMR subcycling in quokka
 
 quokka.bc = periodic periodic periodic
@@ -17,6 +17,12 @@ quokka.cfl        = 0.3
 
 # to try
 do_tracers = 0          # turn on tracer particles
+
+# Particle initialization matching the grid
+particles.npar_x = 256
+particles.npar_y = 256
+particles.npar_z = 256
+
 
 
 
@@ -40,6 +46,7 @@ cosmology.omega_b         = 0.01000
 cosmology.omega_dm        = 0.99000    # 99% DM
 cosmology.a_init          = 0.01
 cosmology.a_collapse      = 0.5
+cosmology.a_final         = 1.25
 
 
 # *****************************************************************
@@ -50,7 +57,8 @@ plotfile_interval = 25            # save a plotfile every plotfile_interval
 amr.v = 1                         # AMReX verbosity level: 0=quiet, 1=verbose, 2=very verbose
 tiny_profiler.enabled = 1         # AMReX profiles the performances
 poisson_reltol = 1.0e-5
-poisson_abstol = 1.0e-12
+# poisson_abstol = 1.0e-10    # relaxed: at a=0.01 the source is ~1e-32 (linear regime)
+poisson_max_iter = 200      # allow more iterations near collapse
 
 derived_vars = gpot               # keep track of the gravitational potential
 #debug_density_floor_plot = 1
