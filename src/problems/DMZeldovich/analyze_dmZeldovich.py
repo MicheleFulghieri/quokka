@@ -101,8 +101,7 @@ def main():
     args = parse_args()
     save_path = args.save
     make_dirs(save_path)
-
-    # --- Locate plotfiles ---
+   
     if args.plotfiles:
         plotfiles = natsorted(glob.glob(args.plotfiles))
     else:

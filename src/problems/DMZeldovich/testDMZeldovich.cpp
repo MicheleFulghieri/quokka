@@ -174,9 +174,9 @@ template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
 	if (amrex::ParallelDescriptor::IOProcessor()) {
 		using ParticleType = quokka::CICParticleContainer::ParticleType;
 		
-		// We get the first local tile key for processor 0 to temporarily host the particles
-		amrex::MFIter mfi(state_new_cc_[lev]);
-		if (mfi.isValid()) {
+		// Get the first local tile key for processor 0 to temporarily host all the particles
+		amrex::MFIter mfi(state_new_cc_[lev]);  // iteration only on the IOproc tiles
+		if (mfi.isValid()) {  // place temporarily all the particle in the firts valid tile waiting for Redistribute()
 			auto const key = std::make_pair(mfi.index(), mfi.LocalTileIndex());
 			auto &particles = pc.GetParticles(lev)[key];
 			
@@ -192,12 +192,12 @@ template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
         const amrex::Real displacement = - (amplitude / k_wave) * std::sin(k_wave * qx_center);
         const amrex::Real v_pec        = a_init * H_init * displacement; 
 
-						// Ensure periodic boundary wrapping
+						// Ensure periodic boundary wrapping (if the perturbation dispaces particles out of physical domain)
 						amrex::Real x_perturbed = qx + displacement;
 						while (x_perturbed < prob_lo[0]) x_perturbed += Lx;
 						while (x_perturbed >= prob_hi[0]) x_perturbed -= Lx;
 
-						amrex::Real y_perturbed = qy;
+						amrex::Real y_perturbed = qy;  // just for security, since only x is perturbed
 						while (y_perturbed < prob_lo[1]) y_perturbed += Ly;
 						while (y_perturbed >= prob_hi[1]) y_perturbed -= Ly;
 

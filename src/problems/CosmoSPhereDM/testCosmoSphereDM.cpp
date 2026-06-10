@@ -79,12 +79,13 @@ template <> void QuokkaSimulation<CosmoSphereDM>::setInitialConditionsOnGrid(quo
 		amrex::Real const z = prob_lo[2] + (k + static_cast<amrex::Real>(0.5)) * dx[2];
 		amrex::Real const r = std::sqrt(std::pow(x - X0, 2) + std::pow(y - Y0, 2) + std::pow(z - Z0, 2));
 
-		amrex::Real const rho_min  = 1.0e-28;
+		amrex::Real const rho_min  = 1.0e-27;
 		amrex::Real const rho_max  = 1.0e-24;
-		amrex::Real const R_sphere = 3.086e23;   // 100 kpc
-		amrex::Real const R_smooth = 1.543e22;   // 1/20 R_sphere
+		amrex::Real const R_sphere = 1.543e23;   // 50 kpc
+		amrex::Real const R_smooth = 7.715e21;   // 1/20 R_sphere
 		amrex::Real const rho = std::max(rho_min, rho_max * ((std::tanh((R_sphere - r) / R_smooth) + 1.0) / 2.0));
-		amrex::Real const P  = 1.0e-15;
+		amrex::Real const P = 1.0e-14;
+		amrex::Real const T = P * quokka::EOS_Traits<CosmoSphereDM>::mean_molecular_weight / (rho * C::k_B);
 		amrex::Real const vx = CosmoSphereDM::drift_vel;
 		amrex::Real const vy = 0.0;
 		amrex::Real const vz = 0.0;
@@ -224,14 +225,17 @@ auto problem_main() -> int {
 	// Get particle data using the particle descriptor
 	const auto [real_data, int_data] = sim.particleRegister_.getParticleDescriptor(quokka::ParticleType::CIC)->getParticleDataAtLevel(finest_level);
 
+	const amrex::Real cm_to_Mpc = 1 / (C::parsec * 1.0e6);
+	const amrex::Real cm_to_kpc = 1 / (C::parsec * 1.0e3);
+
 	if (amrex::ParallelDescriptor::IOProcessor()) {
 
 		amrex::Print() << "\n=================== DOMAIN & RESOLUTION ===================\n"
-					   << "  - Cell Resolution (dx, dy, dz) : (" << dx[0] << ", " << dx[1] << ", " << dx[2] << ") Mpc\n"
+					   << "  - Cell Resolution (dx, dy, dz) : (" << dx[0] * cm_to_kpc << ", " << dx[1] * cm_to_kpc << ", " << dx[2] * cm_to_kpc << ") kpc\n"
 					   << "  - Domain Cells (Nx, Ny, Nz)    : (" << n_cells_x << ", " << n_cells_y << ", " << n_cells_z << ") cells\n"
-					   << "  - Domain Size X [Lo / Hi]      : [" << prob_lo[0] << " / " << prob_hi[0] << "] Mpc\n"
-					   << "  - Domain Size Y [Lo / Hi]      : [" << prob_lo[1] << " / " << prob_hi[1] << "] Mpc\n"
-					   << "  - Domain Size Z [Lo / Hi]      : [" << prob_lo[2] << " / " << prob_hi[2] << "] Mpc\n"
+					   << "  - Domain Size X [Lo / Hi]      : [" << prob_lo[0] * cm_to_Mpc << " / " << prob_hi[0] * cm_to_Mpc << "] Mpc\n"
+					   << "  - Domain Size Y [Lo / Hi]      : [" << prob_lo[1] * cm_to_Mpc << " / " << prob_hi[1] * cm_to_Mpc << "] Mpc\n"
+					   << "  - Domain Size Z [Lo / Hi]      : [" << prob_lo[2] * cm_to_Mpc << " / " << prob_hi[2] * cm_to_Mpc << "] Mpc\n"
 					   << "-----------------------------------------------------------\n";
 
 		if (real_data.size() > 0) {   // there is the particle
@@ -249,18 +253,18 @@ auto problem_main() -> int {
 			amrex::Real tolerance_cell = 2;  
 			amrex::Real tolerance_mpc = tolerance_cell * dx[0];	
 			
-			amrex::Print() << "  - Gas Center of Mass           : (" << gas_center_x << ", " << gas_center_y << ", " << gas_center_z << ") Mpc\n"
-						   << "  - Particle Position            : (" << px << ", " << py << ", " << pz << ") Mpc\n"
-						   << "  - Calculated Distance          : " << shift_mpc << " Mpc (" << shift_cell << " cells)\n"
-						   << "  - Allowed Tolerance            : " << tolerance_mpc << " Mpc (" << tolerance_cell << " cells)\n"
+			amrex::Print() << "  - Gas Center of Mass           : (" << gas_center_x * cm_to_Mpc << ", " << gas_center_y * cm_to_Mpc << ", " << gas_center_z * cm_to_Mpc << ") Mpc\n"
+						   << "  - Particle Position            : (" << px * cm_to_Mpc << ", " << py * cm_to_Mpc << ", " << pz * cm_to_Mpc << ") Mpc\n"
+						   << "  - Calculated Distance          : " << shift_mpc * cm_to_kpc << " kpc (" << shift_cell << " cells)\n"
+						   << "  - Allowed Tolerance            : " << tolerance_mpc * cm_to_kpc << " kpc (" << tolerance_cell << " cells)\n"
 						   << "-----------------------------------------------------------\n";
 
 			if (shift_cell > tolerance_cell) {
 			amrex::Print() << "\n========================================================\n"
 							   << "[TEST FAILED]: CosmoSphereDM misalignment detected!\n"
-							   << "  - Particle position : (" << px << ", " << py << ", " << pz << ") Mpc\n"
-							   << "  - Gas center of mass: (" << gas_center_x << ", " << gas_center_y << ", " << gas_center_z << ") Mpc\n"
-							   << "  - Absolute distance : " << shift_mpc << " Mpc (Tol: " << tolerance_mpc << " Mpc)\n"
+							   << "  - Particle position : (" << px * cm_to_Mpc << ", " << py * cm_to_Mpc << ", " << pz * cm_to_Mpc << ") Mpc\n"
+							   << "  - Gas center of mass: (" << gas_center_x * cm_to_Mpc << ", " << gas_center_y * cm_to_Mpc << ", " << gas_center_z * cm_to_Mpc << ") Mpc\n"
+							   << "  - Absolute distance : " << shift_mpc * cm_to_kpc << " kpc (Tol: " << tolerance_mpc * cm_to_kpc << " kpc)\n"
 							   << "  - Relative distance : " << shift_cell << " cell widths (Tol: " << tolerance_cell << " cell widths)\n"
 							   << "========================================================\n\n";	
 			status = 1;
@@ -268,9 +272,9 @@ auto problem_main() -> int {
 			else {
 				amrex::Print() << "\n========================================================\n"
 							   << "[TEST PASSED]: CosmoSphereDM alignment check successful!\n"
-							   << "  - Particle position : (" << px << ", " << py << ", " << pz << ") Mpc\n"
-							   << "  - Gas center of mass: (" << gas_center_x << ", " << gas_center_y << ", " << gas_center_z << ") Mpc\n"
-							   << "  - Absolute distance : " << shift_mpc << " Mpc (Tol: " << tolerance_mpc << " Mpc)\n"
+							   << "  - Particle position : (" << px * cm_to_Mpc << ", " << py * cm_to_Mpc << ", " << pz * cm_to_Mpc << ") Mpc\n"
+							   << "  - Gas center of mass: (" << gas_center_x * cm_to_Mpc << ", " << gas_center_y * cm_to_Mpc << ", " << gas_center_z * cm_to_Mpc << ") Mpc\n"
+							   << "  - Absolute distance : " << shift_mpc * cm_to_kpc << " kpc (Tol: " << tolerance_mpc * cm_to_kpc << " kpc)\n"
 							   << "  - Relative distance : " << shift_cell << " cell widths (Tol: " << tolerance_cell << " cell widths)\n"
 							   << "========================================================\n\n";
 				status = 0;
@@ -289,4 +293,3 @@ auto problem_main() -> int {
 }
 
 
-// ridurre dimensioni sfera e renderla isoterma?
