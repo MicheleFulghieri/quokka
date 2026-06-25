@@ -49,8 +49,8 @@ template <> struct Physics_Traits<DMZeldovich> {
 	static constexpr amrex::Real omega_lambda = 0.0;
 	static constexpr amrex::Real omega_b = 0.01;            // 99% DMd
 	static constexpr amrex::Real omega_dm = 0.99;
-	static constexpr amrex::Real hubble_constant = 0.7;	   // h = 0.7 (H0 = 70 km/s/Mpc)
-	static constexpr amrex::Real a_init = 0.01;		       // start at z = 99
+	static constexpr amrex::Real hubble_constant = 0.7;	    // h = 0.7 (H0 = 70 km/s/Mpc)
+	static constexpr amrex::Real a_init = 0.01;		        // start at z = 99
 	static constexpr amrex::Real cosmology_dt_limit = 0.01; // according to the default
 };
 
@@ -169,7 +169,9 @@ template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
 	const amrex::Real k_wave      = (2.0 * amrex::Math::pi<amrex::Real>()) / Lx;
 
 	amrex::Print() << "DM particles initialization along x,y,z: " 
-	               << nparx << "x" << npary << "x" << nparz << ")..." << std::endl;
+	               << "(" << nparx << "x" << npary << "x" << nparz << ")..." << std::endl;
+	amrex::Print() << "Mass per DM particle: " 
+	               << part_mass << "g" << std::endl;
 
 	if (amrex::ParallelDescriptor::IOProcessor()) {
 		using ParticleType = quokka::CICParticleContainer::ParticleType;

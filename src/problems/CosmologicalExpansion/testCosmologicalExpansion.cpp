@@ -15,7 +15,7 @@
 
 struct ExpansionProblem {
 	static constexpr amrex::Real rho0_default = 1.0e-30; // low density
-	static constexpr amrex::Real P0_default = 1.0e-40;   // low pressure (enough to have low sound speed and thus small dt)
+	static constexpr amrex::Real P0_default = 1.0e-25;   // low pressure (enough to have low sound speed and thus small dt)
 	static constexpr amrex::Real vx0_default = 0;	     // for a pure expansion test
 	static constexpr amrex::Real vy0_default = 0;
 	static constexpr amrex::Real vz0_default = 0;
@@ -176,7 +176,7 @@ auto problem_main() -> int
 	pp_quokka.query("cfl", sim.cflNumber_);
 
 	// Retrive density, energy and momentum index
-	const int rho_idx  = HydroSystem<ExpansionProblem>::density_index;
+	const int rho_idx = HydroSystem<ExpansionProblem>::density_index;
 	const int eint_idx = HydroSystem<ExpansionProblem>::internalEnergy_index;
 	const int momx_idx = HydroSystem<ExpansionProblem>::x1Momentum_index;
 	const int momy_idx = HydroSystem<ExpansionProblem>::x2Momentum_index;

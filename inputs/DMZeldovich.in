@@ -5,7 +5,7 @@ geometry.prob_lo       =  0.0  0.0  0.0
 geometry.prob_hi       =  3.086e25 3.086e25 3.086e25   # 10 Mpc 10 Mpc 10 Mpc   
 
 
-amr.n_cell          = 256 256 256  # resolution (full cube)
+amr.n_cell          = 128 128 128  # resolution (full cube)
 amr.max_level       = 0            # number of levels = max_level + 1
 amr.blocking_factor = 32           # grid size must be divisible by this
 do_subcycle         = 0            # Poisson solver doesn't support AMR subcycling in quokka

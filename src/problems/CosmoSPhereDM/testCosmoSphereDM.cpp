@@ -49,9 +49,9 @@ template <> struct Physics_Traits<CosmoSphereDM> {
 	static constexpr amrex::Real omega_lambda = 0.68885;
 	static constexpr amrex::Real omega_b = 0.04897;        
 	static constexpr amrex::Real omega_dm = 0.26069;
-	static constexpr double hubble_constant = 0.7;	   // h = 0.7 (H0 = 70 km/s/Mpc)
-	static constexpr double a_init = 0.01;		       // start at z = 99
-	static constexpr double cosmology_dt_limit = 0.01; // according to the default
+	static constexpr amrex::Real hubble_constant = 0.7;	   // h = 0.7 (H0 = 70 km/s/Mpc)
+	static constexpr amrex::Real a_init = 0.01;		       // start at z = 99
+	static constexpr amrex::Real cosmology_dt_limit = 0.01; // according to the default
 };
 
 
@@ -60,7 +60,7 @@ template <> void QuokkaSimulation<CosmoSphereDM>::setInitialConditionsOnGrid(quo
 
 	// set of (x,y,z) indexes and Array4 pointer to the data
 	const amrex::Box &indexRange = grid_elem.indexRange_;      
-    const amrex::Array4<double> &state_cc = grid_elem.array_;  
+    const amrex::Array4<amrex::Real> &state_cc = grid_elem.array_;  
 
 	amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const dx = grid_elem.dx_;       // cell dimensions (dx, dy, dz)
 	amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> prob_lo  = grid_elem.prob_lo_;  // low left physical coordinates
@@ -81,8 +81,8 @@ template <> void QuokkaSimulation<CosmoSphereDM>::setInitialConditionsOnGrid(quo
 
 		amrex::Real const rho_min  = 1.0e-27;
 		amrex::Real const rho_max  = 1.0e-24;
-		amrex::Real const R_sphere = 1.543e23;   // 50 kpc
-		amrex::Real const R_smooth = 7.715e21;   // 1/20 R_sphere
+		amrex::Real const R_sphere = 3.086e22;   // 10 kpc
+		amrex::Real const R_smooth = 1.543e20;   // 1/20 R_sphere
 		amrex::Real const rho = std::max(rho_min, rho_max * ((std::tanh((R_sphere - r) / R_smooth) + 1.0) / 2.0));
 		amrex::Real const P = 1.0e-14;
 		amrex::Real const T = P * quokka::EOS_Traits<CosmoSphereDM>::mean_molecular_weight / (rho * C::k_B);
@@ -120,7 +120,7 @@ template <> void QuokkaSimulation<CosmoSphereDM>::createInitialCICParticles() {
 	amrex::RealVect const center_coords{X0, Y0, Z0};
 	amrex::IntVect const center_index = geom.CellIndex(center_coords.dataPtr());
 
-	amrex::Real const R_sphere = 3.086e23; // 100 kpc
+	amrex::Real const R_sphere = 3.086e22;   // 10 kpc
     amrex::Real const rho_max  = 1.0e-24;
     amrex::Real const mass_gas = (4.0 / 3.0) * M_PI * std::pow(R_sphere, 3) * rho_max;
 
@@ -248,15 +248,15 @@ auto problem_main() -> int {
 			amrex::Real shift_x = px - gas_center_x;
 			amrex::Real shift_y = py - gas_center_y;
 			amrex::Real shift_z = pz - gas_center_z;
-			amrex::Real shift_mpc = std::sqrt(shift_x * shift_x + shift_y * shift_y + shift_z* shift_z);
-			amrex::Real shift_cell = shift_mpc / dx[0];
+			amrex::Real shift_mpc = std::sqrt(shift_x * shift_x + shift_y * shift_y + shift_z* shift_z) * cm_to_Mpc;
+			amrex::Real shift_cell = shift_mpc / (dx[0] * cm_to_Mpc);
 			amrex::Real tolerance_cell = 2;  
-			amrex::Real tolerance_mpc = tolerance_cell * dx[0];	
+			amrex::Real tolerance_mpc = tolerance_cell * dx[0] * cm_to_Mpc;	
 			
 			amrex::Print() << "  - Gas Center of Mass           : (" << gas_center_x * cm_to_Mpc << ", " << gas_center_y * cm_to_Mpc << ", " << gas_center_z * cm_to_Mpc << ") Mpc\n"
 						   << "  - Particle Position            : (" << px * cm_to_Mpc << ", " << py * cm_to_Mpc << ", " << pz * cm_to_Mpc << ") Mpc\n"
-						   << "  - Calculated Distance          : " << shift_mpc * cm_to_kpc << " kpc (" << shift_cell << " cells)\n"
-						   << "  - Allowed Tolerance            : " << tolerance_mpc * cm_to_kpc << " kpc (" << tolerance_cell << " cells)\n"
+						   << "  - Calculated Distance          : " << shift_mpc * 1e3 << " kpc (" << shift_cell << " cells)\n"
+						   << "  - Allowed Tolerance            : " << tolerance_mpc * 1e3 << " kpc (" << tolerance_cell << " cells)\n"
 						   << "-----------------------------------------------------------\n";
 
 			if (shift_cell > tolerance_cell) {
@@ -264,7 +264,7 @@ auto problem_main() -> int {
 							   << "[TEST FAILED]: CosmoSphereDM misalignment detected!\n"
 							   << "  - Particle position : (" << px * cm_to_Mpc << ", " << py * cm_to_Mpc << ", " << pz * cm_to_Mpc << ") Mpc\n"
 							   << "  - Gas center of mass: (" << gas_center_x * cm_to_Mpc << ", " << gas_center_y * cm_to_Mpc << ", " << gas_center_z * cm_to_Mpc << ") Mpc\n"
-							   << "  - Absolute distance : " << shift_mpc * cm_to_kpc << " kpc (Tol: " << tolerance_mpc * cm_to_kpc << " kpc)\n"
+							   << "  - Absolute distance : " << shift_mpc * 1e3 << " kpc (Tol: " << tolerance_mpc * 1e3 << " kpc)\n"
 							   << "  - Relative distance : " << shift_cell << " cell widths (Tol: " << tolerance_cell << " cell widths)\n"
 							   << "========================================================\n\n";	
 			status = 1;
@@ -274,7 +274,7 @@ auto problem_main() -> int {
 							   << "[TEST PASSED]: CosmoSphereDM alignment check successful!\n"
 							   << "  - Particle position : (" << px * cm_to_Mpc << ", " << py * cm_to_Mpc << ", " << pz * cm_to_Mpc << ") Mpc\n"
 							   << "  - Gas center of mass: (" << gas_center_x * cm_to_Mpc << ", " << gas_center_y * cm_to_Mpc << ", " << gas_center_z * cm_to_Mpc << ") Mpc\n"
-							   << "  - Absolute distance : " << shift_mpc * cm_to_kpc << " kpc (Tol: " << tolerance_mpc * cm_to_kpc << " kpc)\n"
+							   << "  - Absolute distance : " << shift_mpc * 1e3 << " kpc (Tol: " << tolerance_mpc * 1e3 << " kpc)\n"
 							   << "  - Relative distance : " << shift_cell << " cell widths (Tol: " << tolerance_cell << " cell widths)\n"
 							   << "========================================================\n\n";
 				status = 0;

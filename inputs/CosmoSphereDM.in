@@ -5,7 +5,7 @@ geometry.prob_lo       =  0.0  0.0  0.0
 geometry.prob_hi       =  1.543e24 1.543e24 1.543e24   # 0.5 Mpc 0.5 Mpc 0.5 Mpc   
 geometry.is_periodic   =  1 1 1
 
-amr.n_cell          = 512 512 512  # resolution
+amr.n_cell          = 256 256 256  # resolution
 amr.max_level       = 0            # number of levels = max_level + 1
 amr.blocking_factor = 32           # grid size must be divisible by this
 amr.max_grid_size   = 128          # at least 128 for GPUs
