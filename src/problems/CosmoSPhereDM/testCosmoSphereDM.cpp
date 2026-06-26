@@ -82,10 +82,11 @@ template <> void QuokkaSimulation<CosmoSphereDM>::setInitialConditionsOnGrid(quo
 		amrex::Real const rho_min  = 1.0e-27;
 		amrex::Real const rho_max  = 1.0e-24;
 		amrex::Real const R_sphere = 3.086e22;   // 10 kpc
-		amrex::Real const R_smooth = 1.543e20;   // 1/20 R_sphere
+		amrex::Real const R_smooth = 6.172e22;   // 1/5 R_sphere (2 kpc)
 		amrex::Real const rho = std::max(rho_min, rho_max * ((std::tanh((R_sphere - r) / R_smooth) + 1.0) / 2.0));
-		amrex::Real const P = 1.0e-14;
-		amrex::Real const T = P * quokka::EOS_Traits<CosmoSphereDM>::mean_molecular_weight / (rho * C::k_B);
+		// amrex::Real const rho = (r <= R_sphere) ? rho_max : rho_min;  // abrupt transition
+		// amrex::Real const P = 1.0e-14;
+		// amrex::Real const T = P * quokka::EOS_Traits<CosmoSphereDM>::mean_molecular_weight / (rho * C::k_B);
 		amrex::Real const vx = CosmoSphereDM::drift_vel;
 		amrex::Real const vy = 0.0;
 		amrex::Real const vz = 0.0;
@@ -98,8 +99,8 @@ template <> void QuokkaSimulation<CosmoSphereDM>::setInitialConditionsOnGrid(quo
 		state_cc(i, j, k, HydroSystem<CosmoSphereDM>::x1Momentum_index)     = rho * vx;
 		state_cc(i, j, k, HydroSystem<CosmoSphereDM>::x2Momentum_index)     = 0;
 		state_cc(i, j, k, HydroSystem<CosmoSphereDM>::x3Momentum_index)     = 0;
-		state_cc(i, j, k, HydroSystem<CosmoSphereDM>::internalEnergy_index) = quokka::EOS<CosmoSphereDM>::ComputeEintFromPres(rho, P);
-		state_cc(i, j, k, HydroSystem<CosmoSphereDM>::energy_index)         = quokka::EOS<CosmoSphereDM>::ComputeEintFromPres(rho, P) + 0.5 * rho * (vx * vx + vy * vy + vz * vz); // eint + ekin
+	// 	state_cc(i, j, k, HydroSystem<CosmoSphereDM>::internalEnergy_index) = quokka::EOS<CosmoSphereDM>::ComputeEintFromPres(rho, P);
+	// 	state_cc(i, j, k, HydroSystem<CosmoSphereDM>::energy_index)         = quokka::EOS<CosmoSphereDM>::ComputeEintFromPres(rho, P) + 0.5 * rho * (vx * vx + vy * vy + vz * vz); // eint + ekin
 	});
 }
 
@@ -120,7 +121,7 @@ template <> void QuokkaSimulation<CosmoSphereDM>::createInitialCICParticles() {
 	amrex::RealVect const center_coords{X0, Y0, Z0};
 	amrex::IntVect const center_index = geom.CellIndex(center_coords.dataPtr());
 
-	amrex::Real const R_sphere = 3.086e22;   // 10 kpc
+	amrex::Real const R_sphere = 3.086e22; // 10 kpc
     amrex::Real const rho_max  = 1.0e-24;
     amrex::Real const mass_gas = (4.0 / 3.0) * M_PI * std::pow(R_sphere, 3) * rho_max;
 
