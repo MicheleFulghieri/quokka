@@ -82,7 +82,7 @@ template <> void QuokkaSimulation<CosmoSphereDM>::setInitialConditionsOnGrid(quo
 		amrex::Real const rho_min  = 1.0e-27;
 		amrex::Real const rho_max  = 1.0e-24;
 		amrex::Real const R_sphere = 3.086e22;   // 10 kpc
-		amrex::Real const R_smooth = 6.172e22;   // 1/5 R_sphere (2 kpc)
+		amrex::Real const R_smooth = 6.172e21;   // 1/5 R_sphere (2 kpc)
 		//amrex::Real const rho = std::max(rho_min, rho_max * ((std::tanh((R_sphere - r) / R_smooth) + 1.0) / 2.0));
 		amrex::Real const rho = (r <= R_sphere) ? rho_max : rho_min;  // abrupt transition
 		// amrex::Real const P = 1.0e-14;

@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIAGNOSTICA_BRANCH.md</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.7;
+            color: #2c3e50;
+            background: white;
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        @media print {
+            body { padding: 20px; }
+            h1 { page-break-before: always; }
+            h2 { page-break-inside: avoid; }
+            pre { page-break-inside: avoid; }
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            color: #0066cc;
+            border-bottom: 3px solid #0066cc;
+            padding-bottom: 15px;
+            margin: 30px 0 20px 0;
+        }
+        
+        h2 {
+            font-size: 1.8em;
+            color: #0066cc;
+            margin-top: 35px;
+            margin-bottom: 15px;
+            border-left: 4px solid #0066cc;
+            padding-left: 15px;
+        }
+        
+        h3 {
+            font-size: 1.3em;
+            color: #333;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        p {
+            margin-bottom: 12px;
+            text-align: justify;
+        }
+        
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', 'Monaco', monospace;
+            font-size: 0.9em;
+        }
+        
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 15px 0;
+            line-height: 1.4;
+            border-left: 4px solid #0066cc;
+        }
+        
+        pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+        
+        ul, ol {
+            margin: 15px 0 15px 30px;
+        }
+        
+        li {
+            margin-bottom: 8px;
+        }
+        
+        blockquote {
+            border-left: 4px solid #0066cc;
+            padding-left: 15px;
+            margin: 15px 0;
+            color: #666;
+            font-style: italic;
+        }
+        
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background: #0066cc;
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        
+        tr:hover {
+            background: #f0f0f0;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 3px;
+        }
+        
+        .critical {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 3px;
+        }
+        
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 3px;
+        }
+        
+        .info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 3px;
+        }
+        
+        strong {
+            font-weight: bold;
+            color: #0066cc;
+        }
+        
+        em {
+            font-style: italic;
+        }
+        
+        hr {
+            border: none;
+            border-top: 2px solid #0066cc;
+            margin: 30px 0;
+        }
+        
+        .footer {
+            text-align: center;
+            font-size: 0.9em;
+            color: #999;
+            margin-top: 40px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<h1 id="diagnostica-branch-testmergecosmology-vs-upstreamdevelopment">📋 Diagnostica Branch: test/mergecosmology vs upstream/development</h1>
+<h2 id="panoramica-situazione-attuale">Panoramica Situazione Attuale</h2>
+<div class="codehilite"><pre><span></span><code>Merge-base (primo commit comune): 8cc0cb3bd
+├── upstream/development: 72 commit DOPO merge-base (HEAD: 96ced0c9)
+└── test/mergecosmology: 43 commit DOPO merge-base (HEAD: edd4cffb)
+
+Statistiche:
+- File modificati in upstream: 389 (7277 inseriti, 6080 cancellati)
+- File divergenti tra branch: 81
+</code></pre></div>
+
+<hr />
+<h2 id="problemi-critici-identificati">🔴 PROBLEMI CRITICI IDENTIFICATI</h2>
+<h3 id="1-toml-input-files-migration">1. <strong>TOML Input Files Migration</strong></h3>
+<p>Upstream ha aggiunto <strong>29+ file .toml</strong> paralleli ai .in:<br />
+- <code>inputs/Advection.toml</code> (nuovo)<br />
+- <code>inputs/HydroWave.toml</code> (nuovo)<br />
+- <code>inputs/ParticleDeposition.toml</code> (nuovo)<br />
+- Eccetera...</p>
+<p><strong>Tuo branch</strong> mantiene <code>.in</code> files (formato vecchio):<br />
+- <code>inputs/BinaryOrbitCIC.in</code> (modificato, non migrato)<br />
+- <code>inputs/CosmoPowerSpectrum.in</code> (nuovo in branch, non in formato TOML)<br />
+- <code>inputs/ZeldovichPancake.in</code> (nuovo in branch, non in formato TOML)</p>
+<p><strong>Conseguenza</strong>: <br />
+- Durante merge, non avrai conflitti diretti sui .in files<br />
+- MA il build potrebbe fallire se CMakeLists.txt attende .toml<br />
+- Runtime parsing fallirà se il parser cambia</p>
+<h3 id="2-modifiche-massive-a-file-particle-1922-righe">2. <strong>Modifiche Massive a File Particle (1922 righe!)</strong></h3>
+<p>Upstream ha cambiato:<br />
+- <code>src/particles/particle_accretion.hpp</code><br />
+- <code>src/particles/particle_creation.hpp</code><br />
+- <code>src/particles/particle_deposition.hpp</code><br />
+- <code>src/particles/particle_update.hpp</code><br />
+- <code>src/simulation.hpp</code> (504 righe cambiate!)</p>
+<p>Il tuo branch ha ANCHE modificato questi file per supporto cosmologia.</p>
+<p><strong>Conseguenza</strong>: <br />
+- Conflitti <strong>garantiti</strong> in questi file<br />
+- Potrebbero essere conflitti complessi (non lineari)</p>
+<h3 id="3-rimozione-ascent-support">3. <strong>Rimozione Ascent Support</strong></h3>
+<p>Upstream commit 96ced0c9 "Remove Ascent support (#1780)":<br />
+- Rimosso 2+ file ascent_actions.yaml<br />
+- Modificati CMakeLists.txt relati</p>
+<p>Il tuo branch non ha questa rimozione → conflitto in ascent_actions.yaml</p>
+<h3 id="4-particles-only-at-3d">4. <strong>Particles Only at 3D</strong></h3>
+<p>Upstream commit 1586f287: "Support particles only when compiled at 3D"</p>
+<p>Tuo branch aggiunge cosmology ai particles → potenziale incompatibilità se particles non disabilitati in 1D/2D</p>
+<hr />
+<h2 id="comandi-diagnostica-dettagliati">📊 Comandi Diagnostica Dettagliati</h2>
+<h3 id="sezione-a-analisi-divergenza"><strong>Sezione A: Analisi Divergenza</strong></h3>
+<h4 id="comando-1-trova-il-merge-base-primo-commit-comune">Comando 1: Trova il merge-base (primo commit comune)</h4>
+<div class="codehilite"><pre><span></span><code>git<span class="w"> </span>merge-base<span class="w"> </span>test/mergecosmology<span class="w"> </span>upstream/development
+<span class="c1"># Output: 8cc0cb3bd8f02714b2e45b67da66b9bc9ef96073</span>
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: Identifica il "punto di divisione" tra i due branch. Tutti i commit prima di questo sono comuni e identici. Dopo questo, i branch hanno histories divergenti.</p>
+<h4 id="comando-2-conta-commit-divergenti">Comando 2: Conta commit divergenti</h4>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Commit in upstream DOPO merge-base</span>
+git<span class="w"> </span>log<span class="w"> </span>--oneline<span class="w"> </span><span class="k">$(</span>git<span class="w"> </span>merge-base<span class="w"> </span>test/mergecosmology<span class="w"> </span>upstream/development<span class="k">)</span>..upstream/development<span class="w"> </span><span class="p">|</span><span class="w"> </span>wc<span class="w"> </span>-l
+<span class="c1"># Output: 72</span>
+
+<span class="c1"># Commit nel tuo branch DOPO merge-base</span>
+git<span class="w"> </span>log<span class="w"> </span>--oneline<span class="w"> </span><span class="k">$(</span>git<span class="w"> </span>merge-base<span class="w"> </span>test/mergecosmology<span class="w"> </span>upstream/development<span class="k">)</span>..test/mergecosmology<span class="w"> </span><span class="p">|</span><span class="w"> </span>wc<span class="w"> </span>-l
+<span class="c1"># Output: 43</span>
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: Ti mostra quanti commit divergenti hai in ogni branch. Più commit = merge più complesso.</p>
+<h4 id="comando-3-mostra-tutti-i-commit-in-upstream">Comando 3: Mostra tutti i commit in upstream</h4>
+<div class="codehilite"><pre><span></span><code>git<span class="w"> </span>log<span class="w"> </span>--oneline<span class="w"> </span><span class="k">$(</span>git<span class="w"> </span>merge-base<span class="w"> </span>test/mergecosmology<span class="w"> </span>upstream/development<span class="k">)</span>..upstream/development
+<span class="c1"># Output: 72 righe di commit</span>
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: Lista OGNI commit che upstream ha fatto DOPO il merge-base. Leggi i messaggi per capire cosa è cambiato (breaking changes, etc).</p>
+<h4 id="comando-4-mostra-tutti-i-commit-nel-tuo-branch">Comando 4: Mostra tutti i commit nel tuo branch</h4>
+<div class="codehilite"><pre><span></span><code>git<span class="w"> </span>log<span class="w"> </span>--oneline<span class="w"> </span><span class="k">$(</span>git<span class="w"> </span>merge-base<span class="w"> </span>test/mergecosmology<span class="w"> </span>upstream/development<span class="k">)</span>..test/mergecosmology
+<span class="c1"># Output: 43 righe di commit</span>
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: Equivalente per il tuo branch. Aiuta a capire la "storia" della cosmologia che hai aggiunto.</p>
+<hr />
+<h3 id="sezione-b-analisi-file-modificati"><strong>Sezione B: Analisi File Modificati</strong></h3>
+<h4 id="comando-5-file-modificati-solo-in-upstream">Comando 5: File modificati solo in upstream</h4>
+<div class="codehilite"><pre><span></span><code>git<span class="w"> </span>diff<span class="w"> </span>--name-status<span class="w"> </span><span class="k">$(</span>git<span class="w"> </span>merge-base<span class="w"> </span>test/mergecosmology<span class="w"> </span>upstream/development<span class="k">)</span>..upstream/development<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">&quot;^M&quot;</span>
+<span class="c1"># Output: file M (modified)</span>
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: <code>M</code> = Modified, <code>A</code> = Added, <code>D</code> = Deleted. Mostra quali file upstream ha toccato.</p>
+<h4 id="comando-6-file-aggiunti-solo-in-upstream">Comando 6: File aggiunti solo in upstream</h4>
+<div class="codehilite"><pre><span></span><code>git<span class="w"> </span>diff<span class="w"> </span>--name-status<span class="w"> </span><span class="k">$(</span>git<span class="w"> </span>merge-base<span class="w"> </span>test/mergecosmology<span class="w"> </span>upstream/development<span class="k">)</span>..upstream/development<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">&quot;^A&quot;</span>
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: File nuovi creati in upstream (come i .toml files).</p>
+<h4 id="comando-7-file-modificati-in-file-critico-simulationhpp">Comando 7: File modificati in file CRITICO (simulation.hpp)</h4>
+<div class="codehilite"><pre><span></span><code>git<span class="w"> </span>diff<span class="w"> </span><span class="k">$(</span>git<span class="w"> </span>merge-base<span class="w"> </span>test/mergecosmology<span class="w"> </span>upstream/development<span class="k">)</span>..upstream/development<span class="w"> </span>--<span class="w"> </span>src/simulation.hpp<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-100
+<span class="c1"># Output: diff with +/- per ogni linea modificata</span>
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: Mostra ESATTAMENTE cosa è cambiato in uno specifico file (utile per anticipare conflitti).</p>
+<h4 id="comando-8-conta-righe-cambiate-in-file-particle-related">Comando 8: Conta righe cambiate in file particle-related</h4>
+<div class="codehilite"><pre><span></span><code>git<span class="w"> </span>diff<span class="w"> </span><span class="k">$(</span>git<span class="w"> </span>merge-base<span class="w"> </span>test/mergecosmology<span class="w"> </span>upstream/development<span class="k">)</span>..upstream/development<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>src/particles/particle_accretion.hpp<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>src/particles/particle_creation.hpp<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>src/particles/particle_deposition.hpp<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>src/particles/particle_update.hpp<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>src/simulation.hpp<span class="w"> </span><span class="p">|</span><span class="w"> </span>wc<span class="w"> </span>-l
+<span class="c1"># Output: 1922 (linee di diff)</span>
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: Ti dice subito "questo sarà un merge casino" se vedi &gt;1000 linee in file che ANCHE il tuo branch ha modificato.</p>
+<h4 id="comando-9-confronta-gli-stessi-file-tra-branch">Comando 9: Confronta gli stessi file tra branch</h4>
+<div class="codehilite"><pre><span></span><code>git<span class="w"> </span>diff<span class="w"> </span>test/mergecosmology<span class="w"> </span>upstream/development<span class="w"> </span>--<span class="w"> </span>src/particles/particle_accretion.hpp<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-50
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: Mostra le differenze SPECIFIC per un file tra i due branch. Ideale per trovare conflict zone esatte.</p>
+<hr />
+<h3 id="sezione-c-analisi-merge-conflicts-prima-del-merge"><strong>Sezione C: Analisi Merge Conflicts (Prima del Merge!)</strong></h3>
+<h4 id="comando-10-dry-run-merge-simula-merge-senza-applicare">Comando 10: Dry-run merge (simula merge senza applicare)</h4>
+<div class="codehilite"><pre><span></span><code>git<span class="w"> </span>merge<span class="w"> </span>--no-commit<span class="w"> </span>--no-ff<span class="w"> </span>upstream/development
+<span class="c1"># Se fallisce, mostra i conflitti</span>
+<span class="c1"># poi: git merge --abort   (per annullare)</span>
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: Finge di fare il merge ma NON lo applica. Così vedi quanti/quali conflitti avresti, senza rovinare niente.</p>
+<h4 id="comando-11-trova-file-che-avranno-conflitti">Comando 11: Trova file che avranno conflitti</h4>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Dopo il dry-run merge che fallisce:</span>
+git<span class="w"> </span>diff<span class="w"> </span>--name-only<span class="w"> </span>--diff-filter<span class="o">=</span>U
+<span class="c1"># Output: file in conflitto</span>
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: <code>U</code> = Unmerged (conflitti). Mostra solo i file problematici.</p>
+<h4 id="comando-12-visualizza-conflitti-in-un-file-specifico">Comando 12: Visualizza conflitti in un file specifico</h4>
+<div class="codehilite"><pre><span></span><code>git<span class="w"> </span>show<span class="w"> </span>:1:src/simulation.hpp<span class="w"> </span>&gt;<span class="w"> </span>simulation.base.hpp<span class="w">      </span><span class="c1"># versione merge-base</span>
+git<span class="w"> </span>show<span class="w"> </span>:2:src/simulation.hpp<span class="w"> </span>&gt;<span class="w"> </span>simulation.ours.hpp<span class="w">      </span><span class="c1"># versione branch locale (test/mergecosmology)</span>
+git<span class="w"> </span>show<span class="w"> </span>:3:src/simulation.hpp<span class="w"> </span>&gt;<span class="w"> </span>simulation.theirs.hpp<span class="w">    </span><span class="c1"># versione upstream</span>
+<span class="c1"># Poi diff-3 per visualizzare i 3 lati del conflitto</span>
+kdiff3<span class="w"> </span>simulation.base.hpp<span class="w"> </span>simulation.ours.hpp<span class="w"> </span>simulation.theirs.hpp
+<span class="c1"># oppure in terminale:</span>
+diff3<span class="w"> </span>-m<span class="w"> </span>simulation.ours.hpp<span class="w"> </span>simulation.base.hpp<span class="w"> </span>simulation.theirs.hpp<span class="w"> </span>&gt;<span class="w"> </span>simulation.merged.hpp
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: Ti mostra il conflitto in 3 versioni: quella comune (base), la tua, e quella di upstream. Aiuta a capire quale cambiamento tenere.</p>
+<hr />
+<h3 id="sezione-d-analisi-modifiche-specifiche"><strong>Sezione D: Analisi Modifiche Specifiche</strong></h3>
+<h4 id="comando-13-mostra-cosa-upstream-ha-fatto-a-file-x">Comando 13: Mostra cosa upstream ha fatto a File X</h4>
+<div class="codehilite"><pre><span></span><code>git<span class="w"> </span>show<span class="w"> </span>upstream/development:src/QuokkaSimulation.hpp<span class="w"> </span>&gt;<span class="w"> </span>/tmp/upstream_quokka.hpp
+git<span class="w"> </span>show<span class="w"> </span>test/mergecosmology:src/QuokkaSimulation.hpp<span class="w"> </span>&gt;<span class="w"> </span>/tmp/local_quokka.hpp
+diff<span class="w"> </span>-u<span class="w"> </span>/tmp/upstream_quokka.hpp<span class="w"> </span>/tmp/local_quokka.hpp<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-100
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: Confronto line-by-line di cosa i due branch hanno fatto allo stesso file.</p>
+<h4 id="comando-14-mostra-tutti-i-commit-che-hanno-toccato-file-x">Comando 14: Mostra tutti i commit che hanno toccato File X</h4>
+<div class="codehilite"><pre><span></span><code>git<span class="w"> </span>log<span class="w"> </span>--oneline<span class="w"> </span><span class="k">$(</span>git<span class="w"> </span>merge-base<span class="w"> </span>test/mergecosmology<span class="w"> </span>upstream/development<span class="k">)</span>..upstream/development<span class="w"> </span>--<span class="w"> </span>src/simulation.hpp
+git<span class="w"> </span>log<span class="w"> </span>--oneline<span class="w"> </span><span class="k">$(</span>git<span class="w"> </span>merge-base<span class="w"> </span>test/mergecosmology<span class="w"> </span>upstream/development<span class="k">)</span>..test/mergecosmology<span class="w"> </span>--<span class="w"> </span>src/simulation.hpp
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: Mostra la "storia" di cambamenti a uno specifico file in entrambi i branch.</p>
+<h4 id="comando-15-mostra-il-contenuto-di-un-file-nel-merge-base">Comando 15: Mostra il contenuto di un file nel merge-base</h4>
+<div class="codehilite"><pre><span></span><code><span class="nv">COMMON</span><span class="o">=</span><span class="k">$(</span>git<span class="w"> </span>merge-base<span class="w"> </span>test/mergecosmology<span class="w"> </span>upstream/development<span class="k">)</span>
+git<span class="w"> </span>show<span class="w"> </span><span class="nv">$COMMON</span>:src/physics_info.hpp<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-50
+<span class="c1"># Così vedi cosa ERA prima che i due branch divergessero</span>
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: Il "punto di partenza" prima della divergenza. Utile per capire cosa ognuno ha aggiunte.</p>
+<hr />
+<h3 id="sezione-e-preparazione-merge"><strong>Sezione E: Preparazione Merge</strong></h3>
+<h4 id="comando-16-crea-backup-branch-prima-di-merge">Comando 16: Crea backup branch prima di merge</h4>
+<div class="codehilite"><pre><span></span><code>git<span class="w"> </span>branch<span class="w"> </span>test/mergecosmology-backup
+<span class="c1"># Ora hai una copia di sicurezza intera del branch</span>
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: Sempre fare backup prima di operazioni rischiose come merge.</p>
+<h4 id="comando-17-aggiorna-il-reference-locale">Comando 17: Aggiorna il reference locale</h4>
+<div class="codehilite"><pre><span></span><code>git<span class="w"> </span>fetch<span class="w"> </span>upstream<span class="w"> </span>development
+<span class="c1"># Assicura che hai la versione LATEST di upstream/development</span>
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: <code>git fetch</code> aggiorna i remote-tracking branches senza modificare il tuo codice locale.</p>
+<h4 id="comando-18-merge-strategy-3-way-merge-verbose">Comando 18: Merge strategy - 3-way merge verbose</h4>
+<div class="codehilite"><pre><span></span><code>git<span class="w"> </span>merge<span class="w"> </span>-X<span class="w"> </span>ours<span class="w"> </span>upstream/development<span class="w"> </span>--verbose
+<span class="c1"># -X ours = in caso di conflitti automatici, preferisci &quot;ours&quot; (test/mergecosmology)</span>
+<span class="c1"># --verbose = stampa info extra</span>
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: <code>-X ours</code> è una strategia che risolve automaticamente alcuni conflitti in tuo favore. Utile se sei fiducioso che i tuoi cambiamenti sono corretti.</p>
+<hr />
+<h3 id="sezione-f-post-merge-validation"><strong>Sezione F: Post-Merge Validation</strong></h3>
+<h4 id="comando-19-verifica-numero-di-conflitti-residui">Comando 19: Verifica numero di conflitti residui</h4>
+<div class="codehilite"><pre><span></span><code>git<span class="w"> </span>diff<span class="w"> </span>--name-only<span class="w"> </span>--diff-filter<span class="o">=</span>U<span class="w"> </span><span class="p">|</span><span class="w"> </span>wc<span class="w"> </span>-l
+<span class="c1"># Output: numero di file ancora in conflitto</span>
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: Dopo aver fatto merge e risolto alcuni conflitti, ti dice quanti ne restano da risolvere.</p>
+<h4 id="comando-20-compila-dopo-merge">Comando 20: Compila dopo merge</h4>
+<div class="codehilite"><pre><span></span><code>rm<span class="w"> </span>-rf<span class="w"> </span>build<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>build
+<span class="nb">cd</span><span class="w"> </span>build
+cmake<span class="w"> </span>-S<span class="w"> </span>..<span class="w"> </span>-B<span class="w"> </span>.<span class="w"> </span>-DCMAKE_BUILD_TYPE<span class="o">=</span>Release<span class="w"> </span>-DAMReX_SPACEDIM<span class="o">=</span><span class="m">3</span><span class="w"> </span>-G<span class="w"> </span>Ninja
+ninja<span class="w"> </span>-j6<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tee<span class="w"> </span>build.log
+<span class="c1"># Se compila senza errori, il merge è OK</span>
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: Il test finale: <strong>se compila, il merge è buono</strong> (modulo bugs di runtime).</p>
+<h4 id="comando-21-testa-problemi-cosmologia-specificamente">Comando 21: Testa problemi cosmologia specificamente</h4>
+<div class="codehilite"><pre><span></span><code>ctest<span class="w"> </span>-R<span class="w"> </span><span class="s2">&quot;Cosmo|Zeldovich&quot;</span><span class="w"> </span>--output-on-failure
+<span class="c1"># Output: PASS o FAIL per ogni test cosmologia</span>
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: Verifica che i tuoi problemi cosmologia NON sono stati rotti dal merge.</p>
+<h4 id="comando-22-testa-sample-di-non-cosmologia-problems">Comando 22: Testa sample di non-cosmologia problems</h4>
+<div class="codehilite"><pre><span></span><code>ctest<span class="w"> </span>-R<span class="w"> </span><span class="s2">&quot;Advection|HydroBlast&quot;</span><span class="w"> </span>--output-on-failure
+<span class="c1"># Assicura che non hai rotto niente di upstream</span>
+</code></pre></div>
+
+<p><strong>Spiegazione</strong>: Regression check per garantire che il merge non ha rotto altre cose.</p>
+<hr />
+<h2 id="script-completo-diagnostica-automatica">📝 Script Completo: Diagnostica Automatica</h2>
+<div class="codehilite"><pre><span></span><code><span class="ch">#!/bin/bash</span>
+<span class="c1"># script: diagnose_merge.sh</span>
+
+<span class="nv">BRANCH_LOCAL</span><span class="o">=</span><span class="s2">&quot;test/mergecosmology&quot;</span>
+<span class="nv">BRANCH_UPSTREAM</span><span class="o">=</span><span class="s2">&quot;upstream/development&quot;</span>
+
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;=== BRANCH DIAGNOSTICA ===&quot;</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Local branch: </span><span class="nv">$BRANCH_LOCAL</span><span class="s2">&quot;</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Upstream branch: </span><span class="nv">$BRANCH_UPSTREAM</span><span class="s2">&quot;</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;&quot;</span>
+
+<span class="nv">MERGE_BASE</span><span class="o">=</span><span class="k">$(</span>git<span class="w"> </span>merge-base<span class="w"> </span><span class="nv">$BRANCH_LOCAL</span><span class="w"> </span><span class="nv">$BRANCH_UPSTREAM</span><span class="k">)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Merge-base (common ancestor): </span><span class="nv">$MERGE_BASE</span><span class="s2">&quot;</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;&quot;</span>
+
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;=== COMMIT DIVERGENCE ===&quot;</span>
+<span class="nv">UPSTREAM_COMMITS</span><span class="o">=</span><span class="k">$(</span>git<span class="w"> </span>log<span class="w"> </span>--oneline<span class="w"> </span><span class="nv">$MERGE_BASE</span>..<span class="nv">$BRANCH_UPSTREAM</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>wc<span class="w"> </span>-l<span class="k">)</span>
+<span class="nv">LOCAL_COMMITS</span><span class="o">=</span><span class="k">$(</span>git<span class="w"> </span>log<span class="w"> </span>--oneline<span class="w"> </span><span class="nv">$MERGE_BASE</span>..<span class="nv">$BRANCH_LOCAL</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>wc<span class="w"> </span>-l<span class="k">)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Commits in upstream since fork: </span><span class="nv">$UPSTREAM_COMMITS</span><span class="s2">&quot;</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Commits in local branch: </span><span class="nv">$LOCAL_COMMITS</span><span class="s2">&quot;</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;&quot;</span>
+
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;=== FILE STATISTICS ===&quot;</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Files modified upstream:&quot;</span>
+git<span class="w"> </span>diff<span class="w"> </span>--name-status<span class="w"> </span><span class="nv">$MERGE_BASE</span>..<span class="nv">$BRANCH_UPSTREAM</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>wc<span class="w"> </span>-l
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Files modified locally:&quot;</span>
+git<span class="w"> </span>diff<span class="w"> </span>--name-status<span class="w"> </span><span class="nv">$MERGE_BASE</span>..<span class="nv">$BRANCH_LOCAL</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>wc<span class="w"> </span>-l
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Files that diverge (both modified):&quot;</span>
+comm<span class="w"> </span>-12<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>&lt;<span class="o">(</span>git<span class="w"> </span>diff<span class="w"> </span>--name-only<span class="w"> </span><span class="nv">$MERGE_BASE</span>..<span class="nv">$BRANCH_UPSTREAM</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="o">)</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>&lt;<span class="o">(</span>git<span class="w"> </span>diff<span class="w"> </span>--name-only<span class="w"> </span><span class="nv">$MERGE_BASE</span>..<span class="nv">$BRANCH_LOCAL</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="o">)</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>wc<span class="w"> </span>-l
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;&quot;</span>
+
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;=== CRITICAL FILE ANALYSIS ===&quot;</span>
+<span class="nv">CRITICAL_FILES</span><span class="o">=(</span>
+<span class="w">  </span><span class="s2">&quot;src/simulation.hpp&quot;</span>
+<span class="w">  </span><span class="s2">&quot;src/QuokkaSimulation.hpp&quot;</span>
+<span class="w">  </span><span class="s2">&quot;src/physics_info.hpp&quot;</span>
+<span class="w">  </span><span class="s2">&quot;src/particles/particle_update.hpp&quot;</span>
+<span class="w">  </span><span class="s2">&quot;src/particles/particle_deposition.hpp&quot;</span>
+<span class="o">)</span>
+
+<span class="k">for</span><span class="w"> </span>file<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CRITICAL_FILES</span><span class="p">[@]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="nv">UPSTREAM_CHANGES</span><span class="o">=</span><span class="k">$(</span>git<span class="w"> </span>diff<span class="w"> </span><span class="nv">$MERGE_BASE</span>..<span class="nv">$BRANCH_UPSTREAM</span><span class="w"> </span>--<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$file</span><span class="s2">&quot;</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>wc<span class="w"> </span>-l<span class="k">)</span>
+<span class="w">  </span><span class="nv">LOCAL_CHANGES</span><span class="o">=</span><span class="k">$(</span>git<span class="w"> </span>diff<span class="w"> </span><span class="nv">$MERGE_BASE</span>..<span class="nv">$BRANCH_LOCAL</span><span class="w"> </span>--<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$file</span><span class="s2">&quot;</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>wc<span class="w"> </span>-l<span class="k">)</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="o">[[</span><span class="w"> </span><span class="nv">$UPSTREAM_CHANGES</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="o">]]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">[[</span><span class="w"> </span><span class="nv">$LOCAL_CHANGES</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="o">]]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;⚠️  CONFLICT RISK: </span><span class="nv">$file</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;   - Upstream changes: </span><span class="nv">$UPSTREAM_CHANGES</span><span class="s2"> lines&quot;</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;   - Local changes: </span><span class="nv">$LOCAL_CHANGES</span><span class="s2"> lines&quot;</span>
+<span class="w">  </span><span class="k">fi</span>
+<span class="k">done</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;&quot;</span>
+
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;=== RECENT UPSTREAM COMMITS ===&quot;</span>
+git<span class="w"> </span>log<span class="w"> </span>--oneline<span class="w"> </span><span class="nv">$MERGE_BASE</span>..<span class="nv">$BRANCH_UPSTREAM</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-10
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;&quot;</span>
+
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;=== RECENT LOCAL COMMITS ===&quot;</span>
+git<span class="w"> </span>log<span class="w"> </span>--oneline<span class="w"> </span><span class="nv">$MERGE_BASE</span>..<span class="nv">$BRANCH_LOCAL</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-10
+</code></pre></div>
+
+<p><strong>Uso</strong>:</p>
+<div class="codehilite"><pre><span></span><code>chmod<span class="w"> </span>+x<span class="w"> </span>diagnose_merge.sh
+./diagnose_merge.sh
+</code></pre></div>
+
+<hr />
+<h2 id="checklist-merge-procedure">🎯 Checklist Merge Procedure</h2>
+<h3 id="before-merge">BEFORE MERGE</h3>
+<ul>
+<li>[ ] <code>git branch test/mergecosmology-backup</code> (backup)</li>
+<li>[ ] <code>git fetch upstream development</code> (aggiorna)</li>
+<li>[ ] <code>./diagnose_merge.sh</code> (diagnostica)</li>
+<li>[ ] Leggi i 10 commit più recenti di upstream</li>
+<li>[ ] Verifica CMakeLists.txt per TOML changes</li>
+<li>[ ] Backup della cartella build/</li>
+</ul>
+<h3 id="during-merge">DURING MERGE</h3>
+<div class="codehilite"><pre><span></span><code>git<span class="w"> </span>merge<span class="w"> </span>--no-commit<span class="w"> </span>--no-ff<span class="w"> </span>upstream/development
+<span class="c1"># Risolvi manualmente ogni conflitto in file critici</span>
+<span class="c1"># Usa 3-way merge tool (kdiff3, meld, etc.)</span>
+git<span class="w"> </span>add<span class="w"> </span>&lt;file-risolto&gt;
+<span class="c1"># Ripeti per ogni file</span>
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;Merge upstream/development with cosmology&quot;</span>
+</code></pre></div>
+
+<h3 id="after-merge">AFTER MERGE</h3>
+<ul>
+<li>[ ] <code>cmake</code> build da clean</li>
+<li>[ ] <code>ctest -R "Cosmo*"</code> (testa cosmologia)</li>
+<li>[ ] <code>ctest -R "Advection*"</code> (testa non-cosmologia sample)</li>
+<li>[ ] Verifica che ZeldovichPancake ha CMakeLists.txt</li>
+<li>[ ] Verifica input files (TOML vs .in)</li>
+<li>[ ] <code>git log --oneline -5</code> (verifica history)</li>
+</ul>
+<hr />
+<h2 id="problemi-known">⚠️ Problemi Known</h2>
+<ol>
+<li>
+<p><strong>HydroWave.in rimosso nel branch</strong>: Upstream ha <code>.toml</code>, branch ha <code>.in</code>. Decision: quale mantenere?</p>
+</li>
+<li>
+<p><strong>ZeldovichPancake CMakeLists mancante</strong>: Aggiungere a src/problems/ZeldovichPancake/</p>
+</li>
+<li>
+<p><strong>Cosmology input files non in TOML</strong>: Se build richiede .toml, bisogna convertire CosmoPowerSpectrum.in, etc.</p>
+</li>
+<li>
+<p><strong>Ascent support rimosso upstream</strong>: Verifica che branch non usa Ascent</p>
+</li>
+<li>
+<p><strong>Physics_Traits vs PhysicsTraits dualità</strong>: Decide quale usare per nuovo codice</p>
+</li>
+</ol>
+<hr />
+<h2 id="risorse-utili">📖 Risorse Utili</h2>
+<ul>
+<li>Git merge docs: <code>git help merge</code></li>
+<li>3-way merge visualization: <code>kdiff3</code>, <code>meld</code>, <code>P4Merge</code></li>
+<li>Conflict resolution: <code>git config merge.tool &lt;tool&gt;</code></li>
+<li>Rebase alternative: <code>git rebase upstream/development</code> (history lineare)</li>
+</ul>
+<div class="footer">
+    <p>Generato il: 29/06/2026 17:45:30</p>
+    <p><em>Questo documento può essere stampato a PDF dal browser (Ctrl+P o Cmd+P)</em></p>
+</div>
+</body>
+</html>
