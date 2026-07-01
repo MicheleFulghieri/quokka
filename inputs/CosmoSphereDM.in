@@ -23,12 +23,13 @@ do_tracers = 1          # turn on tracer particles
 
 
 # *****************************************************************
-# Hydro floor
+# Hydro floor and control
 # *****************************************************************
 #problem.rho0_gas = 1.0e-20
 #problem.P0_gas   = 1.0e-30
 #problem.gamma    = 5.0 / 3.0
-
+#hydro.reconstruction_order = 2 # 1 (piecewise constant), 2 (piecewise linear; PLM), or 3 (piecewise parabolic; PPM).
+#hydro.plm_limiter = mc         # only for PLM, Monotonized Central 
 
 
 # *****************************************************************
