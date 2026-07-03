@@ -17,9 +17,6 @@ amr.max_timesteps = 20000000
 stop_time = 3.16e17        # 10 Gyr
 quokka.cfl        = 0.3
 
-# Provare
-do_tracers = 1          # turn on tracer particles
-
 
 
 # *****************************************************************
@@ -30,19 +27,18 @@ do_tracers = 1          # turn on tracer particles
 #problem.gamma    = 5.0 / 3.0
 #hydro.reconstruction_order = 2 # 1 (piecewise constant), 2 (piecewise linear; PLM), or 3 (piecewise parabolic; PPM).
 #hydro.plm_limiter = mc         # only for PLM, Monotonized Central 
-
+hydro.use_dual_energy = 1 
 
 # *****************************************************************
 # Cosmology
 # *****************************************************************
 cosmology.hubble_constant = 0.7
-cosmology.omega_m         = 0.30966       # LCDM
-cosmology.omega_r         = 9.13896e-05  
-cosmology.omega_lambda    = 0.68885
-cosmology.omega_m         = 0.30966
-cosmology.omega_b         = 0.04897
-cosmology.omega_dm        = 0.26069
-cosmology.a_init          = 0.00001
+cosmology.omega_m         = 1.0       # EdS
+cosmology.omega_r         = 0.0  
+cosmology.omega_lambda    = 0.0
+cosmology.omega_b         = 0.17
+cosmology.omega_dm        = 0.83
+cosmology.a_init          = 0.01
 
 
 # *****************************************************************

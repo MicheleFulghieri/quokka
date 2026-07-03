@@ -43,12 +43,12 @@ template <> struct Physics_Traits<CosmoSphereDM> {
 	static constexpr bool is_dust_enabled         = false;
 	static constexpr UnitSystem unit_system = UnitSystem::CGS;
 
-// Cosmology parameters (LCDM)
-	static constexpr amrex::Real omega_m = 0.30966;
-	static constexpr amrex::Real omega_r = 9.13896e-05;
-	static constexpr amrex::Real omega_lambda = 0.68885;
-	static constexpr amrex::Real omega_b = 0.04897;        
-	static constexpr amrex::Real omega_dm = 0.26069;
+// Cosmology parameters (EdS)
+	static constexpr amrex::Real omega_m = 1.0;
+	static constexpr amrex::Real omega_r = 0.0;
+	static constexpr amrex::Real omega_lambda = 0.0;
+	static constexpr amrex::Real omega_b = 0.17;        
+	static constexpr amrex::Real omega_dm = 0.83;
 	static constexpr amrex::Real hubble_constant = 0.7;	   // h = 0.7 (H0 = 70 km/s/Mpc)
 	static constexpr amrex::Real a_init = 0.01;		       // start at z = 99
 	static constexpr amrex::Real cosmology_dt_limit = 0.01; // according to the default
@@ -81,8 +81,8 @@ template <> void QuokkaSimulation<CosmoSphereDM>::setInitialConditionsOnGrid(quo
 
 		amrex::Real const rho_min  = 1.0e-27;
 		amrex::Real const rho_max  = 1.0e-24;
-		amrex::Real const R_sphere = 3.086e23;   // 100 kpc
-		amrex::Real const R_smooth = 6.172e22;   // 1/5 R_sphere (20 kpc)
+		amrex::Real const R_sphere = 1.543e23;   // 50 kpc
+		amrex::Real const R_smooth = 3.086e22;   // 1/5 R_sphere (10 kpc)
 		amrex::Real const rho = std::max(rho_min, rho_max * ((std::tanh((R_sphere - r) / R_smooth) + 1.0) / 2.0));
 		//amrex::Real const rho = (r <= R_sphere) ? rho_max : rho_min;  // abrupt transition
 		amrex::Real const P = 1.0e-14;
@@ -96,7 +96,7 @@ template <> void QuokkaSimulation<CosmoSphereDM>::setInitialConditionsOnGrid(quo
 		AMREX_ASSERT(!std::isnan(vx));
 
 		state_cc(i, j, k, HydroSystem<CosmoSphereDM>::density_index)        = rho;
-		state_cc(i, j, k, HydroSystem<CosmoSphereDM>::x1Momentum_index)     = rho_max * vx;   // same for all cells
+		state_cc(i, j, k, HydroSystem<CosmoSphereDM>::x1Momentum_index)     = rho * vx;   
 		state_cc(i, j, k, HydroSystem<CosmoSphereDM>::x2Momentum_index)     = 0;
 		state_cc(i, j, k, HydroSystem<CosmoSphereDM>::x3Momentum_index)     = 0;
 		state_cc(i, j, k, HydroSystem<CosmoSphereDM>::internalEnergy_index) = quokka::EOS<CosmoSphereDM>::ComputeEintFromPres(rho, P);
