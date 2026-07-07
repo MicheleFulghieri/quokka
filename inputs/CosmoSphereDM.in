@@ -33,12 +33,12 @@ hydro.use_dual_energy = 1
 # Cosmology
 # *****************************************************************
 cosmology.hubble_constant = 0.7
-cosmology.omega_m         = 1.0       # EdS
-cosmology.omega_r         = 0.0  
-cosmology.omega_lambda    = 0.0
+cosmology.omega_m         = 0.30966       # LCDM
+cosmology.omega_r         = 9.13896e-05  
+cosmology.omega_lambda    = 0.68885
 cosmology.omega_b         = 0.17
 cosmology.omega_dm        = 0.83
-cosmology.a_init          = 0.01
+cosmology.a_init          = 0.00001
 
 
 # *****************************************************************
