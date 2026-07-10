@@ -115,5 +115,7 @@ KokkosCore_config.tmp
 *.hdf5
 
 # worksite and outputs 
-my_worksite/
+my_worksite/**
+!my_worksite/**/
+!my_worksite/**/*.py
 outputs/
