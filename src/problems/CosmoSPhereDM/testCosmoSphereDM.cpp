@@ -71,6 +71,20 @@ template <> void QuokkaSimulation<CosmoSphereDM>::setInitialConditionsOnGrid(quo
 	amrex::Real const Y0 = prob_lo[1] + 0.5 * (prob_hi[1] - prob_lo[1]);
 	amrex::Real const Z0 = prob_lo[2] + 0.5 * (prob_hi[2] - prob_lo[2]);
 
+	// Gas physical paramters
+	amrex::Real const rho_min  = 1.0e-27;
+	amrex::Real const rho_max  = 1.0e-24;
+	amrex::Real const P = 1.0e-14;
+	amrex::Real const vx = CosmoSphereDM::drift_vel;
+	amrex::Real const vy = 0.0;
+	amrex::Real const vz = 0.0;
+	amrex::Real R_sphere = 3.086e23;       // default: 100 kpc
+	amrex::Real R_smooth = 6.172e22;       // default: 1/5 R_sphere (20 kpc)
+	amrex::ParmParse pp_sphere("sphere");               
+	pp_sphere.query("R_sphere", R_sphere);
+	pp_sphere.query("R_smooth", R_smooth);
+	// for isothermal -> amrex::Real const T = P * quokka::EOS_Traits<CosmoSphereDM>::mean_molecular_weight / (rho * C::k_B);
+
 	amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 
 		// Cell distance from the center
@@ -79,17 +93,8 @@ template <> void QuokkaSimulation<CosmoSphereDM>::setInitialConditionsOnGrid(quo
 		amrex::Real const z = prob_lo[2] + (k + static_cast<amrex::Real>(0.5)) * dx[2];
 		amrex::Real const r = std::sqrt(std::pow(x - X0, 2) + std::pow(y - Y0, 2) + std::pow(z - Z0, 2));
 
-		amrex::Real const rho_min  = 1.0e-27;
-		amrex::Real const rho_max  = 1.0e-24;
-		amrex::Real const R_sphere = 3.086e23;   // 100 kpc
-		amrex::Real const R_smooth = 6.172e22;   // 1/5 R_sphere (20 kpc)
 		amrex::Real const rho = std::max(rho_min, rho_max * ((std::tanh((R_sphere - r) / R_smooth) + 1.0) / 2.0));
 		//amrex::Real const rho = (r <= R_sphere) ? rho_max : rho_min;  // abrupt transition
-		amrex::Real const P = 1.0e-14;
-		// amrex::Real const T = P * quokka::EOS_Traits<CosmoSphereDM>::mean_molecular_weight / (rho * C::k_B);
-		amrex::Real const vx = CosmoSphereDM::drift_vel;
-		amrex::Real const vy = 0.0;
-		amrex::Real const vz = 0.0;
 
 		AMREX_ASSERT(!std::isnan(rho));
 		AMREX_ASSERT(!std::isnan(P));
@@ -121,7 +126,9 @@ template <> void QuokkaSimulation<CosmoSphereDM>::createInitialCICParticles() {
 	amrex::RealVect const center_coords{X0, Y0, Z0};
 	amrex::IntVect const center_index = geom.CellIndex(center_coords.dataPtr());
 
-	amrex::Real const R_sphere = 3.086e23; // 100 kpc
+	amrex::Real R_sphere = 3.086e23; // 100 kpc
+	amrex::ParmParse pp_sphere("sphere");               
+	pp_sphere.query("R_sphere", R_sphere);
     amrex::Real const rho_max  = 1.0e-24;
     amrex::Real const mass_gas = (4.0 / 3.0) * M_PI * std::pow(R_sphere, 3) * rho_max;
 
