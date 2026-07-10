@@ -112,7 +112,7 @@ template <> void QuokkaSimulation<CosmoSphereDM>::setInitialConditionsOnGrid(quo
 #if AMREX_SPACEDIM == 3
 template <> void QuokkaSimulation<CosmoSphereDM>::createInitialCICParticles() {
 
-	const int lev = 0;                               
+	const int lev = 0;
 	const amrex::Geometry &geom = this->geom[lev];	  // retrive geometry
 
 	// GpuArray with the borders of the domain
@@ -131,38 +131,70 @@ template <> void QuokkaSimulation<CosmoSphereDM>::createInitialCICParticles() {
 	pp_sphere.query("R_sphere", R_sphere);
     amrex::Real const rho_max  = 1.0e-24;
     amrex::Real const mass_gas = (4.0 / 3.0) * M_PI * std::pow(R_sphere, 3) * rho_max;
-
 	amrex::Real const mass_dm  = 5.0 * mass_gas; // DM fivefolds the gas
     amrex::Real const vx_dm   = CosmoSphereDM::drift_vel;    
     amrex::Real const vy_dm   = 0.0;
     amrex::Real const vz_dm   = 0.0;
 
-	if (amrex::ParallelDescriptor::IOProcessor()) {   // only Rank MPI 0: only 1 particle
+	// Initialize the particle at domain center
+	for (amrex::MFIter mfi(state_new_cc_[lev]); mfi.isValid(); ++mfi) { // iterator instanziation state_new_cc_[lev] contains the hydro MultiFabs (from QuokkaSimulation.hpp and simulation.hpp)
+		amrex::Box const& valid_box = mfi.validbox();  // extract the current valid Box
+		
 		using ParticleType = quokka::CICParticleContainer::ParticleType; // alias
 		ParticleType p;  
-		p.id()  = ParticleType::NextID();               // ID assignement 
-		p.cpu() = amrex::ParallelDescriptor::MyProc();  // processor assignement (0 by construction)
 
-		p.pos(0) = X0;
-        p.pos(1) = Y0;
-        p.pos(2) = Z0;
-		p.rdata(quokka::CICParticleMassIdx) = mass_dm;
-		p.rdata(quokka::CICParticleVxIdx)   = vx_dm;
-		p.rdata(quokka::CICParticleVyIdx)   = vy_dm;
-		p.rdata(quokka::CICParticleVzIdx)   = vz_dm;
+		if (valid_box.contains(center_index)) {        // select the processor managing the center of the box
+			p.id()  = ParticleType::NextID();               // ID assignement 
+			p.cpu() = amrex::ParallelDescriptor::MyProc();  // processor assignement (0 by construction)
+			p.pos(0) = X0;
+        	p.pos(1) = Y0;
+        	p.pos(2) = Z0;
+			p.rdata(quokka::CICParticleMassIdx) = mass_dm;
+			p.rdata(quokka::CICParticleVxIdx)   = vx_dm;
+			p.rdata(quokka::CICParticleVyIdx)   = vy_dm;
+			p.rdata(quokka::CICParticleVzIdx)   = vz_dm;
 
-		amrex::MFIter mfi(state_new_cc_[lev]); // creation of the iterator over the hydro local boxes of processor 0
-		if (mfi.isValid()) {   // if processor 0 has at least one level 0 grid
-			auto const key = std::make_pair(mfi.index(), mfi.LocalTileIndex());  // extact the local indices of that grid
-        	CICParticles->GetParticles(lev)[key].push_back(p);  //  temporarily store the particle in the memory of that box
-		} else {
-			amrex::Abort("Error: 'IOProcessor has no local grid assigned to level 0!");
-		}
-	}
+			auto const key = std::make_pair(mfi.index(), mfi.LocalTileIndex());
+			CICParticles->GetParticles(lev)[key].push_back(p);
+		}  // end if valid_box.contains
+	}  // end for mfi(state_new_cc_[lev])
 	CICParticles->Redistribute(); // assign the particle to the right mpi core according to the physical position
-}
+} // end createInitialCICParticles()
 #endif   // AMREX_SPACEDIM == 3
 
+template <> void QuokkaSimulation<CosmoSphereDM>::refineGrid(int lev, amrex::TagBoxArray &tags, amrex::Real /*time*/, int /*ngrow*/) {
+	// Tag cells for refinement
+	const amrex::Real eta_threshold = 0.6; // gradient refinement threshold
+	const amrex::Real rho_min = 1.0e-27;   // minimum density for refinement
+
+	for (amrex::MFIter mfi(state_new_cc_[lev]); mfi.isValid(); ++mfi) {
+		const amrex::Box &box = mfi.validbox();
+		const auto state = state_new_cc_[lev].const_array(mfi);   // array for read hydro
+		const auto tag = tags.array(mfi);                         // array for write data
+
+		amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+			const int rho_idx = HydroSystem<CosmoSphereDM>::density_index;
+			amrex::Real const rho = state(i, j, k, rho_idx);
+			amrex::Real const rho_xplus  = state(i + 1, j, k, rho_idx);
+			amrex::Real const rho_xminus = state(i - 1, j, k, rho_idx);
+			amrex::Real const rho_yplus  = state(i, j + 1, k, rho_idx);
+			amrex::Real const rho_yminus = state(i, j - 1, k, rho_idx);
+			amrex::Real const rho_zplus  = state(i, j , k + 1, rho_idx);
+			amrex::Real const rho_zminus = state(i, j, k -1, rho_idx);
+
+			amrex::Real const del_x = std::max(std::abs(rho_xplus - rho), std::abs(rho - rho_xminus));
+			amrex::Real const del_y = std::max(std::abs(rho_yplus - rho), std::abs(rho - rho_yminus));
+			amrex::Real const del_z = std::max(std::abs(rho_zplus - rho), std::abs(rho - rho_zminus));
+
+			amrex::Real const gradient_indicator = std::max({del_x, del_y, del_z}) / std::max(rho, rho_min);  // std::max({del_x, del_y, del_z}) via initializer list
+
+			if (gradient_indicator > eta_threshold) {
+				tag(i, j, k) = amrex::TagBox::SET;
+			}
+		});  // end amrex::ParallelFor over the box
+
+	} // end amrex::MFIter mfi
+}
 
 auto problem_main() -> int {
 	int status = 0;
@@ -174,11 +206,12 @@ auto problem_main() -> int {
 	amrex::Print() << "Computing particle-gas distance for the test...\n";
 
 	// Sphere center as the gas density weighted mean cell center position 
-	const int finest_level = sim.finestLevel();
-	const amrex::Geometry &geom = sim.geom[finest_level];
+    // We use level 0 to mathematically avoid double-counting in AMR and cover the whole universe.
+	const int lev = 0;
+	const amrex::Geometry &geom = sim.geom[lev];
 	const auto &dx            = geom.CellSizeArray();
 	const auto &prob_lo       = geom.ProbLoArray();
-	const amrex::MultiFab &mf = sim.state_new_cc_[finest_level];
+	const amrex::MultiFab &mf = sim.state_new_cc_[lev];
 	
 	// Extract Domain information (Physical and Index space)
 	const amrex::Box &domain_box = geom.Domain();
@@ -186,15 +219,10 @@ auto problem_main() -> int {
 	const auto domain_hi = domain_box.bigEnd();
 	const auto prob_hi   = geom.ProbHiArray();
 
-	// Calculate total cells per dimension
+	// Calculate total cells per dimension on level 0
 	int n_cells_x = domain_hi[0] - domain_lo[0] + 1;
 	int n_cells_y = domain_hi[1] - domain_lo[1] + 1;
 	int n_cells_z = domain_hi[2] - domain_lo[2] + 1;
-
-	amrex::Real total_mass_density = 0.0;
-	amrex::Real sum_x = 0.0;
-	amrex::Real sum_y = 0.0;
-	amrex::Real sum_z = 0.0;
 
 	// AMReX reductor operator for the 4 sums
 	amrex::ReduceOps<amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
@@ -217,13 +245,8 @@ auto problem_main() -> int {
 	}  // end mfi interation
 
 	// Structure binding with the partial MPI sums
+    // reduce_data.value() already performs a global MPI_Allreduce across all processors!
 	auto [g_sum_x, g_sum_y, g_sum_z, g_total_rho] = reduce_data.value();
-
-	// Global MPI reduction
-	amrex::ParallelDescriptor::ReduceRealSum(g_sum_x);
-	amrex::ParallelDescriptor::ReduceRealSum(g_sum_y);
-	amrex::ParallelDescriptor::ReduceRealSum(g_sum_z);
-	amrex::ParallelDescriptor::ReduceRealSum(g_total_rho);
 
 	// Gas center
 	amrex::Real gas_center_x = g_sum_x / g_total_rho;
@@ -231,7 +254,24 @@ auto problem_main() -> int {
 	amrex::Real gas_center_z = g_sum_z / g_total_rho;
 
 	// Get particle data using the particle descriptor
+    // We check for the particle at the finest_level where it resides
+    const int finest_level = sim.finestLevel();
 	const auto [real_data, int_data] = sim.particleRegister_.getParticleDescriptor(quokka::ParticleType::CIC)->getParticleDataAtLevel(finest_level);
+
+    // Impossible default values
+    amrex::Real px = -1e30, py = -1e30, pz = -1e30;
+    
+    if (real_data.size() > 0) {   // If the particle is found locally on this rank
+        const auto p = real_data[0];
+        px = p[0]; // position x
+        py = p[1]; // position y
+        pz = p[2]; // position z
+    }
+    
+    // Broadcast / reduce particle coordinates so ALL processors know where it is
+    amrex::ParallelDescriptor::ReduceRealMax(px);
+    amrex::ParallelDescriptor::ReduceRealMax(py);
+    amrex::ParallelDescriptor::ReduceRealMax(pz);
 
 	const amrex::Real cm_to_Mpc = 1 / (C::parsec * 1.0e6);
 	const amrex::Real cm_to_kpc = 1 / (C::parsec * 1.0e3);
@@ -246,12 +286,7 @@ auto problem_main() -> int {
 					   << "  - Domain Size Z [Lo / Hi]      : [" << prob_lo[2] * cm_to_Mpc << " / " << prob_hi[2] * cm_to_Mpc << "] Mpc\n"
 					   << "-----------------------------------------------------------\n";
 
-		if (real_data.size() > 0) {   // there is the particle
-			const auto p = real_data[0];
-			const amrex::Real px = p[0]; // position x
-			const amrex::Real py = p[1]; // position y
-			const amrex::Real pz = p[2]; // position z
-
+		if (px > -1e29) {   // there is the particle
 			// Euclidean distance
 			amrex::Real shift_x = px - gas_center_x;
 			amrex::Real shift_y = py - gas_center_y;
@@ -287,7 +322,7 @@ auto problem_main() -> int {
 							   << "========================================================\n\n";
 				status = 0;
 			} // end else (shift < tolerance)
-		} // end real_data.size() > 0)
+		} // end px > -1e29
 		else {
 			amrex::Print() << "[TEST FAILED]: Particle not found. ";
 			status = 1;

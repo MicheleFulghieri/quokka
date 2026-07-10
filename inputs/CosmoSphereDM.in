@@ -1,21 +1,22 @@
 # *****************************************************************
-# Problem size, geometry and resolution  (1 Mpc = 3.08567758e24 cm)
+# Problem size, geometry, amr and resolution  (1 Mpc = 3.08567758e24 cm)
 # *****************************************************************
 geometry.prob_lo       =  0.0  0.0  0.0 
 geometry.prob_hi       =  1.543e24 1.543e24 1.543e24   # 0.5 Mpc 0.5 Mpc 0.5 Mpc   
 geometry.is_periodic   =  1 1 1
 
 amr.n_cell          = 256 256 256  # resolution
-amr.max_level       = 0            # number of levels = max_level + 1
 amr.blocking_factor = 32           # grid size must be divisible by this
 amr.max_grid_size   = 128          # at least 128 for GPUs
-do_subcycle         = 0            # Poisson solver doesn't support AMR subcycling in quokka
-
-quokka.bc = periodic periodic periodic
+amr.max_level       = 1            # number of levels = max_level + 1
+amr.n_error_buf     = 3            # minimum 3 cell buffer around tagged cells
+amr.grid_eff        = 0.85         # minimum fraction of tagged cells in each grid, default 0.7
+do_subcycle         = 1            # subcycling at coarse-fine boundaries on (1) of off (0) 
 
 amr.max_timesteps = 20000000
-stop_time = 3.16e17        # 10 Gyr
+stop_time         = 3.16e17        # 10 Gyr
 quokka.cfl        = 0.3
+quokka.bc = periodic periodic periodic
 
 
 
@@ -35,12 +36,12 @@ hydro.use_dual_energy = 1
 # Cosmology
 # *****************************************************************
 cosmology.hubble_constant = 0.7
-cosmology.omega_m         = 0.30966       # LCDM
-cosmology.omega_r         = 9.13896e-05  
-cosmology.omega_lambda    = 0.68885
-cosmology.omega_b         = 0.17
-cosmology.omega_dm        = 0.83
-cosmology.a_init          = 0.00001
+#cosmology.omega_m         = 0.30966       # LCDM
+#cosmology.omega_r         = 9.13896e-05  
+#cosmology.omega_lambda    = 0.68885
+#cosmology.omega_b         = 0.17
+#cosmology.omega_dm        = 0.83
+#cosmology.a_init          = 0.00001
 
 
 # *****************************************************************
@@ -51,6 +52,7 @@ particles.v = 1                   # specific verbosity for the ParticleContainer
 amr.v = 1                         # AMReX verbosity level: 0=quiet, 1=verbose, 2=very verbose
 tiny_profiler.enabled = 1         # AMReX profiles the performances
 #quokka.derived_vars = gpot        # keep track of the gravitational potential
+
 
 
 
