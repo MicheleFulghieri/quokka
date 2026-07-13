@@ -9,8 +9,8 @@ amr.n_cell          = 256 256 256  # resolution
 amr.blocking_factor = 32           # grid size must be divisible by this
 amr.max_grid_size   = 128          # at least 128 for GPUs
 amr.max_level       = 1            # number of levels = max_level + 1
-amr.n_error_buf     = 3            # minimum 3 cell buffer around tagged cells
-amr.grid_eff        = 0.85         # minimum fraction of tagged cells in each grid, default 0.7
+amr.n_error_buf     = 1            # minimum 3 cell buffer around tagged cells
+amr.grid_eff        = 0.75         # minimum fraction of tagged cells in each grid, default 0.7
 do_subcycle         = 1            # subcycling at coarse-fine boundaries on (1) of off (0) 
 
 amr.max_timesteps = 20000000

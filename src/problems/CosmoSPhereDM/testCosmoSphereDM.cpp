@@ -188,7 +188,7 @@ template <> void QuokkaSimulation<CosmoSphereDM>::refineGrid(int lev, amrex::Tag
 
 			amrex::Real const gradient_indicator = std::max({del_x, del_y, del_z}) / std::max(rho, rho_min);  // std::max({del_x, del_y, del_z}) via initializer list
 
-			if (gradient_indicator > eta_threshold) {
+			if (rho > 5.0e-27 && gradient_indicator > eta_threshold) { // avoid refine the background via rho lower threshold
 				tag(i, j, k) = amrex::TagBox::SET;
 			}
 		});  // end amrex::ParallelFor over the box
@@ -206,69 +206,84 @@ auto problem_main() -> int {
 	amrex::Print() << "Computing particle-gas distance for the test...\n";
 
 	// Sphere center as the gas density weighted mean cell center position 
-    // We use level 0 to mathematically avoid double-counting in AMR and cover the whole universe.
+    // Level 0 to mathematically avoid double-counting in AMR and cover the whole universe
 	const int lev = 0;
 	const amrex::Geometry &geom = sim.geom[lev];
-	const auto &dx            = geom.CellSizeArray();
-	const auto &prob_lo       = geom.ProbLoArray();
+	const auto dx            = geom.CellSizeArray();
+	const auto prob_lo       = geom.ProbLoArray();
+	const auto prob_hi       = geom.ProbHiArray();
 	const amrex::MultiFab &mf = sim.state_new_cc_[lev];
+	amrex::Real Lx = prob_hi[0] - prob_lo[0];
+	amrex::Real Ly = prob_hi[1] - prob_lo[1];
+	amrex::Real Lz = prob_hi[2] - prob_lo[2];
 	
 	// Extract Domain information (Physical and Index space)
 	const amrex::Box &domain_box = geom.Domain();
 	const auto domain_lo = domain_box.smallEnd();
 	const auto domain_hi = domain_box.bigEnd();
-	const auto prob_hi   = geom.ProbHiArray();
 
 	// Calculate total cells per dimension on level 0
 	int n_cells_x = domain_hi[0] - domain_lo[0] + 1;
 	int n_cells_y = domain_hi[1] - domain_lo[1] + 1;
 	int n_cells_z = domain_hi[2] - domain_lo[2] + 1;
 
-	// AMReX reductor operator for the 4 sums
-	amrex::ReduceOps<amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
-	amrex::ReduceData<amrex::Real, amrex::Real, amrex::Real, amrex::Real> reduce_data(reduce_ops);   // memory preallocation for the sums
+	// AMReX reductor operator for the 6 sums: (rho*cos(theta_x), rho*sin(theta_x), ...)
+	amrex::ReduceOps<amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
+	amrex::ReduceData<amrex::Real, amrex::Real, amrex::Real, amrex::Real, amrex::Real, amrex::Real> reduce_data(reduce_ops);   // memory preallocation for the sums
 
 	for (amrex::MFIter mfi(mf); mfi.isValid(); ++mfi) {
 		const amrex::Box &box = mfi.validbox(); // no ghost cells
 		auto const &state_arr = mf.array(mfi);  // cell data array
 
 		reduce_ops.eval(box, reduce_data,
-			[=] AMREX_GPU_DEVICE(int i, int j, int k) -> amrex::GpuTuple<amrex::Real, amrex::Real, amrex::Real, amrex::Real> {
+			[=] AMREX_GPU_DEVICE(int i, int j, int k) -> amrex::GpuTuple<amrex::Real, amrex::Real, amrex::Real, amrex::Real, amrex::Real, amrex::Real> {
 				amrex::Real cell_center_x = prob_lo[0] + (i + 0.5) * dx[0];  // x center of the cell
 				amrex::Real cell_center_y = prob_lo[1] + (j + 0.5) * dx[1];
 				amrex::Real cell_center_z = prob_lo[2] + (k + 0.5) * dx[2];
 				amrex::Real rho = state_arr(i, j, k, 0);                     // density (0 component of state_cc)
 
-				// Values to be summed (rho*x, rho*y, rho*z, rho)
-				return {rho * cell_center_x, rho * cell_center_y, rho * cell_center_z, rho};
+				// Compute the exact center of mass in a periodic domain using the phase of the first Fourier mode
+				amrex::Real theta_x = 2.0 * M_PI * (cell_center_x - prob_lo[0]) / Lx;  // map coordinates to [0, 2pi] relative to the left edge of the domain
+				amrex::Real theta_y = 2.0 * M_PI * (cell_center_y - prob_lo[1]) / Ly;  
+				amrex::Real theta_z = 2.0 * M_PI * (cell_center_z - prob_lo[2]) / Lz;  
+
+				// Values to be summed: first Fourier mode components (rho*cos(theta_x), rho*sin(theta_x), ...)
+				return {rho * std::cos(theta_x), rho * std::sin(theta_x),
+						rho * std::cos(theta_y), rho * std::sin(theta_y), 
+						rho * std::cos(theta_z), rho * std::sin(theta_z)};
 			});  // at each call at each cell, partially sums the each cell result
 	}  // end mfi interation
 
 	// Structure binding with the partial MPI sums
-    // reduce_data.value() already performs a global MPI_Allreduce across all processors!
-	auto [g_sum_x, g_sum_y, g_sum_z, g_total_rho] = reduce_data.value();
+	auto [cos_x, sin_x, cos_y, sin_y, cos_z, sin_z] = reduce_data.value(); // this includes global MPI_Allreduce across all processors
 
-	// Gas center
-	amrex::Real gas_center_x = g_sum_x / g_total_rho;
-	amrex::Real gas_center_y = g_sum_y / g_total_rho;
-	amrex::Real gas_center_z = g_sum_z / g_total_rho;
+	// Center of mass in periodic theta coords
+	amrex::Real theta_cmx = std::atan2(sin_x, cos_x);  // arctg2(y,x) account for the relative x and y signs
+	amrex::Real theta_cmy = std::atan2(sin_y, cos_y);
+	amrex::Real theta_cmz = std::atan2(sin_z, cos_z);
+
+	// Back to x, y, z coords
+	amrex::Real gas_center_x = prob_lo[0] + std::fmod(theta_cmx / (2.0 * M_PI) * Lx + Lx, Lx);
+	amrex::Real gas_center_y = prob_lo[1] + std::fmod(theta_cmy / (2.0 * M_PI) * Ly + Ly, Ly);
+	amrex::Real gas_center_z = prob_lo[2] + std::fmod(theta_cmz / (2.0 * M_PI) * Lz + Lz, Lz);
 
 	// Get particle data using the particle descriptor
-    // We check for the particle at the finest_level where it resides
-    const int finest_level = sim.finestLevel();
-	const auto [real_data, int_data] = sim.particleRegister_.getParticleDescriptor(quokka::ParticleType::CIC)->getParticleDataAtLevel(finest_level);
 
     // Impossible default values
     amrex::Real px = -1e30, py = -1e30, pz = -1e30;
-    
-    if (real_data.size() > 0) {   // If the particle is found locally on this rank
-        const auto p = real_data[0];
-        px = p[0]; // position x
-        py = p[1]; // position y
-        pz = p[2]; // position z
+
+	for (int lev_p = 0; lev_p <= sim.finestLevel(); ++lev_p) {
+		const auto [real_data, int_data] = sim.particleRegister_.getParticleDescriptor(quokka::ParticleType::CIC)->getParticleDataAtLevel(lev_p);  // get particle in the particle descriptor
+		if (real_data.size() > 0) {   // If the particle is found locally on this rank
+			const auto p = real_data[0];
+			px = p[0];
+            py = p[1]; 
+            pz = p[2]; 
+			break;  // exit when the particle is found
+		}
     }
     
-    // Broadcast / reduce particle coordinates so ALL processors know where it is
+    // Broadcast / reduce particle coordinates so all processors know where it is
     amrex::ParallelDescriptor::ReduceRealMax(px);
     amrex::ParallelDescriptor::ReduceRealMax(py);
     amrex::ParallelDescriptor::ReduceRealMax(pz);
@@ -291,6 +306,9 @@ auto problem_main() -> int {
 			amrex::Real shift_x = px - gas_center_x;
 			amrex::Real shift_y = py - gas_center_y;
 			amrex::Real shift_z = pz - gas_center_z;
+			shift_x -= Lx * std::round(shift_x / Lx);  // wrap the shift to [-Lx/2, Lx/2]
+			shift_y -= Ly * std::round(shift_y / Ly);
+			shift_z -= Lz * std::round(shift_z / Lz);
 			amrex::Real shift_mpc = std::sqrt(shift_x * shift_x + shift_y * shift_y + shift_z* shift_z) * cm_to_Mpc;
 			amrex::Real shift_cell = shift_mpc / (dx[0] * cm_to_Mpc);
 			amrex::Real tolerance_cell = 2;  

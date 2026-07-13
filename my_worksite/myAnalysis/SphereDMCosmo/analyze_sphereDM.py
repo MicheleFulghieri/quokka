@@ -5,6 +5,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import AnchoredText
 from scipy.interpolate import interp1d
+from scipy.integrate import quad
 import os
 import yaml
 import sys
@@ -36,23 +37,18 @@ os.makedirs(animation_dir, exist_ok=True)   # create the folder
 # ---- Useful functions ----
 # Unwrap gas periodic coordinates (useful for EdS). Spatial coords, in the loops for each plotfiles 
 def unwrap_space_coords(gas_xproj, x_array, Lx_box):       
-    """ Compute the exact center of mass in a periodic domain using the phase of the first Fourier mode.
-        This completely eliminates grid-locking artifacts and ignores uniform background automatically. """
+    """ Compute the exact center of mass in a periodic domain using the phase of the first Fourier mode. """
     dx = x_array[1] - x_array[0]
     le = x_array[0] - 0.5 * dx
-    
-    # Map coordinates to [0, 2pi] relative to the left edge of the domain
-    theta = 2.0 * np.pi * (x_array - le) / Lx_box
+    theta = 2.0 * np.pi * (x_array - le) / Lx_box  # map coordinates to [0, 2pi] relative to the left edge of the domain
     
     # First Fourier mode components
     xi = np.sum(gas_xproj * np.cos(theta))
     zeta = np.sum(gas_xproj * np.sin(theta))
     
     # The phase directly points to the periodic center of mass
-    theta_cm = np.arctan2(zeta, xi)
-    
-    # Map the phase back to physical spatial coordinates
-    gas_center_x = le + (theta_cm / (2.0 * np.pi) * Lx_box) % Lx_box
+    theta_cm = np.arctan2(zeta, xi)  # arctg2(y,x) account for the relative x and y signs
+    gas_center_x = le + (theta_cm / (2.0 * np.pi) * Lx_box) % Lx_box # map the phase back to physical spatial coordinates
     return gas_center_x
 
 # Unwrap DM periodic coordinates (useful for EdS). temporal series, out of the loop
@@ -207,16 +203,16 @@ for i, ds in enumerate(ts):
 
   
 
-    # ---- Hydro analysis (Optimized: single SlicePlot for all fields) ----
+    # ---- Hydro analysis ----
 
-    # By using a list of fields, yt reads the disk only once per file instead of three times! (Massive I/O optimization)
+    # Single SlicePlot for all fields via list of fields: yt reads the disk only once per file
     fields = [('boxlib', 'gasDensity'), ('boxlib', 'gasInternalEnergy'), ('boxlib', 'x-GasMomentum')]
-    slc = yt.SlicePlot(ds, 'z', fields, center='c')
+    slc = yt.SlicePlot(ds, 'z', fields, center='c')   
     
     # Global annotations valid for all plots
     slc.annotate_timestamp(corner="upper_left", time=True, draw_inset_box=True)
     slc.annotate_scale(corner="upper_right")
-    slc.annotate_grids(alpha=0.3, min_level=1)  # Visualize AMR refined grids
+    slc.annotate_grids(alpha=0.3, min_level=1)  # visualize AMR refined grids
     slc.annotate_particles(width=(0.5, 'Mpc'), p_size=40, col='white', marker='o', ptype='CIC_particles')
     
     # Specific settings for each field
@@ -241,12 +237,11 @@ for i, ds in enumerate(ts):
     legend_box.patch.set_edgecolor('gray')
     ax.add_artist(legend_box)
 
-    # Create folders (if they do not exist)
+    # Create folders (if they do not exist) and save
     os.makedirs(os.path.join(save_path, "Hydro", "Density"), exist_ok=True)
     os.makedirs(os.path.join(save_path, "Hydro", "Eint"), exist_ok=True)
     os.makedirs(os.path.join(save_path, "Hydro", "XMomentum"), exist_ok=True)
 
-    # Save figures directly using matplotlib to preserve the exact naming architecture
     dens_path = os.path.join(save_path, "Hydro", "Density", f"Density_{i:03d}.png")
     eint_path = os.path.join(save_path, "Hydro", "Eint", f"InternalEnergy_{i:03d}.png")
     mom_path  = os.path.join(save_path, "Hydro", "XMomentum", f"XMomentum_{i:03d}.png")
@@ -269,24 +264,24 @@ for i, ds in enumerate(ts):
 
     
     # Volume rendering
-    os.makedirs(os.path.join(save_path, "3D_Rendering", "Density"), exist_ok=True)
-    sc = yt.create_scene(ds, ('boxlib', 'gasDensity'))
+    # os.makedirs(os.path.join(save_path, "3D_Rendering", "Density"), exist_ok=True)
+    # sc = yt.create_scene(ds, ('boxlib', 'gasDensity'))
 
-    # Customize the transfer function
-    tfh = TransferFunctionHelper(ds)
-    tfh.set_field(('boxlib', 'gasDensity'))
-    tfh.set_log(True)
-    tfh.set_bounds()
-    tfh.build_transfer_function()
-    tfh.tf.add_layers(10, colormap="gist_rainbow")
+    # # Customize the transfer function
+    # tfh = TransferFunctionHelper(ds)
+    # tfh.set_field(('boxlib', 'gasDensity'))
+    # tfh.set_log(True)
+    # tfh.set_bounds()
+    # tfh.build_transfer_function()
+    # tfh.tf.add_layers(10, colormap="gist_rainbow")
     
-    source = sc[0] 
-    source.set_transfer_function(tfh.tf)
+    # source = sc[0] 
+    # source.set_transfer_function(tfh.tf)
 
-    # Render and save
-    render_path = os.path.join(save_path, "3D_Rendering", "Density", f"Density3D_{i:03d}.png")
-    sc.render()
-    sc.save(render_path, sigma_clip=4.0) # sigma_clip for the contrast
+    # # Render and save
+    # render_path = os.path.join(save_path, "3D_Rendering", "Density", f"Density3D_{i:03d}.png")
+    # sc.render()
+    # sc.save(render_path, sigma_clip=4.0) # sigma_clip for the contrast
 
     ds.index.clear_all_data()  # free the RAM
 
@@ -379,11 +374,11 @@ print(f"DM particle drifted for {tot_dm_drift:.3f} cMpc during the simuation spa
 
 fig_relshift, ax_relshift = plt.subplots()
 
-ax_relshift.set_title(f'Relative shift in {dt_Myr:.1f} Myr', fontsize=12, fontweight='bold', y=1.14)
-ax_relshift.plot(dm_drift, delta_x_rel, '-o', markersize=3, label=r'$\Delta X_{\mathrm{rel}}$ (DM - Gas)')
+ax_relshift.set_title(f'Relative shift $\cdot 10^{7}$ in {dt_Myr:.1f} Myr', fontsize=12, fontweight='bold', y=1.14)
+ax_relshift.plot(dm_drift, delta_x_rel * 10**7, '-o', markersize=3, label=r'$\Delta X_{\mathrm{rel}}$ (DM - Gas) $\times 10^7$')
 ax_relshift.axhline(0, color='black', linestyle=':', alpha=0.8)
 ax_relshift.set_xlabel("Drift distance [cMpc]", fontsize=11)
-ax_relshift.set_ylabel(r'$(X_{\mathrm{dm}} - X_{\mathrm{gas}}) / \Delta X_{\mathrm{dm}}^{\mathrm{drift}}$', fontsize=11)
+ax_relshift.set_ylabel(r'$\left[ (X_{\mathrm{dm}} - X_{\mathrm{gas}}) / \Delta X_{\mathrm{dm}}^{\mathrm{drift}} \right] \cdot 10^{7}$', fontsize=11)
 ax_relshift.legend()
 ax_relshift.tick_params(direction='in', which='both')  
 ax_relshift.grid(True, linestyle='--', alpha=0.5)
@@ -410,12 +405,12 @@ print(f"\nRelative shift plot saved in: {save_path}")
 # ---- Shift evolution in time ----
 fig_timeshift, ax_time = plt.subplots(figsize=(7, 5))
 
-ax_time.set_title(f'Shift evolution in time ({tot_dm_drift:.3f} Mpc drift)', fontsize=14, fontweight='bold', y=1.15)
-ax_time.plot(times_Myr, delta_x_rel, '-o', markersize=3, label=r'$\Delta X_{\mathrm{rel}}$ (DM - Gas)')
+ax_time.set_title(fr'Shift evolution in time ({tot_dm_drift:.3f} Mpc drift ($\cdot 10^{7}$))', fontsize=14, fontweight='bold', y=1.15)
+ax_time.plot(times_Myr, delta_x_rel * 10**7, '-o', markersize=3, label=r'$\Delta X_{\mathrm{rel}}$ (DM - Gas) $\times 10^7$')  # 10**7 to avoid overlap with the twin x upper ax of the exponent
 ax_time.axhline(0, color='black', linestyle=':', alpha=0.8)
 ax_time.set_xscale('log')
 ax_time.set_xlabel("Cosmic Time [Myr]", fontsize=11)
-ax_time.set_ylabel(r'$(X_{\mathrm{dm}} - X_{\mathrm{gas}}) / \Delta X_{\mathrm{dm}}^{\mathrm{drift}}$', fontsize=11)
+ax_time.set_ylabel(r'$\left[ (X_{\mathrm{dm}} - X_{\mathrm{gas}}) / \Delta X_{\mathrm{dm}}^{\mathrm{drift}} \right] \cdot 10^{7}$', fontsize=11)
 ax_time.legend(loc='best')
 ax_time.tick_params(direction='in', which='both')  
 ax_time.grid(True, linestyle='--', alpha=0.5)
@@ -547,12 +542,16 @@ print(f"Difference: {np.abs(-1.0 - slope):.2e}")
 # ---- Simulation summary ----
 
 # Extract grid and domain parameters from the last analyzed dataset object (ds)
-domain_dimensions = ds.domain_dimensions[0]                # Grid resolution (Nx) assuming cubic domain
-box_length_mpc = float(ds.domain_width.to('Mpc')[0])       # Box side length in Mpc
-cell_size_mpc = box_length_mpc / domain_dimensions         # Size of a single cell in Mpc
+domain_dimensions = ds.domain_dimensions[0]                # Comoving grid resolution (Nx) assuming cubic domain
+box_length_mpc = float(ds.domain_width.to('Mpc')[0])       # Comoving box side length in Mpc
+cell_size_mpc = box_length_mpc / domain_dimensions         # COmoving size of a single cell in Mpc
 final_shift_cells = delta_x[-1] / cell_size_mpc            # Final DM-Gas misalignment in cells
 
-phys_dm_drift = a_values[-1] * (dm_x[-1] - dm_x[0])
+# Analytical solution (for EdS only) 
+# phys_dm_drift =  2 * (dm_vx[0] * a_values[0] / H0_cgs) * (np.sqrt(a_values[-1]) - np.sqrt(a_values[0]))
+# print(f" Total physical distance traveled by DM  {phys_dm_drift :.4f} Mpc")
+
+
 print("\n" + "="*58)
 print("                    FINAL SIMULATION SUMMARY")
 print("="*58)
@@ -560,7 +559,6 @@ print(f" Simulation spans from a = {a_values[0]:.2e} (z = {z_values[0]:.1f}) to 
 print(f" Initial drift velocity (DM/Gas) : {dm_vx[0]:.2e} cm/s ({dm_vx[0]/1e5:.1f} km/s)")
 print(f" Total simulation time duration  : {dt_Myr:.2f} Myr")
 print(f" Total distance traveled by DM   : {tot_dm_drift:.4f} Mpc")
-print(f" Total physical distance traveled by DM (a_fin * (dm_x[-1] - dm_x[0])): {phys_dm_drift :.4f} Mpc")
 print(f" Final shift (DM - Gas)          : {delta_x[-1]*1000.0:.2f} kpc ({final_shift_cells:.2f} cells)")
 print("-"*58)
 
