@@ -14,7 +14,7 @@ from yt.visualization.volume_rendering.transfer_function_helper import (Transfer
 24
 # Configuration and paths
 yt.set_log_level(40)   
-plotfiles_dir = "/data/mfulghieri/quokka/outputs/SphereDMCosmo/SphereDMCosmo_13114_LCDM_R100kpc"
+plotfiles_dir = "/data/mfulghieri/quokka/outputs/SphereDMCosmo/SphereDMCosmo_13235"
 save_path = '/data/mfulghieri/quokka/my_worksite/myAnalysis/SphereDMCosmo/outputs'
 
 ts = yt.load(os.path.join(plotfiles_dir, "plt*"))  # load temporal serie

@@ -82,8 +82,17 @@ template <> void QuokkaSimulation<CosmoSphereDM>::setInitialConditionsOnGrid(quo
 	amrex::Real R_smooth = 6.172e22;       // default: 1/5 R_sphere (20 kpc)
 	amrex::ParmParse pp_sphere("sphere");               
 	pp_sphere.query("R_sphere", R_sphere);
-	pp_sphere.query("R_smooth", R_smooth);
+	pp_sphere.query("R_smooth", R_smooth);	
 	// for isothermal -> amrex::Real const T = P * quokka::EOS_Traits<CosmoSphereDM>::mean_molecular_weight / (rho * C::k_B);
+
+	const amrex::Real cm_to_kpc = 1 / (C::parsec * 1.0e3);
+	amrex::Print() << "\n=================== Hydro initialization ===================\n"
+				   << "  - Background density           : " << rho_min << "g/cm^3\n"
+				   << "  - Max density                  : " << rho_max << "g/cm^3\n"
+				   << "  - Pressure (constant)          : " << P << "erg/cm^3\n"
+				   << "  - Drift velocity (vx)          : " << vx << "cm/s\n"
+				   << "  - Sphere radius                : " << R_sphere * cm_to_kpc << "kpc\n"
+				   << "  - Iperb. tang. smoothing rad.  : " << R_smooth * cm_to_kpc << "kpc\n";
 
 	amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 
@@ -164,7 +173,7 @@ template <> void QuokkaSimulation<CosmoSphereDM>::createInitialCICParticles() {
 
 template <> void QuokkaSimulation<CosmoSphereDM>::refineGrid(int lev, amrex::TagBoxArray &tags, amrex::Real /*time*/, int /*ngrow*/) {
 	// Tag cells for refinement
-	const amrex::Real eta_threshold = 0.6; // gradient refinement threshold
+	const amrex::Real eta_threshold = 0.9; // gradient refinement threshold
 	const amrex::Real rho_min = 1.0e-27;   // minimum density for refinement
 
 	for (amrex::MFIter mfi(state_new_cc_[lev]); mfi.isValid(); ++mfi) {
@@ -313,20 +322,14 @@ auto problem_main() -> int {
 			amrex::Real shift_cell = shift_mpc / (dx[0] * cm_to_Mpc);
 			amrex::Real tolerance_cell = 2;  
 			amrex::Real tolerance_mpc = tolerance_cell * dx[0] * cm_to_Mpc;	
-			
-			amrex::Print() << "  - Gas Center of Mass           : (" << gas_center_x * cm_to_Mpc << ", " << gas_center_y * cm_to_Mpc << ", " << gas_center_z * cm_to_Mpc << ") Mpc\n"
-						   << "  - Particle Position            : (" << px * cm_to_Mpc << ", " << py * cm_to_Mpc << ", " << pz * cm_to_Mpc << ") Mpc\n"
-						   << "  - Calculated Distance          : " << shift_mpc * 1e3 << " kpc (" << shift_cell << " cells)\n"
-						   << "  - Allowed Tolerance            : " << tolerance_mpc * 1e3 << " kpc (" << tolerance_cell << " cells)\n"
-						   << "-----------------------------------------------------------\n";
 
 			if (shift_cell > tolerance_cell) {
 			amrex::Print() << "\n========================================================\n"
 							   << "[TEST FAILED]: CosmoSphereDM misalignment detected!\n"
-							   << "  - Particle position : (" << px * cm_to_Mpc << ", " << py * cm_to_Mpc << ", " << pz * cm_to_Mpc << ") Mpc\n"
-							   << "  - Gas center of mass: (" << gas_center_x * cm_to_Mpc << ", " << gas_center_y * cm_to_Mpc << ", " << gas_center_z * cm_to_Mpc << ") Mpc\n"
-							   << "  - Absolute distance : " << shift_mpc * 1e3 << " kpc (Tol: " << tolerance_mpc * 1e3 << " kpc)\n"
-							   << "  - Relative distance : " << shift_cell << " cell widths (Tol: " << tolerance_cell << " cell widths)\n"
+							   << "  - Particle position    : (" << px * cm_to_Mpc << ", " << py * cm_to_Mpc << ", " << pz * cm_to_Mpc << ") Mpc\n"
+							   << "  - Gas center of mass   : (" << gas_center_x * cm_to_Mpc << ", " << gas_center_y * cm_to_Mpc << ", " << gas_center_z * cm_to_Mpc << ") Mpc\n"
+							   << "  - Calculated Distance  : " << shift_mpc * 1e3 << " kpc (" << shift_cell << " cells widths)\n"
+						       << "  - Allowed Tolerance    : " << tolerance_mpc * 1e3 << " kpc (" << tolerance_cell << " cells widths)\n"
 							   << "========================================================\n\n";	
 			status = 1;
 			} // end if shift > tolerance
@@ -335,8 +338,8 @@ auto problem_main() -> int {
 							   << "[TEST PASSED]: CosmoSphereDM alignment check successful!\n"
 							   << "  - Particle position : (" << px * cm_to_Mpc << ", " << py * cm_to_Mpc << ", " << pz * cm_to_Mpc << ") Mpc\n"
 							   << "  - Gas center of mass: (" << gas_center_x * cm_to_Mpc << ", " << gas_center_y * cm_to_Mpc << ", " << gas_center_z * cm_to_Mpc << ") Mpc\n"
-							   << "  - Absolute distance : " << shift_mpc * 1e3 << " kpc (Tol: " << tolerance_mpc * 1e3 << " kpc)\n"
-							   << "  - Relative distance : " << shift_cell << " cell widths (Tol: " << tolerance_cell << " cell widths)\n"
+							   << "  - Calculated Distance  : " << shift_mpc * 1e3 << " kpc (" << shift_cell << " cells widths)\n"
+						       << "  - Allowed Tolerance    : " << tolerance_mpc * 1e3 << " kpc (" << tolerance_cell << " cells widths)\n"
 							   << "========================================================\n\n";
 				status = 0;
 			} // end else (shift < tolerance)
