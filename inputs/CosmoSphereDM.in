@@ -8,13 +8,13 @@ geometry.is_periodic   =  1 1 1
 amr.n_cell          = 256 256 256  # resolution
 amr.blocking_factor = 32           # grid size must be divisible by this
 amr.max_grid_size   = 128          # at least 128 for GPUs
-amr.max_level       = 1            # number of levels = max_level + 1
+amr.max_level       = 0            # number of levels = max_level + 1
 amr.n_error_buf     = 1            # minimum 3 cell buffer around tagged cells
 amr.grid_eff        = 0.75         # minimum fraction of tagged cells in each grid, default 0.7
-do_subcycle         = 1            # subcycling at coarse-fine boundaries on (1) of off (0) 
+#do_subcycle         = 1            # subcycling at coarse-fine boundaries on (1) of off (0) 
 
 amr.max_timesteps = 20000000
-stop_time         = 3.16e17        # 10 Gyr
+stop_time         = 3.16e17       # 10 Gyr
 quokka.cfl        = 0.3
 quokka.bc = periodic periodic periodic
 
@@ -26,8 +26,8 @@ quokka.bc = periodic periodic periodic
 #problem.rho0_gas = 1.0e-20
 #problem.P0_gas   = 1.0e-30
 #problem.gamma    = 5.0 / 3.0
-sphere.R_sphere   = 3.086e23    # 100 kpc
-sphere.R_smooth   = 6.172e22    # 1/5 R_sphere (20 kpc)
+sphere.R_sphere   = 2.7774e23    # 90 kpc
+sphere.R_smooth   = 5.5555e22    # 1/5 R_sphere (18 kpc)
 #hydro.reconstruction_order = 2 # 1 (piecewise constant), 2 (piecewise linear; PLM), or 3 (piecewise parabolic; PPM).
 #hydro.plm_limiter = mc         # only for PLM, Monotonized Central 
 hydro.use_dual_energy = 1 

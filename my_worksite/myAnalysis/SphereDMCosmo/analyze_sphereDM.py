@@ -14,7 +14,7 @@ from yt.visualization.volume_rendering.transfer_function_helper import (Transfer
 24
 # Configuration and paths
 yt.set_log_level(40)   
-plotfiles_dir = "/data/mfulghieri/quokka/outputs/SphereDMCosmo/SphereDMCosmo_13235"
+plotfiles_dir = "/data/mfulghieri/quokka/outputs/SphereDMCosmo/SphereDMCosmo_13321"
 save_path = '/data/mfulghieri/quokka/my_worksite/myAnalysis/SphereDMCosmo/outputs'
 
 ts = yt.load(os.path.join(plotfiles_dir, "plt*"))  # load temporal serie
@@ -22,6 +22,11 @@ ts = yt.load(os.path.join(plotfiles_dir, "plt*"))  # load temporal serie
 if len(ts) == 0:
     print("No plotfile found!")
     exit(1)
+
+# Output directories
+subdirs = ["Animation", "Hydro" ]
+for d in subdirs:
+    os.makedirs(os.path.join(save_path, d), exist_ok=True)
 
 # Data list
 a_values, z_values, times = [], [], []
@@ -33,6 +38,7 @@ gas_x, gas_y, gas_z       = [], [], []
 density_frames = [] 
 animation_dir  = os.path.join(save_path, "Animation")
 os.makedirs(animation_dir, exist_ok=True)   # create the folder
+density_frames            = []              # storage for animations
 
 # ---- Useful functions ----
 # Unwrap gas periodic coordinates (useful for EdS). Spatial coords, in the loops for each plotfiles 
