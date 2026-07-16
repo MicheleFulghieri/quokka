@@ -171,39 +171,6 @@ template <> void QuokkaSimulation<CosmoSphereDM>::createInitialCICParticles() {
 } // end createInitialCICParticles()
 #endif   // AMREX_SPACEDIM == 3
 
-// template <> void QuokkaSimulation<CosmoSphereDM>::refineGrid(int lev, amrex::TagBoxArray &tags, amrex::Real /*time*/, int /*ngrow*/) {
-// 	// Tag cells for refinement
-// 	const amrex::Real eta_threshold = 0.9; // gradient refinement threshold
-// 	const amrex::Real rho_min = 1.0e-27;   // minimum density for refinement
-
-// 	for (amrex::MFIter mfi(state_new_cc_[lev]); mfi.isValid(); ++mfi) {
-// 		const amrex::Box &box = mfi.validbox();
-// 		const auto state = state_new_cc_[lev].const_array(mfi);   // array for read hydro
-// 		const auto tag = tags.array(mfi);                         // array for write data
-
-// 		amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-// 			const int rho_idx = HydroSystem<CosmoSphereDM>::density_index;
-// 			amrex::Real const rho = state(i, j, k, rho_idx);
-// 			amrex::Real const rho_xplus  = state(i + 1, j, k, rho_idx);
-// 			amrex::Real const rho_xminus = state(i - 1, j, k, rho_idx);
-// 			amrex::Real const rho_yplus  = state(i, j + 1, k, rho_idx);
-// 			amrex::Real const rho_yminus = state(i, j - 1, k, rho_idx);
-// 			amrex::Real const rho_zplus  = state(i, j , k + 1, rho_idx);
-// 			amrex::Real const rho_zminus = state(i, j, k -1, rho_idx);
-
-// 			amrex::Real const del_x = std::max(std::abs(rho_xplus - rho), std::abs(rho - rho_xminus));
-// 			amrex::Real const del_y = std::max(std::abs(rho_yplus - rho), std::abs(rho - rho_yminus));
-// 			amrex::Real const del_z = std::max(std::abs(rho_zplus - rho), std::abs(rho - rho_zminus));
-
-// 			amrex::Real const gradient_indicator = std::max({del_x, del_y, del_z}) / std::max(rho, rho_min);  // std::max({del_x, del_y, del_z}) via initializer list
-
-// 			if (rho > 5.0e-27 && gradient_indicator > eta_threshold) { // avoid refine the background via rho lower threshold
-// 				tag(i, j, k) = amrex::TagBox::SET;
-// 			}
-// 		});  // end amrex::ParallelFor over the box
-
-// 	} // end amrex::MFIter mfi
-// }
 
 auto problem_main() -> int {
 	int status = 0;

@@ -26,11 +26,21 @@ quokka.bc = periodic periodic periodic
 #problem.rho0_gas = 1.0e-20
 #problem.P0_gas   = 1.0e-30
 #problem.gamma    = 5.0 / 3.0
-sphere.R_sphere   = 2.7774e23    # 90 kpc
-sphere.R_smooth   = 5.5555e22    # 1/5 R_sphere (18 kpc)
+sphere.R_sphere   = 3.086e23     # 100 kpc
+sphere.R_smooth   = 6.172e22;    # 1/5 R_sphere (20 kpc)
 #hydro.reconstruction_order = 2 # 1 (piecewise constant), 2 (piecewise linear; PLM), or 3 (piecewise parabolic; PPM).
 #hydro.plm_limiter = mc         # only for PLM, Monotonized Central 
 hydro.use_dual_energy = 1 
+
+
+# Sphere radius regression
+# 3.086e23     # 100 kpc    6.172e22;    # 1/5 R_sphere (20 kpc)
+# 2.7774e23    # 90 kpc     5.5548e22    # 1/5 R_sphere (18 kpc)
+# 2.4688e23    # 80 kpc     4.9376e22    # 1/5 R_sphere (16 kpc)
+# 2.1602e23    # 70 kpc     4.3204e22    # 1/5 R_sphere (14 kpc)
+# 1.8516e23    # 60 kpc     3.7032e22    # 1/5 R_sphere (12 kpc)
+# 1.5430e23    # 50 kpc     3.0860e22    # 1/5 R_sphere (10 kpc)
+# 1.2344e23    # 40 kpc     2.4688e22    # 1/5 R_sphere (8 kpc)
 
 # *****************************************************************
 # Cosmology

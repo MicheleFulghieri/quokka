@@ -467,7 +467,7 @@ def main():
 
     # ---- Animation: Gas Density (Hydro) ----
     if len(frames_hydro) > 1:
-        import matplotlib.image as mgimg
+        from PIL import Image
         
         fig_ha, ax_ha = plt.subplots(figsize=(8, 8))
         ax_ha.set_xticks([])   # remeve ticks
@@ -475,15 +475,16 @@ def main():
         
         # Load first image to initialize the object 
         first_png_path = frames_hydro[0]
-        img_obj = ax_ha.imshow(mgimg.imread(first_png_path))
+        img_data = np.array(Image.open(first_png_path))      # take the first image
+        img_obj = ax_ha.imshow(img_data)                     # convert the save paths 
         title_ha = ax_ha.set_title("")
         fig_ha.tight_layout()
 
         def update_hydro(frame):  # frame is integer increasing at every step
             # Read PNG of the current file and update the file
-            img_path = frames_hydro[frame]      # extract path, a, t
-            img_data = mgimg.imread(img_path)
-            img_obj.set_data(img_data)          # substitute the pixels
+            img_path = frames_hydro[frame]            # extract path, a, t
+            img_data = np.array(Image.open(img_path)) # read the data
+            img_obj.set_data(img_data)                # substitute the pixels
             title_ha.set_text(f"Gas Density")
             return [img_obj, title_ha]
 
