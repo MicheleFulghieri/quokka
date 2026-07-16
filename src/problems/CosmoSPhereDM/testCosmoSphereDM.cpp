@@ -146,7 +146,7 @@ template <> void QuokkaSimulation<CosmoSphereDM>::createInitialCICParticles() {
     amrex::Real const vz_dm   = 0.0;
 
 	// Initialize the particle at domain center
-	for (amrex::MFIter mfi(state_new_cc_[lev]); mfi.isValid(); ++mfi) { // iterator instanziation state_new_cc_[lev] contains the hydro MultiFabs (from QuokkaSimulation.hpp and simulation.hpp)
+	for (amrex::MFIter mfi(state_new_cc_[lev]); mfi.isValid(); ++mfi) { // iterator instantiation state_new_cc_[lev] contains the hydro MultiFabs (from QuokkaSimulation.hpp and simulation.hpp)
 		amrex::Box const& valid_box = mfi.validbox();  // extract the current valid Box
 		
 		using ParticleType = quokka::CICParticleContainer::ParticleType; // alias
@@ -213,9 +213,9 @@ auto problem_main() -> int {
 
 		reduce_ops.eval(box, reduce_data,
 			[=] AMREX_GPU_DEVICE(int i, int j, int k) -> amrex::GpuTuple<amrex::Real, amrex::Real, amrex::Real, amrex::Real, amrex::Real, amrex::Real> {
-				amrex::Real cell_center_x = prob_lo[0] + (i + 0.5) * dx[0];  // x center of the cell
-				amrex::Real cell_center_y = prob_lo[1] + (j + 0.5) * dx[1];
-				amrex::Real cell_center_z = prob_lo[2] + (k + 0.5) * dx[2];
+				amrex::Real cell_center_x = prob_lo[0] + (i + static_cast<amrex::Real>(0.5)) * dx[0];  // x center of the cell
+				amrex::Real cell_center_y = prob_lo[1] + (j + static_cast<amrex::Real>(0.5)) * dx[1];
+				amrex::Real cell_center_z = prob_lo[2] + (k + static_cast<amrex::Real>(0.5)) * dx[2];
 				amrex::Real rho = state_arr(i, j, k, HydroSystem<CosmoSphereDM>::density_index);  
 
 				// Compute the exact center of mass in a periodic domain using the phase of the first Fourier mode

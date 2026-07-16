@@ -86,7 +86,7 @@ template <> void QuokkaSimulation<DMZeldovich>::setInitialConditionsOnGrid(quokk
 	const amrex::Real k_wave = 2.0 * M_PI / L_box;
 	const amrex::Real amplitude  = a_init / a_collapse; 
 
-    const amrex::Box &indexRange = grid_elem.indexRange_;           // set of the indices of the grid patch 
+    const amrex::Box &indexRange = grid_elem.indexRange_;           // set of the indices of the grid local box
     const amrex::Array4<amrex::Real> &state_cc = grid_elem.array_;  // Array4 is a pointer to the data
 
     amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
@@ -173,40 +173,38 @@ template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
 	amrex::Print() << "Mass per DM particle: " 
 	               << part_mass << "g" << std::endl;
 
-	if (amrex::ParallelDescriptor::IOProcessor()) {
-		using ParticleType = quokka::CICParticleContainer::ParticleType;
-		
-		// Get the first local tile key for processor 0 to temporarily host all the particles
-		amrex::MFIter mfi(state_new_cc_[lev]);  // iteration only on the IOproc tiles
-		if (mfi.isValid()) {  // place temporarily all the particle in the firts valid tile waiting for Redistribute()
-			auto const key = std::make_pair(mfi.index(), mfi.LocalTileIndex());
-			auto &particles = pc.GetParticles(lev)[key];
-			
-			for (int i = 0; i < nparx; ++i) {
-				for (int j = 0; j < npary; ++j) {
-					for (int k = 0; k < nparz; ++k) {
-						amrex::Real qx = prob_lo[0] + (i + 0.5) * dpartx;
-						amrex::Real qy = prob_lo[1] + (j + 0.5) * dparty;
-						amrex::Real qz = prob_lo[2] + (k + 0.5) * dpartz;
+	for (amrex::MFIter mfi(state_new_cc_[lev]); mfi.isValid(); ++mfi) {
+		amrex::Box const& valid_box = mfi.validbox();   // current valid eulerian box
+		auto &particles = pc.GetParticles(lev)[std::make_pair(mfi.index(), mfi.LocalTileIndex())];  // local particle container of the current box
 
-        // Shift qx to centre the collapse (qx_center = qx - L_box/2)
-        const amrex::Real qx_center = qx - 0.5 * Lx;
-        const amrex::Real displacement = - (amplitude / k_wave) * std::sin(k_wave * qx_center);
-        const amrex::Real v_pec        = a_init * H_init * displacement; 
+		// Calculate the unperturbed Lagrangian positions
+		for (int i = 0; i < nparx; ++i) {
+			for (int j = 0; j < npary; ++j) {
+				for (int k = 0; k < nparz; ++k) {
+					amrex::Real qx = prob_lo[0] + (i + static_cast<amrex::Real>(0.5)) * dpartx;
+					amrex::Real qy = prob_lo[1] + (j + static_cast<amrex::Real>(0.5)) * dparty;
+					amrex::Real qz = prob_lo[2] + (k + static_cast<amrex::Real>(0.5)) * dpartz;
 
-						// Ensure periodic boundary wrapping (if the perturbation dispaces particles out of physical domain)
-						amrex::Real x_perturbed = qx + displacement;
-						while (x_perturbed < prob_lo[0]) x_perturbed += Lx;
-						while (x_perturbed >= prob_hi[0]) x_perturbed -= Lx;
+					// Shift qx to centre the collapse (qx_center = qx - L_box/2)
+        			const amrex::Real qx_center = qx - 0.5 * Lx;
+        			const amrex::Real displacement = - (amplitude / k_wave) * std::sin(k_wave * qx_center);
+        			const amrex::Real v_pec        = a_init * H_init * displacement;
 
-						amrex::Real y_perturbed = qy;  // just for security, since only x is perturbed
-						while (y_perturbed < prob_lo[1]) y_perturbed += Ly;
-						while (y_perturbed >= prob_hi[1]) y_perturbed -= Ly;
+					// Ensure periodic boundary wrapping (if the perturbation dispaces particles out of physical domain)
+					amrex::Real x_perturbed = qx + displacement;
+					amrex::Real y_perturbed = qy;  
+					amrex::Real z_perturbed = qz;
 
-						amrex::Real z_perturbed = qz;
-						while (z_perturbed < prob_lo[2]) z_perturbed += Lz;
-						while (z_perturbed >= prob_hi[2]) z_perturbed -= Lz;
+					x_perturbed -= Lx * std::floor((x_perturbed - prob_lo[0]) / Lx);
+					y_perturbed -= Ly * std::floor((y_perturbed - prob_lo[1]) / Ly);	// just for security, since only x is perturbed				
+					z_perturbed -= Lz * std::floor((z_perturbed - prob_lo[2]) / Lz);
 
+					// Convert the perturbed positions into indices
+					amrex::RealVect part_pos{x_perturbed, y_perturbed, z_perturbed};
+					amrex::IntVect cell_idxs = geom.CellIndex(part_pos.dataPtr());
+
+					if (valid_box.contains(cell_idxs)) {  // if the particle pos idx belongs to the current process
+						using ParticleType = quokka::CICParticleContainer::ParticleType; // alias
 						ParticleType p;  
 						p.id()  = ParticleType::NextID();
 						p.cpu() = amrex::ParallelDescriptor::MyProc();
@@ -219,17 +217,15 @@ template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
 						p.rdata(quokka::CICParticleVzIdx)   = 0.0;		
 
 						particles.push_back(p);
-					}
-				}
-			}
-		} else {
-			amrex::Abort("Error: 'IOProcessor' has no local grid assigned to level 0!");
-		}
-	}
+					} // end if (valid_box.contains(cell_idxs))
+				} // end for int k < nparz 
+			} // end for int j < npary 
+		} // end for int i < nparx 
+	} // end MFIter mfi(state_new_cc_[lev])
 	pc.Redistribute();
 	
 	amrex::Long total_particles = pc.TotalNumberOfParticles();  
-	amrex::Print() << "Initialization of " << total_particles << " DM particles completed.\n" << std::endl;
+	amrex::Print() << "Initialization of " << total_particles << " DM particles completed.\n" << std::endl;		
 }
 
 
