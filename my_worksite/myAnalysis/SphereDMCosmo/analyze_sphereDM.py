@@ -14,7 +14,7 @@ from yt.visualization.volume_rendering.transfer_function_helper import (Transfer
 24
 # Configuration and paths
 yt.set_log_level(40)   
-plotfiles_dir = "/data/mfulghieri/quokka/outputs/SphereDMCosmo/SphereDMCosmo_13321"
+plotfiles_dir = "/data/mfulghieri/quokka/outputs/SphereDMCosmo/SphereDMCosmo_13401_EdS_R80kpc"
 save_path = '/data/mfulghieri/quokka/my_worksite/myAnalysis/SphereDMCosmo/outputs'
 
 ts = yt.load(os.path.join(plotfiles_dir, "plt*"))  # load temporal serie
@@ -335,7 +335,7 @@ gas_y = unwrap_ts_coords(gas_y, box_length_mpc)
 gas_z = unwrap_ts_coords(gas_z, box_length_mpc)
 
 for i in range(len(gas_x)):
-    print(f"  snap {i:03d} | gas_x = {gas_x[i]:.6f} | dm_x = {dm_x[i]:.6f} | delta = {(dm_x[i]-gas_x[i])*1000:.3f} kpc")
+    print(f"  snap {i:03d} | gas_x = {gas_x[i]:.6f} | dm_x = {dm_x[i]:.6f} | delta = {(dm_x[i]-gas_x[i])*1000:.3f} Mpc")
 
 
 # ---- Particle/Gas absolute shift evolution ----

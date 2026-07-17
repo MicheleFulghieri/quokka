@@ -19,6 +19,10 @@ quokka.cfl        = 0.3
 quokka.bc = periodic periodic periodic
 
 
+# Domain resolution regression (0.5 Mpc)
+# 256  ->  1.95 kpc
+
+
 
 # *****************************************************************
 # Hydro floor, sphere and control
@@ -26,7 +30,7 @@ quokka.bc = periodic periodic periodic
 #problem.rho0_gas = 1.0e-20
 #problem.P0_gas   = 1.0e-30
 #problem.gamma    = 5.0 / 3.0
-sphere.R_sphere   = 3.086e23     # 100 kpc
+sphere.R_sphere   = 3.086e23     # 100 kpc 
 sphere.R_smooth   = 6.172e22;    # 1/5 R_sphere (20 kpc)
 #hydro.reconstruction_order = 2 # 1 (piecewise constant), 2 (piecewise linear; PLM), or 3 (piecewise parabolic; PPM).
 #hydro.plm_limiter = mc         # only for PLM, Monotonized Central 
@@ -41,6 +45,12 @@ hydro.use_dual_energy = 1
 # 1.8516e23    # 60 kpc     3.7032e22    # 1/5 R_sphere (12 kpc)
 # 1.5430e23    # 50 kpc     3.0860e22    # 1/5 R_sphere (10 kpc)
 # 1.2344e23    # 40 kpc     2.4688e22    # 1/5 R_sphere (8 kpc)
+# 9.2580e22    # 30 kpc     1.8516e22    # 1/5 R_sphere (6 kpc)
+# 6.1720e22    # 20 kpc     1.2344e22    # 1/5 R_sphere (4 kpc)
+# 3.0860e22    # 10 kpc     6.1720e21    # 1/5 R_sphere (2 kpc)
+# 1.5430e22    # 5 kpc      3.0860e21    # 1/5 R_sphere (1 kpc)
+
+
 
 # *****************************************************************
 # Cosmology

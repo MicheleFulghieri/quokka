@@ -196,7 +196,7 @@ template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
 					amrex::Real z_perturbed = qz;
 
 					x_perturbed -= Lx * std::floor((x_perturbed - prob_lo[0]) / Lx);
-					y_perturbed -= Ly * std::floor((y_perturbed - prob_lo[1]) / Ly);	// just for security, since only x is perturbed				
+					y_perturbed -= Ly * std::floor((y_perturbed - prob_lo[1]) / Ly);  // just for security, since only x is perturbed				
 					z_perturbed -= Lz * std::floor((z_perturbed - prob_lo[2]) / Lz);
 
 					// Convert the perturbed positions into indices

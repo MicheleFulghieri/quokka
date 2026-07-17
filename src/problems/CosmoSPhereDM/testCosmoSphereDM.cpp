@@ -338,5 +338,3 @@ auto problem_main() -> int {
 	amrex::ParallelDescriptor::Bcast(&status, 1, amrex::ParallelDescriptor::IOProcessorNumber());
     return status;
 }
-
-
