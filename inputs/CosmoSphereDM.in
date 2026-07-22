@@ -20,7 +20,12 @@ quokka.bc = periodic periodic periodic
 
 
 # Domain resolution regression (0.5 Mpc)
-# 256  ->  1.95 kpc
+# 256  ->  1.95  kpc
+# 128  ->  3.91  kpc
+# 64   ->  7.81  kpc
+# 32   ->  15.63 kpc
+# 16   ->  31.25 kpc  (blocking_factor = 16)
+# 8    ->  62.50 kpc  (blocking_factor = 8)
 
 
 

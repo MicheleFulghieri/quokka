@@ -23,5 +23,6 @@ do_subcycle = 0
 
 cooling.enabled = 1
 cooling.cooling_table_type = resampled
-cooling.hdf5_data_file = "../extern/cooling/CloudyData_UVB=HM2012_resampled.h5"
+cooling.hdf5_data_file = "../../../extern/cooling/CloudyData_UVB=HM2012_resampled.h5"
+#cooling.hdf5_data_file = "../extern/cooling/CloudyData_UVB=HM2012_resampled.h5"
 temperature_floor = 10  # K
