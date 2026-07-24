@@ -604,6 +604,8 @@ def main():
             
             print(f"-> Animation successfully saved at: {ani_slice_path}\n")
 
+            print(f"\nAll done. End at {datetime.now().time()}")
+
 
 if __name__ == "__main__":
     main()
