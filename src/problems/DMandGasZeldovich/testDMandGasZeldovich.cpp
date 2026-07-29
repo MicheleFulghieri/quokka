@@ -4,7 +4,9 @@
 // Released under the MIT license. See LICENSE file included in the GitHub repo.
 //==============================================================================
 /// \file testCosmologicalDarkMatter.cpp
-/// \brief DM-only Zel'dovich test (Zel’dovich, 1970).
+/// \brief This problem tests the interplay between hydro, CIC particles, gravity and
+/// cosmological expansion. A caustic formation in the center of the domain with
+/// a density and temperature peak is expected (Zel’dovich, 1970).
 ///
 
 #include "QuokkaSimulation.hpp"
@@ -18,20 +20,20 @@
 #include <AMReX_Print.H>
 
 
-struct DMZeldovich {
+struct DMandGasZeldovich {
 };
 
-template <> struct quokka::EOS_Traits<DMZeldovich> {
+template <> struct quokka::EOS_Traits<DMandGasZeldovich> {
 	static constexpr amrex::Real gamma = 5.0 / 3.0;
 	static constexpr amrex::Real mean_molecular_weight = C::m_u;
 };
 
-template <> struct Particle_Traits<DMZeldovich>{  // CIC from particle_types.hpp
+template <> struct Particle_Traits<DMandGasZeldovich>{  // CIC from particle_types.hpp
     static constexpr ParticleSwitch particle_switch = ParticleSwitch::CIC;
 };
 
-template <> struct Physics_Traits<DMZeldovich> {
-    static constexpr bool is_hydro_enabled        = false;
+template <> struct Physics_Traits<DMandGasZeldovich> {
+    static constexpr bool is_hydro_enabled        = true;
 	static constexpr bool is_cosmology_enabled    = true;
 	static constexpr bool is_self_gravity_enabled = true;
 	static constexpr bool is_radiation_enabled    = false;
@@ -45,23 +47,92 @@ template <> struct Physics_Traits<DMZeldovich> {
 	static constexpr amrex::Real omega_m = 1.0;             // EdS universe
 	static constexpr amrex::Real omega_r = 0.0;
 	static constexpr amrex::Real omega_lambda = 0.0;
-	static constexpr amrex::Real omega_b = 0.0;            
-	static constexpr amrex::Real omega_dm = 1.0;			// DM-only test
+	static constexpr amrex::Real omega_b = 0.01;            // 99% DMd
+	static constexpr amrex::Real omega_dm = 0.99;
 	static constexpr amrex::Real hubble_constant = 0.7;	    // h = 0.7 (H0 = 70 km/s/Mpc)
 	static constexpr amrex::Real a_init = 0.01;		        // start at z = 99
 	static constexpr amrex::Real cosmology_dt_limit = 0.01; // according to the default
 };
 
 
-template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
-	amrex::Real a_init = PhysicsTraits<DMZeldovich>::a_init;
+template <> void QuokkaSimulation<DMandGasZeldovich>::setInitialConditionsOnGrid(quokka::grid const &grid_elem) {
+
+	amrex::Real a_init = PhysicsTraits<DMandGasZeldovich>::a_init;
+    amrex::Real a_collapse = 0.5;
+    amrex::ParmParse pp_cosmo("cosmology");
+    pp_cosmo.query("a_init", a_init);
+    pp_cosmo.query("a_collapse", a_collapse);
+
+	const amrex::Real G = PhysicsTraits<DMandGasZeldovich>::gravitational_constant;
+	const amrex::Real h = PhysicsTraits<DMandGasZeldovich>::hubble_constant;
+	const amrex::Real Mpc_to_cm = C::parsec * 1.0e6; 
+	const amrex::Real H0 = (h * 100.0 * 1e5) / Mpc_to_cm;    // Hubble parameter today (s^-1)
+	const amrex::Real H_init = H0 * std::pow(a_init, -1.5);  // initial Hubble paramter for EdS from H0
+	const amrex::Real rho_crit_0 = 3.0 * H0 * H0 / (8.0 * amrex::Math::pi<amrex::Real>() * G);
+	const amrex::Real rho_mean = rho_crit_0;                 // comoving mean density = critical density (EdS flat universe)
+
+	// Thermodynamical status
+	const amrex::Real mu = quokka::EOS_Traits<DMandGasZeldovich>::mean_molecular_weight;
+	const amrex::Real gamma = quokka::EOS_Traits<DMandGasZeldovich>::gamma;
+	const amrex::Real rho_gas = Physics_Traits<DMandGasZeldovich>::omega_b * rho_mean;  // according to the budget
+    const amrex::Real T_init = 100.0;      // [K] start with cold gas
+	const amrex::Real P_mean = (rho_gas * C::k_B * T_init) / mu;  // ideal gas eos P = rho * Kb * T / mu
+	 
+	// Gas perturbation
+	amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const dx = grid_elem.dx_;       
+	amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> prob_lo  = grid_elem.prob_lo_;  
+	amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> prob_hi  = grid_elem.prob_hi_;  
+	const amrex::Real L_box = prob_hi[0] - prob_lo[0];
+	const amrex::Real k_wave = 2.0 * M_PI / L_box;
+	const amrex::Real amplitude  = a_init / a_collapse; 
+
+    const amrex::Box &indexRange = grid_elem.indexRange_;           // set of the indices of the grid local box
+    const amrex::Array4<amrex::Real> &state_cc = grid_elem.array_;  // Array4 is a pointer to the data
+
+    amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+		const amrex::Real x = prob_lo[0] + (i + static_cast<amrex::Real>(0.5)) * dx[0];  // x cell center
+		const amrex::Real x_w = x - L_box * std::floor(x / L_box);  // wrap Eulerian position into [0, L_box): root finder fails for ghost cells
+
+		// Function f(q) = q - (A/k)*sin(k*q) - x
+		auto f_zel = [=](amrex::Real q) {   
+			return q - (amplitude / k_wave) * std::sin(k_wave * q) - x_w;
+		};
+
+		// Zeros of f(q) via Quokka's root solver toms748_solve
+		const amrex::Real fa = f_zel(0.0);
+		const amrex::Real fb = f_zel(L_box);
+		int max_iter = 50;
+		const auto [qa, qb] = quokka::math::toms748_solve(  // return the structure binding of the interval enclosing the solution
+		    f_zel, amrex::Real(0.0), L_box, fa, fb,
+			quokka::math::eps_tolerance<amrex::Real>(static_cast<unsigned int>(30)), max_iter);  // stop when difference between the intterval extremes is less than 30 times the machine epsilon
+		const amrex::Real q = 0.5 * (qa + qb);  // lagrangian coordinate solution as interval midpoint
+        // Shift q to centre the collapse (q_center = q - L_box/2)
+        const amrex::Real q_center = q - 0.5 * L_box;
+        // Initialize hydro using shifted coordinate
+        const amrex::Real rho = rho_gas / (1.0 - amplitude * std::cos(k_wave * q_center)); // collapse at domain centre
+        const amrex::Real v = - a_init * H_init * (amplitude / k_wave) * std::sin(k_wave * q_center);
+        const amrex::Real P_local = P_mean * std::pow(rho / rho_gas, gamma);
+        const amrex::Real eint = quokka::EOS<DMandGasZeldovich>::ComputeEintFromPres(rho, P_local);
+
+        state_cc(i, j, k, HydroSystem<DMandGasZeldovich>::density_index)    = rho; 
+        state_cc(i, j, k, HydroSystem<DMandGasZeldovich>::x1Momentum_index) = rho * v;
+        state_cc(i, j, k, HydroSystem<DMandGasZeldovich>::x2Momentum_index) = 0;
+        state_cc(i, j, k, HydroSystem<DMandGasZeldovich>::x3Momentum_index) = 0;
+        state_cc(i, j, k, HydroSystem<DMandGasZeldovich>::internalEnergy_index) = eint;
+        state_cc(i, j, k, HydroSystem<DMandGasZeldovich>::energy_index) = eint + 0.5 * rho * (v * v);
+    });
+}
+
+
+template <> void QuokkaSimulation<DMandGasZeldovich>::createInitialCICParticles() {
+	amrex::Real a_init = PhysicsTraits<DMandGasZeldovich>::a_init;
 	amrex::Real a_collapse = 0.5;
 	amrex::ParmParse pp_cosmo("cosmology");
 	pp_cosmo.query("a_init", a_init);
 	pp_cosmo.query("a_collapse", a_collapse);
 
-	const amrex::Real G = PhysicsTraits<DMZeldovich>::gravitational_constant;
-	const amrex::Real h = PhysicsTraits<DMZeldovich>::hubble_constant;
+	const amrex::Real G = PhysicsTraits<DMandGasZeldovich>::gravitational_constant;
+	const amrex::Real h = PhysicsTraits<DMandGasZeldovich>::hubble_constant;
 	const amrex::Real Mpc_to_cm = C::parsec * 1.0e6; 
 	const amrex::Real H0 = (h * 100.0 * 1e5) / Mpc_to_cm;    // Hubble parameter today (s^-1)
 	const amrex::Real H_init = H0 * std::pow(a_init, -1.5);  // initial Hubble paramter for EdS from H0
@@ -87,7 +158,7 @@ template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
 	const amrex::Long npartot = static_cast<amrex::Long>(nparx) * npary * nparz;
 	
 	// Particle masses and distances
-	const amrex::Real tot_rho_dm  = Physics_Traits<DMZeldovich>::omega_dm * rho_mean;  // according to the budget
+	const amrex::Real tot_rho_dm  = Physics_Traits<DMandGasZeldovich>::omega_dm * rho_mean;  // according to the budget
 	const amrex::Real tot_mass_dm = tot_rho_dm * Lx * Ly * Lz;
 	const amrex::Real part_mass   = tot_mass_dm / npartot;
 	const amrex::Real dpartx      = Lx / nparx;
@@ -97,17 +168,15 @@ template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
 	const amrex::Real amplitude   = a_init / a_collapse;   // force collapse at a_collapse
 	const amrex::Real k_wave      = (2.0 * amrex::Math::pi<amrex::Real>()) / Lx;
 
-	amrex::Print() << "\nDomain width (x, y, z): (" << Lx / Mpc_to_cm << ", " << Ly / Mpc_to_cm << ", " << Lz / Mpc_to_cm << ")  Mpc" << std::endl;
-	amrex::Print() << "DM particles initialization along x,y,z: " << "(" << nparx << "x" << npary << "x" << nparz << ")..." << std::endl;
-	amrex::Print() << "Total mass density (corresponding to critical density now): " << rho_mean << "g / cm^3" << std::endl;
-	amrex::Print() << "Total mass (DM only) in the domain (rho * Lx * Ly * Lz): " << rho_mean * Lx * Ly * Lz << "g" << std::endl;
-	amrex::Print() << "Mass per DM particle: " << part_mass << "g" << std::endl;
-	amrex::Print() << "Particle perturbation amplitude (a_in / (a_coll * k)): " << amplitude / k_wave << " cm" << std::endl;
+	amrex::Print() << "DM particles initialization along x,y,z: " 
+	               << "(" << nparx << "x" << npary << "x" << nparz << ")..." << std::endl;
+	amrex::Print() << "Mass per DM particle: " 
+	               << part_mass << "g" << std::endl;
 
 	for (amrex::MFIter mfi(state_new_cc_[lev]); mfi.isValid(); ++mfi) {
 		amrex::Box const& valid_box = mfi.validbox();   // current valid eulerian box
 		auto &particles = pc.GetParticles(lev)[std::make_pair(mfi.index(), mfi.LocalTileIndex())];  // local particle container of the current box
-		
+
 		// Calculate the unperturbed Lagrangian positions
 		for (int i = 0; i < nparx; ++i) {
 			for (int j = 0; j < npary; ++j) {
@@ -117,7 +186,7 @@ template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
 					amrex::Real qz = prob_lo[2] + (k + static_cast<amrex::Real>(0.5)) * dpartz;
 
 					// Shift qx to centre the collapse (qx_center = qx - L_box/2)
-        			const amrex::Real qx_center    = qx - 0.5 * Lx;
+        			const amrex::Real qx_center = qx - 0.5 * Lx;
         			const amrex::Real displacement = - (amplitude / k_wave) * std::sin(k_wave * qx_center);
         			const amrex::Real v_pec        = a_init * H_init * displacement;
 
@@ -160,7 +229,7 @@ template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
 }
 
 
-template <> void QuokkaSimulation<DMZeldovich>::ComputeDerivedVar(int lev, std::string const &dname, amrex::MultiFab &mf, const int ncomp_cc_in) const
+template <> void QuokkaSimulation<DMandGasZeldovich>::ComputeDerivedVar(int lev, std::string const &dname, amrex::MultiFab &mf, const int ncomp_cc_in) const
 {
 	if (dname == "gpot") {
 		const int ncomp = ncomp_cc_in;
@@ -173,18 +242,18 @@ template <> void QuokkaSimulation<DMZeldovich>::ComputeDerivedVar(int lev, std::
 
 auto problem_main() -> int {
 	int status = 0;
-	QuokkaSimulation<DMZeldovich> sim;
+	QuokkaSimulation<DMandGasZeldovich> sim;
 
 	sim.readParameters();
 
-	amrex::Real a_init = PhysicsTraits<DMZeldovich>::a_init;
+	amrex::Real a_init = PhysicsTraits<DMandGasZeldovich>::a_init;
 	amrex::Real a_collapse = 0.5;
 	amrex::ParmParse pp_cosmo("cosmology");
 	pp_cosmo.query("a_init", a_init);
 	pp_cosmo.query("a_collapse", a_collapse);
 
-	const amrex::Real G = PhysicsTraits<DMZeldovich>::gravitational_constant;
-	const amrex::Real h = PhysicsTraits<DMZeldovich>::hubble_constant;
+	const amrex::Real G = PhysicsTraits<DMandGasZeldovich>::gravitational_constant;
+	const amrex::Real h = PhysicsTraits<DMandGasZeldovich>::hubble_constant;
 	const amrex::Real Mpc_to_cm = C::parsec * 1.0e6; 
 	const amrex::Real H0 = (h * 100.0 * 1e5) / Mpc_to_cm;
 
@@ -192,7 +261,7 @@ auto problem_main() -> int {
 	amrex::Real a_final = 1.25 * a_collapse; // default is past collapse to see caustics
 	pp_cosmo.query("a_final", a_final);
 
-	const amrex::Real t_init  = (2.0 / 3.0) * (1.0 / H0) * std::pow(a_init, 1.5);
+	const amrex::Real t_init = (2.0 / 3.0) * (1.0 / H0) * std::pow(a_init, 1.5);
 	const amrex::Real t_final = (2.0 / 3.0) * (1.0 / H0) * std::pow(a_final, 1.5);
 	sim.stopTime_ = t_final - t_init;
 
@@ -210,4 +279,3 @@ auto problem_main() -> int {
 
 	return status;
 }
-

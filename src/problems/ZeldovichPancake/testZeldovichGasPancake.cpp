@@ -4,15 +4,15 @@
 #include "physics_info.hpp"
 #include <cmath>
 
-struct ZeldovichProblem {
+struct ZeldovichGas {
 };
 
-template <> struct quokka::EOS_Traits<ZeldovichProblem> {
+template <> struct quokka::EOS_Traits<ZeldovichGas> {
 	static constexpr double gamma = 5.0 / 3.0;
 	static constexpr double mean_molecular_weight = C::m_u;
 };
 
-template <> struct Physics_Traits<ZeldovichProblem> {
+template <> struct Physics_Traits<ZeldovichGas> {
 	static constexpr bool is_hydro_enabled = true;
 	static constexpr bool is_cosmology_enabled = true;
 	static constexpr bool is_self_gravity_enabled = true;
@@ -32,7 +32,7 @@ template <> struct Physics_Traits<ZeldovichProblem> {
 	static constexpr double cosmology_dt_limit = 0.01; // max delta_a / a per step
 };
 
-template <> void QuokkaSimulation<ZeldovichProblem>::setInitialConditionsOnGrid(quokka::grid const &grid_elem)
+template <> void QuokkaSimulation<ZeldovichGas>::setInitialConditionsOnGrid(quokka::grid const &grid_elem)
 {
 	const amrex::Box &indexRange = grid_elem.indexRange_;      // set of the indices of the grid patch (e.g. from 0 to 31 in x, y, z)
 	const amrex::Array4<double> &state_cc = grid_elem.array_;  // Array4 is a pointer to the data
@@ -42,7 +42,7 @@ template <> void QuokkaSimulation<ZeldovichProblem>::setInitialConditionsOnGrid(
 	const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &prob_hi = grid_elem.prob_hi_;
 
 	const amrex::Real L = prob_hi[0] - prob_lo[0];
-	const amrex::Real a_init = PhysicsTraits<ZeldovichProblem>::a_init;
+	const amrex::Real a_init = PhysicsTraits<ZeldovichGas>::a_init;
 	const amrex::Real z_init = 1.0 / a_init - 1.0;
 	const amrex::Real z_collapse = 1.0; // collapse at z=1 (a=0.5)
 	const amrex::Real a_collapse = 1.0 / (1.0 + z_collapse);
@@ -51,10 +51,10 @@ template <> void QuokkaSimulation<ZeldovichProblem>::setInitialConditionsOnGrid(
 
 	// H(a) for EdS: H(a) = H0 * a^(-3/2)
 	const amrex::Real Mpc_to_cm = 3.08567758e24;
-	const amrex::Real h = PhysicsTraits<ZeldovichProblem>::hubble_constant;
+	const amrex::Real h = PhysicsTraits<ZeldovichGas>::hubble_constant;
 	const amrex::Real H0 = (h * 100.0 * 1e5) / Mpc_to_cm;
 	const amrex::Real H_init = H0 * std::pow(a_init, -1.5);
-	const amrex::Real G = PhysicsTraits<ZeldovichProblem>::gravitational_constant;
+	const amrex::Real G = PhysicsTraits<ZeldovichGas>::gravitational_constant;
 	const amrex::Real rho_crit_0 = 3.0 * H0 * H0 / (8.0 * M_PI * G);
 	const amrex::Real rho_mean = rho_crit_0; // comoving mean density for EdS
 
@@ -76,35 +76,35 @@ template <> void QuokkaSimulation<ZeldovichProblem>::setInitialConditionsOnGrid(
 		const amrex::Real rho = rho_mean / (1.0 - delta);
 		const amrex::Real v = a_init * H_init * (amplitude / k_wave) * std::sin(k_wave * x);
 
-		const amrex::Real gamma = quokka::EOS_Traits<ZeldovichProblem>::gamma;
+		const amrex::Real gamma = quokka::EOS_Traits<ZeldovichGas>::gamma;
 		const amrex::Real eint  = (rho * C::k_B * T_init) / (C::m_u * (gamma - 1.0));
 
-		state_cc(i, j, k, HydroSystem<ZeldovichProblem>::density_index) = rho;
-		state_cc(i, j, k, HydroSystem<ZeldovichProblem>::x1Momentum_index) = rho * v;
-		state_cc(i, j, k, HydroSystem<ZeldovichProblem>::x2Momentum_index) = 0;
-		state_cc(i, j, k, HydroSystem<ZeldovichProblem>::x3Momentum_index) = 0;
-		state_cc(i, j, k, HydroSystem<ZeldovichProblem>::internalEnergy_index) = eint;
-		state_cc(i, j, k, HydroSystem<ZeldovichProblem>::energy_index) = eint + 0.5 * rho * v * v;
+		state_cc(i, j, k, HydroSystem<ZeldovichGas>::density_index) = rho;
+		state_cc(i, j, k, HydroSystem<ZeldovichGas>::x1Momentum_index) = rho * v;
+		state_cc(i, j, k, HydroSystem<ZeldovichGas>::x2Momentum_index) = 0;
+		state_cc(i, j, k, HydroSystem<ZeldovichGas>::x3Momentum_index) = 0;
+		state_cc(i, j, k, HydroSystem<ZeldovichGas>::internalEnergy_index) = eint;
+		state_cc(i, j, k, HydroSystem<ZeldovichGas>::energy_index) = eint + 0.5 * rho * v * v;
 	});
 }
 
 template <>
-void QuokkaSimulation<ZeldovichProblem>::computeReferenceSolution(amrex::MultiFab & /*ref*/, amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const & /*dx*/,
+void QuokkaSimulation<ZeldovichGas>::computeReferenceSolution(amrex::MultiFab & /*ref*/, amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const & /*dx*/,
 								  amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const & /*prob_lo*/)
 {
 }
 
 auto problem_main() -> int
 {
-	QuokkaSimulation<ZeldovichProblem> sim;
+	QuokkaSimulation<ZeldovichGas> sim;
 
 	const amrex::Real z_collapse = 1.0;
 	const amrex::Real a_collapse = 1.0 / (1.0 + z_collapse);
-	const amrex::Real a_init = PhysicsTraits<ZeldovichProblem>::a_init;
+	const amrex::Real a_init = PhysicsTraits<ZeldovichGas>::a_init;
 
 	// Einstein-de Sitter age: t(a) = (2/3) * (1/H0) * a^(3/2)
 	const amrex::Real Mpc_to_cm = 3.08567758e24;
-	const amrex::Real h = PhysicsTraits<ZeldovichProblem>::hubble_constant;
+	const amrex::Real h = PhysicsTraits<ZeldovichGas>::hubble_constant;
 	const amrex::Real H0 = (h * 100.0 * 1e5) / Mpc_to_cm;
 	const amrex::Real t_init = (2.0 / 3.0) * (1.0 / H0) * std::pow(a_init, 1.5);
 	const amrex::Real t_collapse = (2.0 / 3.0) * (1.0 / H0) * std::pow(a_collapse, 1.5);
@@ -117,8 +117,8 @@ auto problem_main() -> int
 	sim.evolve();
 
 	// Check if the density perturbation has grown
-	const amrex::Real rho_min = sim.state_new_cc_[0].min(HydroSystem<ZeldovichProblem>::density_index);
-	const amrex::Real rho_max = sim.state_new_cc_[0].max(HydroSystem<ZeldovichProblem>::density_index);
+	const amrex::Real rho_min = sim.state_new_cc_[0].min(HydroSystem<ZeldovichGas>::density_index);
+	const amrex::Real rho_max = sim.state_new_cc_[0].max(HydroSystem<ZeldovichGas>::density_index);
 
 	amrex::Print() << "\nZel'dovich Pancake Results:\n";
 	amrex::Print() << "  Final a = " << sim.a_now_ << " (expected " << a_collapse << ")\n";

@@ -1,1 +1,1 @@
-quokka_add_problem(JOB_NAME ZeldovichPancake)
+quokka_add_problem(JOB_NAME ZeldovichGasPancake)

@@ -2,13 +2,12 @@
 # Problem size, geometry and resolution  (1 Mpc = 3.08567758e24 cm)
 # *****************************************************************
 geometry.prob_lo       =  0.0  0.0  0.0 
-geometry.prob_hi       =  1.543e24 1.543e24 1.543e24   # 0.5 Mpc 0.5 Mpc 0.5 Mpc  
-#geometry.prob_hi       =  3.086e25 3.086e25 3.086e25   # 10 Mpc 10 Mpc 10 Mpc   
+geometry.prob_hi       =  3.086e25 3.086e25 3.086e25   # 10 Mpc 10 Mpc 10 Mpc   
 
 
 amr.n_cell          = 128 128 128  # resolution 
 amr.max_level       = 0            # number of levels = max_level + 1
-amr.blocking_factor = 8            # grid size must be divisible by this
+amr.blocking_factor = 32           # grid size must be divisible by this
 do_subcycle         = 0            # Poisson solver doesn't support AMR subcycling in quokka
 
 quokka.bc = periodic periodic periodic
@@ -25,36 +24,32 @@ particles.npar_y = 256
 particles.npar_z = 256
 
 
-# Domain resolution regression (0.5 Mpc)
-# 512  ->  0.98  kpc
-# 256  ->  1.95  kpc
-# 128  ->  3.91  kpc
-# 64   ->  7.81  kpc
-# 32   ->  15.63 kpc
-# 16   ->  31.25 kpc  (blocking_factor = 16)
-# 8    ->  62.50 kpc  (blocking_factor = 8)
-# WHILE amplitude_in = (a_in/a_coll) * (Lx / 2pi) = 15.92 kpc
 
 
-# Domain resolution regression (10 Mpc)
-# 256  ->  156.25  kpc
-# 128  ->  78.125  kpc
-# 64   ->  39.063  kpc
-# WHILE amplitude_in = (a_in/a_coll) * (Lx / 2pi) = 31.84 kpc
+# *****************************************************************
+# Hydro 
+# *****************************************************************
+#problem.rho0_gas = 1.0e-20
+#problem.P0_gas   = 1.0e-30
+#problem.gamma    = 5.0 / 3.0
+hydro.use_dual_energy = 1      # t = 100K means Eint = Etot - Ek problems
+#hydro.reconstruction_order = 2 # 1 (piecewise constant), 2 (piecewise linear; PLM), or 3 (piecewise parabolic; PPM).
+#hydro.plm_limiter = mc         # only for PLM, Monotonized Central 
+
 
 
 # *****************************************************************
 # Cosmology
 # *****************************************************************
 cosmology.hubble_constant = 0.7
-cosmology.omega_m         = 1.0    # Einstein-de Sitter
-cosmology.omega_r         = 0.0  
-cosmology.omega_lambda    = 0.0
-cosmology.omega_b         = 0.0     
-cosmology.omega_dm        = 1.0    # DM-only
+cosmology.omega_m         = 1.00000    # Einstein-de Sitter
+cosmology.omega_r         = 0.00000  
+cosmology.omega_lambda    = 0.00000
+cosmology.omega_b         = 0.01000     
+cosmology.omega_dm        = 0.99000    # 99% DM
 cosmology.a_init          = 0.01
 cosmology.a_collapse      = 0.5
-cosmology.a_final         = 0.65
+cosmology.a_final         = 1.25
 
 
 # *****************************************************************
