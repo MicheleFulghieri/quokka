@@ -343,7 +343,7 @@ def main():
 
     # ---- Animation: delta profile ----
     if len(frames_delta) > 1:
-        fig_an, ax_an = plt.subplots(figsize=(10, 5))
+        fig_an, ax_an = plt.subplots(figsize=(8, 5))
         line_num, = ax_an.plot([], [], lw=2, color="#1f77b4", label="Quokka")
         line_anal, = ax_an.plot([], [], lw=2, ls="--", color="crimson",
                                 label="Analytical")
