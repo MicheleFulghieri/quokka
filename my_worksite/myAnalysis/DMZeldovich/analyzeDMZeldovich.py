@@ -444,7 +444,7 @@ def main():
         vmin_ani = max(init_map[init_map > 0].min(), 1e-3)
         vmax_ani = max(f[0].max() for f in frames_2d)
 
-        fig_2da, ax_2da = plt.subplots(figsize=(10, 5))
+        fig_2da, ax_2da = plt.subplots(figsize=(8, 5))
         im_2da = ax_2da.imshow(
             init_map.T, origin="lower",
             extent=[init_xe[0], init_xe[-1], init_ye[0], init_ye[-1]],
