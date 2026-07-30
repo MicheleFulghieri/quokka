@@ -2,7 +2,7 @@
 # Problem size, geometry and resolution  (1 Mpc = 3.08567758e24 cm)
 # *****************************************************************
 geometry.prob_lo       =  0.0  0.0  0.0 
-geometry.prob_hi       =  1.543e24 1.543e24 1.543e24   # 0.5 Mpc 0.5 Mpc 0.5 Mpc  
+geometry.prob_hi       =  1.543e23 1.543e23 1.543e23   # 0.05 Mpc 0.05 Mpc 0.05 Mpc  
 #geometry.prob_hi       =  3.086e25 3.086e25 3.086e25   # 10 Mpc 10 Mpc 10 Mpc   
 
 
@@ -50,8 +50,8 @@ cosmology.hubble_constant = 0.7
 cosmology.omega_m         = 1.0    # Einstein-de Sitter
 cosmology.omega_r         = 0.0  
 cosmology.omega_lambda    = 0.0
-cosmology.omega_b         = 0.0     
-cosmology.omega_dm        = 1.0    # DM-only
+cosmology.omega_b         = 0.001     
+cosmology.omega_dm        = 0.999
 cosmology.a_init          = 0.01
 cosmology.a_collapse      = 0.5
 cosmology.a_final         = 0.65

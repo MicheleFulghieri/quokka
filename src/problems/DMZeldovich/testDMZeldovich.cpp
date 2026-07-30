@@ -31,7 +31,7 @@ template <> struct Particle_Traits<DMZeldovich>{  // CIC from particle_types.hpp
 };
 
 template <> struct Physics_Traits<DMZeldovich> {
-    static constexpr bool is_hydro_enabled        = false;
+    static constexpr bool is_hydro_enabled        = true;
 	static constexpr bool is_cosmology_enabled    = true;
 	static constexpr bool is_self_gravity_enabled = true;
 	static constexpr bool is_radiation_enabled    = false;
@@ -45,13 +45,40 @@ template <> struct Physics_Traits<DMZeldovich> {
 	static constexpr amrex::Real omega_m = 1.0;             // EdS universe
 	static constexpr amrex::Real omega_r = 0.0;
 	static constexpr amrex::Real omega_lambda = 0.0;
-	static constexpr amrex::Real omega_b = 0.0;            
-	static constexpr amrex::Real omega_dm = 1.0;			// DM-only test
+	static constexpr amrex::Real omega_b = 0.001;            
+	static constexpr amrex::Real omega_dm = 0.999;			// DM-only test
 	static constexpr amrex::Real hubble_constant = 0.7;	    // h = 0.7 (H0 = 70 km/s/Mpc)
 	static constexpr amrex::Real a_init = 0.01;		        // start at z = 99
 	static constexpr amrex::Real cosmology_dt_limit = 0.01; // according to the default
 };
 
+
+template <> void QuokkaSimulation<DMZeldovich>::setInitialConditionsOnGrid(quokka::grid const &grid_elem)
+{
+	const amrex::Box &indexRange = grid_elem.indexRange_;
+	const amrex::Array4<double> &state_cc = grid_elem.array_;
+
+	amrex::Real a_init = PhysicsTraits<DMZeldovich>::a_init;
+	amrex::ParmParse pp_cosmo("cosmology");
+	pp_cosmo.query("a_init", a_init);
+	const amrex::Real G = PhysicsTraits<DMZeldovich>::gravitational_constant;
+	const amrex::Real h = PhysicsTraits<DMZeldovich>::hubble_constant;
+	const amrex::Real Mpc_to_cm = C::parsec * 1.0e6; 
+	const amrex::Real H0 = (h * 100.0 * 1e5) / Mpc_to_cm;    // Hubble parameter today (s^-1)
+	const amrex::Real H_init = H0 * std::pow(a_init, -1.5);  // initial Hubble paramter for EdS from H0
+	const amrex::Real rho_crit_0 = 3.0 * H0 * H0 / (8.0 * amrex::Math::pi<amrex::Real>() * G);  // 9.20 * 10^(-30) g/cm^3
+	const amrex::Real omega_b = Physics_Traits<DMZeldovich>::omega_b;   
+	const amrex::Real rho_b   = omega_b * rho_crit_0;        // 9.20 * 10^(-33) g/cm^3
+
+	amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+		state_cc(i, j, k, HydroSystem<DMZeldovich>::density_index) = rho_b;
+		state_cc(i, j, k, HydroSystem<DMZeldovich>::x1Momentum_index) = 0;
+		state_cc(i, j, k, HydroSystem<DMZeldovich>::x2Momentum_index) = 0;
+		state_cc(i, j, k, HydroSystem<DMZeldovich>::x3Momentum_index) = 0;
+		state_cc(i, j, k, HydroSystem<DMZeldovich>::energy_index) = 0;
+		state_cc(i, j, k, HydroSystem<DMZeldovich>::internalEnergy_index) = 0;
+	});
+}
 
 template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
 	amrex::Real a_init = PhysicsTraits<DMZeldovich>::a_init;
@@ -62,7 +89,9 @@ template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
 
 	const amrex::Real G = PhysicsTraits<DMZeldovich>::gravitational_constant;
 	const amrex::Real h = PhysicsTraits<DMZeldovich>::hubble_constant;
-	const amrex::Real Mpc_to_cm = C::parsec * 1.0e6; 
+	const amrex::Real pc_to_cm = C::parsec;
+	const amrex::Real kpc_to_cm = pc_to_cm * 1.0e3; 
+	const amrex::Real Mpc_to_cm = pc_to_cm * 1.0e6; 
 	const amrex::Real H0 = (h * 100.0 * 1e5) / Mpc_to_cm;    // Hubble parameter today (s^-1)
 	const amrex::Real H_init = H0 * std::pow(a_init, -1.5);  // initial Hubble paramter for EdS from H0
 	const amrex::Real rho_crit_0 = 3.0 * H0 * H0 / (8.0 * amrex::Math::pi<amrex::Real>() * G);
@@ -102,7 +131,7 @@ template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
 	amrex::Print() << "Total mass density (corresponding to critical density now): " << rho_mean << "g / cm^3" << std::endl;
 	amrex::Print() << "Total mass (DM only) in the domain (rho * Lx * Ly * Lz): " << rho_mean * Lx * Ly * Lz << "g" << std::endl;
 	amrex::Print() << "Mass per DM particle: " << part_mass << "g" << std::endl;
-	amrex::Print() << "Particle perturbation amplitude (a_in / (a_coll * k)): " << amplitude / k_wave << " cm" << std::endl;
+	amrex::Print() << "Particle perturbation amplitude (a_in / (a_coll * k)): " << (amplitude / k_wave) / kpc_to_cm << " kpc" << std::endl;
 
 	for (amrex::MFIter mfi(state_new_cc_[lev]); mfi.isValid(); ++mfi) {
 		amrex::Box const& valid_box = mfi.validbox();   // current valid eulerian box
