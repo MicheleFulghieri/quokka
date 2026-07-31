@@ -41,7 +41,7 @@ template <> struct Physics_Traits<DMZeldovich> {
 	static constexpr bool is_dust_enabled         = false;
 	static constexpr UnitSystem unit_system = UnitSystem::CGS;
 
-// Cosmology parameters
+	// Cosmology parameters
 	static constexpr amrex::Real omega_m = 1.0;             // EdS universe
 	static constexpr amrex::Real omega_r = 0.0;
 	static constexpr amrex::Real omega_lambda = 0.0;
@@ -61,14 +61,26 @@ template <> void QuokkaSimulation<DMZeldovich>::setInitialConditionsOnGrid(quokk
 	amrex::Real a_init = PhysicsTraits<DMZeldovich>::a_init;
 	amrex::ParmParse pp_cosmo("cosmology");
 	pp_cosmo.query("a_init", a_init);
+
+	// Tune mean density: the simulation comoving mean density sets the effective
+	// critical density for this EdS test and the Hubble parameter is scaled accordingly,
+	// to keep consistency in the Friedman solver.
+	const amrex::Real rho_crit_sim = this->comoving_mean_density_;
 	const amrex::Real G = PhysicsTraits<DMZeldovich>::gravitational_constant;
-	const amrex::Real h = PhysicsTraits<DMZeldovich>::hubble_constant;
-	const amrex::Real Mpc_to_cm = C::parsec * 1.0e6; 
-	const amrex::Real H0 = (h * 100.0 * 1e5) / Mpc_to_cm;    // Hubble parameter today (s^-1)
-	const amrex::Real H_init = H0 * std::pow(a_init, -1.5);  // initial Hubble paramter for EdS from H0
-	const amrex::Real rho_crit_0 = 3.0 * H0 * H0 / (8.0 * amrex::Math::pi<amrex::Real>() * G);  // 9.20 * 10^(-30) g/cm^3
-	const amrex::Real omega_b = Physics_Traits<DMZeldovich>::omega_b;   
-	const amrex::Real rho_b   = omega_b * rho_crit_0;        // 9.20 * 10^(-33) g/cm^3
+	const amrex::Real h_real  = PhysicsTraits<DMZeldovich>::hubble_constant;
+	const amrex::Real pc_to_cm = C::parsec;
+	const amrex::Real kpc_to_cm = pc_to_cm * 1.0e3;
+	const amrex::Real Mpc_to_cm = pc_to_cm * 1.0e6;
+	const amrex::Real H0_real = (h_real * 100.0 * 1e5) / Mpc_to_cm;    // Hubble parameter today (s^-1)
+	const amrex::Real rho_crit_0_real = 3.0 * H0_real * H0_real / (8.0 * amrex::Math::pi<amrex::Real>() * G);
+	const amrex::Real mass_reduction_fraction = rho_crit_sim / rho_crit_0_real;
+
+	const amrex::Real h_sim  = h_real * std::sqrt(mass_reduction_fraction);
+	const amrex::Real H0_sim = (h_sim * 100.0 * 1e5) / Mpc_to_cm;
+	const amrex::Real H_init = H0_sim * std::pow(a_init, -1.5);  // initial Hubble paramter for EdS from H0
+	const amrex::Real rho_sim = rho_crit_sim;
+	const amrex::Real omega_b = Physics_Traits<DMZeldovich>::omega_b;
+	const amrex::Real rho_b   = omega_b * rho_sim;
 
 	amrex::ParallelFor(indexRange, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 		state_cc(i, j, k, HydroSystem<DMZeldovich>::density_index) = rho_b;
@@ -87,16 +99,22 @@ template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
 	pp_cosmo.query("a_init", a_init);
 	pp_cosmo.query("a_collapse", a_collapse);
 
+	// Consistent EdS with tuned critical density
+	const amrex::Real rho_crit_sim = this->comoving_mean_density_;
 	const amrex::Real G = PhysicsTraits<DMZeldovich>::gravitational_constant;
-	const amrex::Real h = PhysicsTraits<DMZeldovich>::hubble_constant;
+	const amrex::Real h_real  = PhysicsTraits<DMZeldovich>::hubble_constant;
 	const amrex::Real pc_to_cm = C::parsec;
-	const amrex::Real kpc_to_cm = pc_to_cm * 1.0e3; 
-	const amrex::Real Mpc_to_cm = pc_to_cm * 1.0e6; 
-	const amrex::Real H0 = (h * 100.0 * 1e5) / Mpc_to_cm;    // Hubble parameter today (s^-1)
-	const amrex::Real H_init = H0 * std::pow(a_init, -1.5);  // initial Hubble paramter for EdS from H0
-	const amrex::Real rho_crit_0 = 3.0 * H0 * H0 / (8.0 * amrex::Math::pi<amrex::Real>() * G);
-	const amrex::Real rho_mean = rho_crit_0;                 // comoving mean density = critical density (EdS flat universe)
-	
+	const amrex::Real kpc_to_cm = pc_to_cm * 1.0e3;
+	const amrex::Real Mpc_to_cm = pc_to_cm * 1.0e6;
+	const amrex::Real H0_real = (h_real * 100.0 * 1e5) / Mpc_to_cm;    // Hubble parameter today (s^-1)
+	const amrex::Real rho_crit_0_real = 3.0 * H0_real * H0_real / (8.0 * amrex::Math::pi<amrex::Real>() * G);
+	const amrex::Real mass_reduction_fraction = rho_crit_sim / rho_crit_0_real;
+
+	const amrex::Real h_sim  = h_real * std::sqrt(mass_reduction_fraction);
+	const amrex::Real H0_sim = (h_sim * 100.0 * 1e5) / Mpc_to_cm;
+	const amrex::Real H_init = H0_sim * std::pow(a_init, -1.5);  // initial Hubble paramter for EdS from H0
+	const amrex::Real rho_sim = rho_crit_sim;
+
 	const int lev = 0;
 	auto &pc = *CICParticles;                       // take by ref the content of the unique_ptr CICParticles 
 	const amrex::Geometry &geom = this->geom[lev];
@@ -116,7 +134,7 @@ template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
 	const amrex::Long npartot = static_cast<amrex::Long>(nparx) * npary * nparz;
 	
 	// Particle masses and distances
-	const amrex::Real tot_rho_dm  = Physics_Traits<DMZeldovich>::omega_dm * rho_mean;  // according to the budget
+	const amrex::Real tot_rho_dm  = Physics_Traits<DMZeldovich>::omega_dm * rho_sim;  // according to the budget
 	const amrex::Real tot_mass_dm = tot_rho_dm * Lx * Ly * Lz;
 	const amrex::Real part_mass   = tot_mass_dm / npartot;
 	const amrex::Real dpartx      = Lx / nparx;
@@ -126,12 +144,22 @@ template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
 	const amrex::Real amplitude   = a_init / a_collapse;   // force collapse at a_collapse
 	const amrex::Real k_wave      = (2.0 * amrex::Math::pi<amrex::Real>()) / Lx;
 
-	amrex::Print() << "\nDomain width (x, y, z): (" << Lx / kpc_to_cm << ", " << Ly / kpc_to_cm << ", " << Lz / kpc_to_cm << ")  kpc" << std::endl;
-	amrex::Print() << "DM particles initialization along x,y,z: " << "(" << nparx << "x" << npary << "x" << nparz << ")..." << std::endl;
-	amrex::Print() << "Total mass density (corresponding to critical density now): " << rho_mean << "g / cm^3" << std::endl;
-	amrex::Print() << "Total mass (DM only) in the domain (rho * Lx * Ly * Lz): " << rho_mean * Lx * Ly * Lz << "g" << std::endl;
-	amrex::Print() << "Mass per DM particle: " << part_mass << "g" << std::endl;
-	amrex::Print() << "Particle perturbation amplitude (a_in / (a_coll * k)): " << (amplitude / k_wave) / kpc_to_cm << " kpc" << std::endl;
+	amrex::Print() << "\n=== DM Zel'dovich initialization summary ===" << std::endl;
+	amrex::Print() << "Domain size (x, y, z): "
+		<< (Lx / kpc_to_cm) << " kpc, "
+		<< (Ly / kpc_to_cm) << " kpc, "
+		<< (Lz / kpc_to_cm) << " kpc" << std::endl;
+	amrex::Print() << "Particle grid: " << nparx << " x " << npary << " x " << nparz << " = " << npartot << " particles" << std::endl;
+	amrex::Print() << "Simulation mean density: " << rho_sim << " g/cm^3" << std::endl;
+	amrex::Print() << "Equivalent real EdS critical density: " << rho_crit_0_real << " g/cm^3" << std::endl;
+	amrex::Print() << "Mass reduction fraction: " << mass_reduction_fraction << " (rho_sim / rho_crit_0_real)" << std::endl;
+	amrex::Print() << "Hubble parameter scaling: h_sim = sqrt(mass_fraction) * h_real = "
+		<< h_sim << " (h_real = " << h_real << ")" << std::endl;
+	amrex::Print() << "Initial Hubble rate: H0_sim = " << H0_sim << " s^-1" << std::endl;
+	amrex::Print() << "Total DM mass in domain: " << tot_mass_dm << " g" << std::endl;
+	amrex::Print() << "Mass per DM particle: " << part_mass << " g" << std::endl;
+	amrex::Print() << "Perturbation amplitude: " << (amplitude / k_wave) / kpc_to_cm << " kpc" << std::endl;
+	amrex::Print() << "===========================================" << std::endl;
 
 	for (amrex::MFIter mfi(state_new_cc_[lev]); mfi.isValid(); ++mfi) {
 		amrex::Box const& valid_box = mfi.validbox();   // current valid eulerian box
@@ -212,17 +240,28 @@ auto problem_main() -> int {
 	pp_cosmo.query("a_init", a_init);
 	pp_cosmo.query("a_collapse", a_collapse);
 
+	// Consistent EdS with tuned critical density
+	const amrex::Real rho_crit_sim = sim.comoving_mean_density_;
 	const amrex::Real G = PhysicsTraits<DMZeldovich>::gravitational_constant;
-	const amrex::Real h = PhysicsTraits<DMZeldovich>::hubble_constant;
-	const amrex::Real Mpc_to_cm = C::parsec * 1.0e6; 
-	const amrex::Real H0 = (h * 100.0 * 1e5) / Mpc_to_cm;
+	const amrex::Real h_real  = PhysicsTraits<DMZeldovich>::hubble_constant;
+	const amrex::Real pc_to_cm = C::parsec;
+	const amrex::Real kpc_to_cm = pc_to_cm * 1.0e3; 
+	const amrex::Real Mpc_to_cm = pc_to_cm * 1.0e6; 
+	const amrex::Real H0_real = (h_real * 100.0 * 1e5) / Mpc_to_cm;    // Hubble parameter today (s^-1)
+	const amrex::Real rho_crit_0_real = 3.0 * H0_real * H0_real / (8.0 * amrex::Math::pi<amrex::Real>() * G);
+	const amrex::Real mass_reduction_fraction = rho_crit_sim / rho_crit_0_real;
+
+	const amrex::Real h_sim  = h_real * std::sqrt(mass_reduction_fraction);
+	const amrex::Real H0_sim = (h_sim * 100.0 * 1e5) / Mpc_to_cm;
+	const amrex::Real H_init = H0_sim * std::pow(a_init, -1.5);  // initial Hubble paramter for EdS from H0
+
 
 	// Evolve until a_final (which will form caustics)
-	amrex::Real a_final = 1.25 * a_collapse; // default is past collapse to see caustics
+	amrex::Real a_final = 1.15 * a_collapse; // default is past collapse to see caustics
 	pp_cosmo.query("a_final", a_final);
 
-	const amrex::Real t_init  = (2.0 / 3.0) * (1.0 / H0) * std::pow(a_init, 1.5);
-	const amrex::Real t_final = (2.0 / 3.0) * (1.0 / H0) * std::pow(a_final, 1.5);
+	const amrex::Real t_init  = (2.0 / 3.0) * (1.0 / H0_sim) * std::pow(a_init, 1.5);
+	const amrex::Real t_final = (2.0 / 3.0) * (1.0 / H0_sim) * std::pow(a_final, 1.5);
 	sim.stopTime_ = t_final - t_init;
 
 	const amrex::Geometry &geom = sim.geom[0];

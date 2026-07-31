@@ -1,0 +1,74 @@
+# ------------------------------------------------------------------
+# TOML configuration equivalent of inputs/DMZeldovich.in
+# This section contains all parameters needed to start the simulation.
+# The original inputs/DMZeldovich.in is preserved above as comments.
+# ------------------------------------------------------------------
+
+[geometry]
+prob_lo = [0.0, 0.0, 0.0]
+prob_hi = [1.54283879e23, 1.54283879e23, 1.54283879e23] # (0.05 Mpc)^3 in cm
+
+[amr]
+n_cell = [128, 128, 128]
+max_level = 0
+blocking_factor = 8
+max_timesteps = 20000000
+v = 1 # AMReX verbosity level
+
+do_subcycle = 0 # Poisson solver doesn't support AMR subcycling in quokka
+
+[hydro]
+use_dual_energy = 1
+
+[quokka]
+bc = ["periodic", "periodic", "periodic"]
+cfl = 0.3
+
+[particles]
+do_tracers = 0
+npar_x = 256
+npar_y = 256
+npar_z = 256
+
+[resolution_notes]
+# Domain resolution regression (0.5 Mpc)
+# 512  ->  0.98  kpc
+# 256  ->  1.95  kpc
+# 128  ->  3.91  kpc
+# 64   ->  7.81  kpc
+# 32   ->  15.63 kpc
+# 16   ->  31.25 kpc  (blocking_factor = 16)
+# 8    ->  62.50 kpc  (blocking_factor = 8)
+
+# *****************************************************************
+# Cosmology parameters (EdS test)
+# *****************************************************************
+[cosmology]
+hubble_constant = 0.7
+omega_m         = 1.0
+omega_r         = 0.0
+omega_lambda    = 0.0
+omega_b         = 0.001
+omega_dm        = 0.999
+a_init          = 0.01
+a_collapse      = 0.5
+a_final         = 0.6
+
+[universe]
+# rho_crit_0 is the standard critical density computed from cosmology.hubble_constant = 0.7
+# rho_crit_0 = 3 H0^2 / (8 pi G)
+# then comoving_mean_density = mass_reduction_fraction * rho_crit_0
+# rho_crit_0 = 9.20390146618322489e-30
+comoving_mean_density = 2.76117043985496734e-30   # mass_reduction_fraction = 0.3
+
+[simulation]
+plotfile_interval = 25
+tiny_profiler_enabled = 1
+poisson_reltol = 1.0e-5
+poisson_max_iter = 200
+derived_vars = ["gpot"]
+
+# Notes and utilities
+# To recompute comoving_mean_density to reflect changes in `h` or
+# `mass_reduction_fraction`, run:
+#   python3 generate_DMZeldovich_toml.py

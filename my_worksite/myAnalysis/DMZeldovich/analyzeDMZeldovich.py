@@ -38,6 +38,9 @@ from datetime import datetime
 import yt
 yt.set_log_level(40)  # suppress yt output except critical errors
 
+# Physical constants in CGS
+G_CGS = 6.67430e-8  # cm^3 g^-1 s^-2
+
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -105,10 +108,16 @@ def read_a_from_ds(ds, meta):
 # The peak of the profile is at q_center=0 -> cos(0)=1:
 #   delta_max = 1/(1 - A) - 1 = A/(1-A) = (a/a_c) / (1 - a/a_c)
 # ---------------------------------------------------------------------------
-def zeldovich_analytical(a, a_collapse, Lx, H0, n_q=2000):
+def zeldovich_analytical(a, a_collapse, Lx, rho_mean, H0=None, n_q=2000):
     """Return (x_analytical, delta_analytical, v_analytical) on a Lagrangian grid."""
     k  = 2.0 * np.pi / Lx
     A  = a / a_collapse
+
+    # Use the effective Hubble parameter derived from simulation mean density if
+    # available, otherwise fall back to the provided H0.
+    if H0 is None:
+        # Derive H0 from rho_mean using EdS critical density: rho_mean = 3 H0^2 / (8 pi G)
+        H0 = np.sqrt(rho_mean * 8.0 * np.pi * G_CGS / 3.0)
     H  = H0 * a**(-1.5)         # EdS: H(a) = H0 * a^{-3/2}
 
     # Consistency with the test initialisation
@@ -196,7 +205,6 @@ def main():
         # Read a(t) from the AMReX plotfile header (most reliable source)
         a_now  = read_a_from_ds(ds, meta)
         z_now  = (1.0 / a_now - 1.0) if a_now > 0 else 0.0
-        H0_cgs = cosmo.get("H0", 2.27e-18)   # 70 km/s/Mpc in CGS
 
         a_values.append(a_now)
         times.append(float(ds.current_time))
@@ -234,7 +242,23 @@ def main():
                      lw=1.2, label=f"a={a_now:.3f}")
 
         # ---- Analytical solution (full profile) ----
-        x_anal, delta_anal, v_anal = zeldovich_analytical(a_now, a_collapse, Lx, H0_cgs)
+        rho_mean_meta = cosmo.get("comoving_mean_density")
+        if rho_mean_meta is None:
+            rho_dm_mean_sim = float(np.mean(rho_dm)) if np.mean(rho_dm) > 0 else 1.0
+            rho_mean = rho_dm_mean_sim
+            info_source = "numerical mean density"
+        else:
+            rho_mean = float(rho_mean_meta)
+            info_source = "metadata comoving_mean_density"
+
+        x_anal, delta_anal, v_anal = zeldovich_analytical(
+            a_now,
+            a_collapse,
+            Lx,
+            rho_mean=rho_mean,
+            H0=None)
+
+        print(f"Using {info_source} = {rho_mean:.4e} g/cm^3 for analytical H0 derivation")
 
         # ---- L2 error: numerical vs analytical δ(x) profile ----
         l2 = profile_l2_error(x_coord, delta, x_anal, delta_anal)
