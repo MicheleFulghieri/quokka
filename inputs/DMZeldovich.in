@@ -54,7 +54,7 @@ cosmology.omega_b         = 0.001
 cosmology.omega_dm        = 0.999
 cosmology.a_init          = 0.01
 cosmology.a_collapse      = 0.5
-cosmology.a_final         = 0.65
+cosmology.a_final         = 0.6
 
 
 # *****************************************************************

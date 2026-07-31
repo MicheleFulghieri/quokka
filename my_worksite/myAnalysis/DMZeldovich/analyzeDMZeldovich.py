@@ -9,7 +9,7 @@ Produces:
   - Per-snapshot comparison: numerical vs analytical Zel'dovich profile
   - L2 error between numerical and analytical δ(x) profile, as a function of a
   - Per-snapshot phase-space diagram (vx vs x)
-  - 2D DM density histogram (x-y plane, normalized to particles/Mpc², LogNorm)
+  - 2D DM density histogram (x-y plane, normalized to particles/kpc², LogNorm)
   - 3D particle scatter (one per snapshot, azimuth-rotating animation)
   - MP4/GIF animation of density profile evolution
   - MP4/GIF animation of phase-space evolution
@@ -201,10 +201,10 @@ def main():
         a_values.append(a_now)
         times.append(float(ds.current_time))
 
-        # Physical box sizes [Mpc]
-        Lx = float(ds.domain_width[0].to("Mpc").v)
-        Ly = float(ds.domain_width[1].to("Mpc").v)
-        Lz = float(ds.domain_width[2].to("Mpc").v)
+        # Physical box sizes [kpc]
+        Lx = float(ds.domain_width[0].to("kpc").v)
+        Ly = float(ds.domain_width[1].to("kpc").v)
+        Lz = float(ds.domain_width[2].to("kpc").v)
 
         ncells   = ds.domain_dimensions
         if(i==0):
@@ -217,7 +217,7 @@ def main():
         ray = ds.ray([left_v[0], c_vals[1], c_vals[2]],
                      [right_v[0], c_vals[1], c_vals[2]])
         sort_idx  = np.argsort(ray["index", "x"])
-        x_coord   = ray["index", "x"][sort_idx].to("Mpc").v
+        x_coord   = ray["index", "x"][sort_idx].to("kpc").v
         rho_dm    = ray["deposit", "CIC_particles_density"][sort_idx].v
         rho_dm_mean = np.mean(rho_dm) if np.mean(rho_dm) > 0 else 1.0
         delta     = rho_dm / rho_dm_mean - 1.0
@@ -245,8 +245,8 @@ def main():
         fig_c, ax_c = plt.subplots(figsize=(10, 5))
         ax_c.plot(x_coord, delta, lw=2, color="#1f77b4", label="Quokka (numerical)")
         ax_c.plot(x_anal, delta_anal, lw=2, ls="--", color="crimson", label="Zel'dovich (analytical)")
-        ax_c.set_title( f"DM density contrast  |  $a = {a_now:.3f}$,  $z = {z_now:.2f}$" , fontweight="bold")
-        ax_c.set_xlabel("x [Mpc]")
+        ax_c.set_title( f"DM density contrast  |  $a = {a_now:.3f}$ ($z = {z_now:.2f}$)" , fontweight="bold")
+        ax_c.set_xlabel("x [kpc]")
         ax_c.set_ylabel(r"$\delta = \rho/\bar\rho - 1$")
         ax_c.set_xlim(0, Lx)
         ax_c.set_ylim(max(-1.5, min(delta) * 1.3), min(delta_max * 2.0 + 0.5, 50))
@@ -262,18 +262,18 @@ def main():
                               a_now, float(ds.current_time)))
 
         # ---- 2D Histogram of Particle Density (x-y plane) ----
-        # Normalised to surface density [particles/Mpc^2] 
+        # Normalised to surface density [particles/kpc^2] 
         # LogNorm is applied automatically when the dynamic range exceeds 10×.
-        px_2d = ad["CIC_particles", "particle_position_x"].to("Mpc").v
-        py_2d = ad["CIC_particles", "particle_position_y"].to("Mpc").v
+        px_2d = ad["CIC_particles", "particle_position_x"].to("kpc").v
+        py_2d = ad["CIC_particles", "particle_position_y"].to("kpc").v
         bins = ncells[0]
-        dA   = (Lx / bins) * (Ly / bins)   # pixel area [Mpc^2]
+        dA   = (Lx / bins) * (Ly / bins)   # pixel area [kpc^2]
 
         density_map, xedges, yedges = np.histogram2d(
             px_2d, py_2d,
             bins=bins,
             range=[[0, Lx], [0, Ly]])
-        density_map_phys = density_map / dA  # [particles / Mpc^2]
+        density_map_phys = density_map / dA  # [particles / kpc^2]
 
         # Colour scale
         vmin_map = max(density_map_phys[density_map_phys > 0].min(), 1e-3)
@@ -288,10 +288,10 @@ def main():
                          cmap="viridis", norm=norm_map)
         ax2d.set_title(f"DM Surface Density ($a = {a_now:.3f}$)",
                        fontsize=12, fontweight="bold")
-        ax2d.set_xlabel("X [Mpc]", fontsize=11)
-        ax2d.set_ylabel("Y [Mpc]", fontsize=11)
+        ax2d.set_xlabel("X [kpc]", fontsize=11)
+        ax2d.set_ylabel("Y [kpc]", fontsize=11)
         cbar = fig2d.colorbar(im, ax=ax2d, fraction=0.046, pad=0.04)
-        cbar.set_label(r"$\Sigma_\mathrm{DM}$ [particles Mpc$^{-2}$]", fontsize=10)
+        cbar.set_label(r"$\Sigma_\mathrm{DM}$ [particles kpc$^{-2}$]", fontsize=10)
         fig2d.savefig(os.path.join(save_path, "2D_DM_Density",
                                    f"Density2D_{i:03d}.png"),
                       dpi=150, bbox_inches="tight")
@@ -302,7 +302,7 @@ def main():
                           a_now, float(ds.current_time)))
 
         # ---- Phase space (vx vs x) ----
-        px  = ad["CIC_particles", "particle_position_x"].to("Mpc").v
+        px  = ad["CIC_particles", "particle_position_x"].to("kpc").v
         pvx_raw = ad["CIC_particles", "particle_vx"].v
         pvx = (pvx_raw * (cm / s)).to("km/s").v
 
@@ -313,7 +313,7 @@ def main():
                            alpha=0.7, rasterized=True)
         ax_ph.axhline(0, color="k", lw=0.8, alpha=0.4)
         ax_ph.set_title(f"Phase space  |  $a = {a_now:.3f}$", fontweight="bold")
-        ax_ph.set_xlabel("x [Mpc]"); ax_ph.set_ylabel(r"$v_x$ [km s$^{-1}$]")
+        ax_ph.set_xlabel("x [kpc]"); ax_ph.set_ylabel(r"$v_x$ [km s$^{-1}$]")
         ax_ph.set_xlim(0, Lx)
         ax_ph.grid(True, linestyle=":", alpha=0.5)
         cbar = fig_ph.colorbar(sc, ax=ax_ph,
@@ -327,8 +327,8 @@ def main():
         frames_phase.append((px.copy(), pvx.copy(), a_now))
 
         # ---- 3D particle scatter ----
-        py = ad["CIC_particles", "particle_position_y"].to("Mpc").v
-        pz = ad["CIC_particles", "particle_position_z"].to("Mpc").v
+        py = ad["CIC_particles", "particle_position_y"].to("kpc").v
+        pz = ad["CIC_particles", "particle_position_z"].to("kpc").v
 
         n_sub = min(20000, len(px))
         idx3d = np.random.choice(len(px), n_sub, replace=False)
@@ -339,7 +339,7 @@ def main():
                            s=0.3, c=np.abs(pvx[idx3d]),
                            cmap="plasma", alpha=0.7, rasterized=True)
         fig3.colorbar(sc3, ax=ax3, label=r"$|v_x|$ [km/s]", shrink=0.6)
-        ax3.set_xlabel("x [Mpc]"); ax3.set_ylabel("y [Mpc]"); ax3.set_zlabel("z [Mpc]")
+        ax3.set_xlabel("x [kpc]"); ax3.set_ylabel("y [kpc]"); ax3.set_zlabel("z [kpc]")
         ax3.set_xlim(0, Lx); ax3.set_ylim(0, Ly); ax3.set_zlim(0, Lz)
         ax3.set_title(f"DM particles  |  $a = {a_now:.3f}$", fontweight="bold")
         ax3.view_init(elev=22, azim=30 + 60 * i / max(len(plotfiles) - 1, 1))
@@ -357,7 +357,7 @@ def main():
     # ---- Finalize history plot ----
     ax_hist.axhline(0, color="k", ls="--", lw=0.8, alpha=0.5, label=r"$\delta=0$")
     ax_hist.set_title("DM density contrast evolution — Zel'dovich pancake", fontweight="bold", pad=12)
-    ax_hist.set_xlabel("x [Mpc]"); ax_hist.set_ylabel(r"$\delta$")
+    ax_hist.set_xlabel("x [kpc]"); ax_hist.set_ylabel(r"$\delta$")
     ax_hist.set_xlim(0, Lx)
     ax_hist.grid(True, ls=":", alpha=0.5)
     handles, labels = ax_hist.get_legend_handles_labels()
@@ -415,7 +415,7 @@ def main():
         line_anal, = ax_an.plot([], [], lw=2, ls="--", color="crimson",
                                 label="Analytical")
         ax_an.set_xlim(0, Lx); ax_an.set_ylim(-1.5, 20)
-        ax_an.set_xlabel("x [Mpc]"); ax_an.set_ylabel(r"$\delta$")
+        ax_an.set_xlabel("x [kpc]"); ax_an.set_ylabel(r"$\delta$")
         ax_an.legend(); ax_an.grid(True, ls=":", alpha=0.5)
         title_an = ax_an.set_title("")
 
@@ -444,7 +444,7 @@ def main():
         vmin_ani = max(init_map[init_map > 0].min(), 1e-3)
         vmax_ani = max(f[0].max() for f in frames_2d)
 
-        fig_2da, ax_2da = plt.subplots(figsize=(8, 5))
+        fig_2da, ax_2da = plt.subplots(figsize=(8, 7))
         im_2da = ax_2da.imshow(
             init_map.T, origin="lower",
             extent=[init_xe[0], init_xe[-1], init_ye[0], init_ye[-1]],
@@ -453,10 +453,10 @@ def main():
                   if vmax_ani / vmin_ani > 10
                   else Normalize(vmin=vmin_ani, vmax=vmax_ani)),
             animated=True)
-        ax_2da.set_xlabel("X [Mpc]", fontsize=11)
-        ax_2da.set_ylabel("Y [Mpc]", fontsize=11)
+        ax_2da.set_xlabel("X [kpc]", fontsize=11)
+        ax_2da.set_ylabel("Y [kpc]", fontsize=11)
         cbar = fig_2da.colorbar(im_2da, ax=ax_2da, fraction=0.046, pad=0.04)
-        cbar.set_label(r"$\Sigma_\mathrm{DM}$ [particles Mpc$^{-2}$]", fontsize=10)
+        cbar.set_label(r"$\Sigma_\mathrm{DM}$ [particles kpc$^{-2}$]", fontsize=10)
         title_2da = ax_2da.set_title("", fontsize=12, fontweight="bold")
 
         def update_2d_map(frame):
@@ -481,7 +481,7 @@ def main():
         sc_pa = ax_pa.scatter([], [], s=0.5, c=[], cmap="plasma",
                               vmin=0, vmax=300, alpha=0.7, rasterized=True)
         ax_pa.set_xlim(0, Lx)
-        ax_pa.set_xlabel("x [Mpc]"); ax_pa.set_ylabel(r"$v_x$ [km s$^{-1}$]")
+        ax_pa.set_xlabel("x [kpc]"); ax_pa.set_ylabel(r"$v_x$ [km s$^{-1}$]")
         title_pa = ax_pa.set_title("")
         ax_pa.grid(True, ls=":", alpha=0.4)
         cbar_pa = fig_pa.colorbar(sc_pa, ax=ax_pa,
@@ -512,8 +512,8 @@ def main():
         ax_3da  = fig_3da.add_subplot(111, projection="3d")
         sc_3da  = ax_3da.scatter([], [], [], s=0.3, c=[], cmap="plasma",
                                  alpha=0.7, rasterized=True)
-        ax_3da.set_xlabel("x [Mpc]"); ax_3da.set_ylabel("y [Mpc]")
-        ax_3da.set_zlabel("z [Mpc]")
+        ax_3da.set_xlabel("x [kpc]"); ax_3da.set_ylabel("y [kpc]")
+        ax_3da.set_zlabel("z [kpc]")
         ax_3da.set_xlim(0, Lx); ax_3da.set_ylim(0, Ly); ax_3da.set_zlim(0, Lz)
         all_v_max = max(np.max(np.abs(f[3])) for f in frames_3d)
         sc_3da.set_clim(0, all_v_max)
@@ -553,7 +553,7 @@ def main():
                        color=cmap(idx / max(len(delta_hist) - 1, 1)))
     axs[0, 0].axhline(0, color="k", ls="--", lw=0.7, alpha=0.4)
     axs[0, 0].set_title(r"$\delta(x)$ evolution (all snapshots)")
-    axs[0, 0].set_xlabel("x [Mpc]"); axs[0, 0].set_ylabel(r"$\delta$")
+    axs[0, 0].set_xlabel("x [kpc]"); axs[0, 0].set_ylabel(r"$\delta$")
     axs[0, 0].set_xlim(0, Lx)
 
     # Panel2: delta_max(a) with linear and analytical regime
@@ -580,7 +580,7 @@ def main():
                               alpha=0.6, rasterized=True)
     fig_sum.colorbar(sc_s, ax=axs[1, 0],
                      label=r"$|v_x|$ [km/s]", shrink=0.8)
-    axs[1, 0].set_xlabel("x [Mpc]"); axs[1, 0].set_ylabel(r"$v_x$ [km/s]")
+    axs[1, 0].set_xlabel("x [kpc]"); axs[1, 0].set_ylabel(r"$v_x$ [km/s]")
     axs[1, 0].set_title(f"Phase space at collapse ($a = {a_collapse:.1f}$)")
     axs[1, 0].set_xlim(0, Lx)
 
@@ -588,7 +588,7 @@ def main():
     xn, dn, xa, da, a_before_coll, _ = frames_delta[idx_collapse - 5]
     axs[1, 1].plot(xn, dn, lw=2, color="#1f77b4", label="Quokka")
     axs[1, 1].plot(xa, da, lw=2, ls="--", color="crimson", label="Analytical")
-    axs[1, 1].set_xlabel("x [Mpc]"); axs[1, 1].set_ylabel(r"$\delta$")
+    axs[1, 1].set_xlabel("x [kpc]"); axs[1, 1].set_ylabel(r"$\delta$")
     axs[1, 1].set_title(rf"Before collapse: \delta(x) comparison  ($a = {a_before_coll:.1f}$)")
     axs[1, 1].set_xlim(0, Lx)
     axs[1, 1].legend(fontsize=9)

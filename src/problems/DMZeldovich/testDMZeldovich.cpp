@@ -126,7 +126,7 @@ template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
 	const amrex::Real amplitude   = a_init / a_collapse;   // force collapse at a_collapse
 	const amrex::Real k_wave      = (2.0 * amrex::Math::pi<amrex::Real>()) / Lx;
 
-	amrex::Print() << "\nDomain width (x, y, z): (" << Lx / Mpc_to_cm << ", " << Ly / Mpc_to_cm << ", " << Lz / Mpc_to_cm << ")  Mpc" << std::endl;
+	amrex::Print() << "\nDomain width (x, y, z): (" << Lx / kpc_to_cm << ", " << Ly / kpc_to_cm << ", " << Lz / kpc_to_cm << ")  kpc" << std::endl;
 	amrex::Print() << "DM particles initialization along x,y,z: " << "(" << nparx << "x" << npary << "x" << nparz << ")..." << std::endl;
 	amrex::Print() << "Total mass density (corresponding to critical density now): " << rho_mean << "g / cm^3" << std::endl;
 	amrex::Print() << "Total mass (DM only) in the domain (rho * Lx * Ly * Lz): " << rho_mean * Lx * Ly * Lz << "g" << std::endl;
