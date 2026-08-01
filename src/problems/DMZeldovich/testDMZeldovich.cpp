@@ -90,6 +90,10 @@ template <> void QuokkaSimulation<DMZeldovich>::setInitialConditionsOnGrid(quokk
 		state_cc(i, j, k, HydroSystem<DMZeldovich>::energy_index) = 0;
 		state_cc(i, j, k, HydroSystem<DMZeldovich>::internalEnergy_index) = 0;
 	});
+	amrex::Print() << "\nInitialized a floor hydro background for the timestep." << std::endl;
+	amrex::Print() << "Omega_gas                      : " <<  omega_b << std::endl;
+	amrex::Print() << "Gas density                    : " <<  rho_b << "g/cm^3" << std::endl;
+	amrex::Print() << "Total matter density (gas + DM): " <<  rho_sim << "g/cm^3" << std::endl;
 }
 
 template <> void QuokkaSimulation<DMZeldovich>::createInitialCICParticles() {
