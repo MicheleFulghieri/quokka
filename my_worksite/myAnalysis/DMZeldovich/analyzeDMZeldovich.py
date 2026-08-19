@@ -259,10 +259,10 @@ def main():
 
         # ---- Analytical solution (full profile) ----
         rho_mean_meta = cosmo.get("comoving_mean_density")
-        if rho_mean_meta is None:
+        if rho_mean_meta is None:  # fallback if rho_mean not in .yaml
             rho_dm_mean_sim = float(np.mean(rho_dm)) if np.mean(rho_dm) > 0 else 1.0
             rho_mean = rho_dm_mean_sim
-            info_source = "numerical mean density"
+            info_source = "numerically computed mean density"
         else:
             rho_mean = float(rho_mean_meta)
             info_source = "metadata comoving_mean_density"

@@ -806,7 +806,7 @@ template <typename problem_t> void QuokkaSimulation<problem_t>::readParmParse()
 		// (these are constant throughout the run and written to metadata.yaml with every plotfile/checkpoint)
 		this->simulationMetadata_["cosmology"]["H0"] = H0_cgs;
 		this->simulationMetadata_["cosmology"]["hubble_constant"] = h;
-		this->simulationMetadata_["cosmology"]["comoving_mean_density_cgs"] = comoving_mean_density_;
+		this->simulationMetadata_["cosmology"]["comoving_mean_density"] = comoving_mean_density_;
 		this->simulationMetadata_["cosmology"]["Omega_m"] = omega_m;
 		this->simulationMetadata_["cosmology"]["Omega_r"] = omega_r;
 		this->simulationMetadata_["cosmology"]["Omega_dm"] = omega_dm;
