@@ -3527,6 +3527,7 @@ template <typename problem_t> void QuokkaSimulation<problem_t>::WritePlotFile()
 		this->simulationMetadata_["cosmology"]["Omega_r_current"]  = Omega_r_a;
 		this->simulationMetadata_["cosmology"]["Omega_Lambda_current"] = Omega_L_a;
 		this->simulationMetadata_["cosmology"]["Omega_k_current"]  = Omega_k_a;
+		this->simulationMetadata_["cosmology"]["comoving_mean_density"] = comoving_mean_density_;
 	}
 	AMRSimulation<problem_t>::WritePlotFile();
 }

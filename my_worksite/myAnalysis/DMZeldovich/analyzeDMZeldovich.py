@@ -86,8 +86,8 @@ def read_a_from_ds(ds, meta):
     Falls back to the yaml metadata, then to ds.current_time as last resort.
     """
     # Primary: AMReX plotfile header attribute
-    if "comoving_a" in ds.parameters:
-        return float(ds.parameters["comoving_a"])
+    if "a" in ds.parameters:
+        return float(ds.parameters["a"])
     # Secondary: yaml metadata
     cosmo = get_cosmo(meta)
     if "a" in cosmo:
@@ -169,7 +169,7 @@ def main():
         plotfiles = natsorted(glob.glob(os.path.join(run_dir, "plt*")))
         print(f"Auto-detected run: {run_dir}")
 
-    plotfiles = [p for p in plotfiles if not p.endswith(".old")][:2]
+    plotfiles = [p for p in plotfiles if not p.endswith(".old")]  # [:2]
 
     if not plotfiles:
         print("No plotfiles found!"); sys.exit(1)
@@ -200,6 +200,8 @@ def main():
         ad  = ds.all_data()
         meta = load_metadata(plt_path)
 
+        cm_to_kpc = 1.0 / 3.08567758e21
+
         # Gravitational costant from metadata
         constants = meta.get("constants", {})
         if "G" in constants:
@@ -225,10 +227,13 @@ def main():
         a_values.append(a_now)
         times.append(float(ds.current_time))
 
-        # Physical box sizes [kpc]
+        # Physical box sizes [kpc] and [cm]
         Lx = float(ds.domain_width[0].to("kpc").v)
         Ly = float(ds.domain_width[1].to("kpc").v)
         Lz = float(ds.domain_width[2].to("kpc").v)
+        Lx_cm = float(ds.domain_width[0].to("cm").v)
+        Ly_cm = float(ds.domain_width[1].to("cm").v)
+        Lz_cm = float(ds.domain_width[2].to("cm").v)
 
         ncells   = ds.domain_dimensions
         if(i==0):
@@ -258,22 +263,24 @@ def main():
                      lw=1.2, label=f"a={a_now:.3f}")
 
         # ---- Analytical solution (full profile) ----
-        rho_mean_meta = cosmo.get("comoving_mean_density")
-        if rho_mean_meta is None:  # fallback if rho_mean not in .yaml
-            rho_dm_mean_sim = float(np.mean(rho_dm)) if np.mean(rho_dm) > 0 else 1.0
-            rho_mean = rho_dm_mean_sim
-            info_source = "numerically computed mean density"
+        if "comoving_mean_density" in ds.parameters: 
+            rho_mean = float(ds.parameters["comoving_mean_density"])
+            info_source = "header comoving_mean_density"
+        elif "comoving_mean_density" in cosmo:       
+            rho_mean = float(cosmo["comoving_mean_density"])
+            info_source = "yaml  metadata comoving_mean_density"
         else:
-            rho_mean = float(rho_mean_meta)
-            info_source = "metadata comoving_mean_density"
+            rho_mean = float(np.mean(rho_dm)) if np.mean(rho_dm) > 0 else 1.0
+            info_source = "numerically computed mean density"
 
-        x_anal, delta_anal, v_anal = zeldovich_analytical(
+        x_anal_cm, delta_anal, v_anal_cgs = zeldovich_analytical(
             a_now,
             a_collapse,
-            Lx,
+            Lx_cm,
             rho_mean=rho_mean,
             G_CGS=G_CGS,
             H0=None)
+        x_anal = x_anal_cm * cm_to_kpc
         if(i==0):
             print(f"Using {info_source} = {rho_mean:.4e} g/cm^3 for analytical H0 derivation")
 
