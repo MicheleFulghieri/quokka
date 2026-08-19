@@ -795,10 +795,18 @@ template <typename problem_t> void QuokkaSimulation<problem_t>::readParmParse()
 			cosmology_params_.validate();  // assert if (omega_b + omega_dm - omega_m) < 1e-6
 		}
 
+		cpp.query("comoving_mean_density", comoving_mean_density_);
+		if (comoving_mean_density_ == 0.0) {
+			// rho_crit = 3 H0^2 / (8 pi G)
+			const amrex::Real rho_crit_0 = 3.0 * H0_cgs * H0_cgs / (8.0 * M_PI * C::Gconst);
+			comoving_mean_density_ = omega_m * rho_crit_0;
+		}
+
 		// persist cosmological parameters in simulation metadata
 		// (these are constant throughout the run and written to metadata.yaml with every plotfile/checkpoint)
 		this->simulationMetadata_["cosmology"]["H0"] = H0_cgs;
 		this->simulationMetadata_["cosmology"]["hubble_constant"] = h;
+		this->simulationMetadata_["cosmology"]["comoving_mean_density_cgs"] = comoving_mean_density_;
 		this->simulationMetadata_["cosmology"]["Omega_m"] = omega_m;
 		this->simulationMetadata_["cosmology"]["Omega_r"] = omega_r;
 		this->simulationMetadata_["cosmology"]["Omega_dm"] = omega_dm;
@@ -807,12 +815,7 @@ template <typename problem_t> void QuokkaSimulation<problem_t>::readParmParse()
 		this->simulationMetadata_["cosmology"]["Omega_k"] = 1.0 - omega_m - omega_r - omega_lambda;
 		this->simulationMetadata_["cosmology"]["a_init"] = a_now_;
 
-		cpp.query("comoving_mean_density", comoving_mean_density_);
-		if (comoving_mean_density_ == 0.0) {
-			// rho_crit = 3 H0^2 / (8 pi G)
-			const amrex::Real rho_crit_0 = 3.0 * H0_cgs * H0_cgs / (8.0 * M_PI * C::Gconst);
-			comoving_mean_density_ = omega_m * rho_crit_0;
-		}
+		
 
 		quokka::cosmology::printCosmologyInfo(cosmology_params_, a_now_);
 	}

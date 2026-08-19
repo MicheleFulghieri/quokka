@@ -9,7 +9,7 @@ Produces:
   - Per-snapshot comparison: numerical vs analytical Zel'dovich profile
   - L2 error between numerical and analytical δ(x) profile, as a function of a
   - Per-snapshot phase-space diagram (vx vs x)
-  - 2D DM density histogram (x-y plane, normalized to particles/kpc², LogNorm)
+  - 2D DM density histogram (x-y plane, normalized to particles/kpc^2, LogNorm)
   - 3D particle scatter (one per snapshot, azimuth-rotating animation)
   - MP4/GIF animation of density profile evolution
   - MP4/GIF animation of phase-space evolution
@@ -34,12 +34,10 @@ from matplotlib.colors import Normalize, LogNorm
 from natsort import natsorted
 from unyt import cm, s
 from datetime import datetime
+import pprint
 
 import yt
 yt.set_log_level(40)  # suppress yt output except critical errors
-
-# Physical constants in CGS
-G_CGS = 6.67430e-8  # cm^3 g^-1 s^-2
 
 
 # ---------------------------------------------------------------------------
@@ -72,9 +70,9 @@ def make_dirs(base):
 def load_metadata(plt_path):
     meta_file = os.path.join(plt_path, "metadata.yaml")
     if not os.path.exists(meta_file):
-        return {}
+        return {}                   # fallback: empy dictionary
     with open(meta_file, "r") as f:
-        return yaml.safe_load(f)
+        return yaml.safe_load(f)    # convert the yaml in a python dictionary
 
 
 def get_cosmo(meta):
@@ -95,6 +93,7 @@ def read_a_from_ds(ds, meta):
     if "a" in cosmo:
         return float(cosmo["a"])
     # Fallback: current_time (only valid if a == t for EdS normalisation)
+    print("Warning: Using ds.current_time as a fallback for the scale factor. It was not found in the plotfile header or metadata.")    
     return float(ds.current_time)
 
 
@@ -108,7 +107,7 @@ def read_a_from_ds(ds, meta):
 # The peak of the profile is at q_center=0 -> cos(0)=1:
 #   delta_max = 1/(1 - A) - 1 = A/(1-A) = (a/a_c) / (1 - a/a_c)
 # ---------------------------------------------------------------------------
-def zeldovich_analytical(a, a_collapse, Lx, rho_mean, H0=None, n_q=2000):
+def zeldovich_analytical(a, a_collapse, Lx, rho_mean, H0=None, G_CGS = 6.67430e-8, n_q=2000):
     """Return (x_analytical, delta_analytical, v_analytical) on a Lagrangian grid."""
     k  = 2.0 * np.pi / Lx
     A  = a / a_collapse
@@ -170,7 +169,7 @@ def main():
         plotfiles = natsorted(glob.glob(os.path.join(run_dir, "plt*")))
         print(f"Auto-detected run: {run_dir}")
 
-    plotfiles = [p for p in plotfiles if not p.endswith(".old")]
+    plotfiles = [p for p in plotfiles if not p.endswith(".old")][:2]
 
     if not plotfiles:
         print("No plotfiles found!"); sys.exit(1)
@@ -182,7 +181,7 @@ def main():
     a_values        = []
     times           = []
     delta_max_vals  = []
-    l2_errors       = []    # L2 error between delta profile and analytical solution
+    l2_errors       = []    
     x_coords_hist   = []
     delta_hist      = []
 
@@ -200,7 +199,24 @@ def main():
         ds  = yt.load(plt_path)
         ad  = ds.all_data()
         meta = load_metadata(plt_path)
-        cosmo = get_cosmo(meta)
+
+        # Gravitational costant from metadata
+        constants = meta.get("constants", {})
+        if "G" in constants:
+            G_CGS = constants.get("G")
+        else:
+            G_CGS = 6.67430e-8  # cm^3 g^-1 s^-2
+            print(f"No G costant found in metadata: using fallback value {G_CGS} cm^3 g^-1 s^-2")
+
+        # Cosmological metadata
+        cosmo = get_cosmo(meta)  # funtion for meta.get()
+        if(i==0):
+            print("=" * 60)
+            print("  COSMOLOGICAL PARAMETERS (Snapshot 0)")
+            print("=" * 60)            
+            pprint.pprint(meta, indent=4, width=80, compact=False)
+            pprint.pprint(cosmo, indent=4, width=80, compact=False)
+            print("\n" + "=" * 60 + "\n")
 
         # Read a(t) from the AMReX plotfile header (most reliable source)
         a_now  = read_a_from_ds(ds, meta)
@@ -256,9 +272,10 @@ def main():
             a_collapse,
             Lx,
             rho_mean=rho_mean,
+            G_CGS=G_CGS,
             H0=None)
-
-        print(f"Using {info_source} = {rho_mean:.4e} g/cm^3 for analytical H0 derivation")
+        if(i==0):
+            print(f"Using {info_source} = {rho_mean:.4e} g/cm^3 for analytical H0 derivation")
 
         # ---- L2 error: numerical vs analytical δ(x) profile ----
         l2 = profile_l2_error(x_coord, delta, x_anal, delta_anal)
