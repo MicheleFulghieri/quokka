@@ -56,7 +56,7 @@ template <> struct Physics_Traits<DMZeldovich> {
 template <> void QuokkaSimulation<DMZeldovich>::setInitialConditionsOnGrid(quokka::grid const &grid_elem)
 {
 	const amrex::Box &indexRange = grid_elem.indexRange_;
-	const amrex::Array4<double> &state_cc = grid_elem.array_;
+	const amrex::Array4<amrex::Real> &state_cc = grid_elem.array_;
 
 	amrex::Real a_init = PhysicsTraits<DMZeldovich>::a_init;
 	amrex::ParmParse pp_cosmo("cosmology");

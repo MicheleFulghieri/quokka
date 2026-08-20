@@ -169,7 +169,7 @@ def main():
         plotfiles = natsorted(glob.glob(os.path.join(run_dir, "plt*")))
         print(f"Auto-detected run: {run_dir}")
 
-    plotfiles = [p for p in plotfiles if not p.endswith(".old")]  # [:2]
+    plotfiles = [p for p in plotfiles if not p.endswith(".old")][:1]
 
     if not plotfiles:
         print("No plotfiles found!"); sys.exit(1)
@@ -239,18 +239,33 @@ def main():
         if(i==0):
             print(f"Simulation cell resolution: {ncells} cells")
 
-        # ---- 1D DM density profile along x (ray through box centre) ----
-        c_vals  = ds.domain_center.v
-        left_v  = ds.domain_left_edge.v
-        right_v = ds.domain_right_edge.v
-        ray = ds.ray([left_v[0], c_vals[1], c_vals[2]],
-                     [right_v[0], c_vals[1], c_vals[2]])
-        sort_idx  = np.argsort(ray["index", "x"])
-        x_coord   = ray["index", "x"][sort_idx].to("kpc").v
-        rho_dm    = ray["deposit", "CIC_particles_density"][sort_idx].v
+        # ---- 1D DM density profile via Planar Average (Y-Z projection) ----
+        # Covering grid, potentially optimized for AMR (by changing lev)
+        lev = 0  
+        refine_factor = 2**lev
+        dims_at_lev = ds.domain_dimensions * refine_factor
+        cg = ds.covering_grid(level=lev, left_edge=ds.domain_left_edge, dims=dims_at_lev)
+
+        rho_3d = cg["deposit", "CIC_particles_density"].v  # shape: [dims_at_lev, dims_at_lev, dims_at_lev]
+        rho_dm = np.mean(rho_3d, axis=(1,2))               # project along x: shape [dims_at_lev]
+        x_coord = np.linspace(0.0, Lx, dims_at_lev[0], endpoint=False)
         rho_dm_mean = np.mean(rho_dm) if np.mean(rho_dm) > 0 else 1.0
         delta     = rho_dm / rho_dm_mean - 1.0
         delta_max = float(np.max(delta))
+
+        
+        # # ---- 1D DM density profile along x (ray through box centre) ----
+        # c_vals  = ds.domain_center.v
+        # left_v  = ds.domain_left_edge.v
+        # right_v = ds.domain_right_edge.v
+        # ray = ds.ray([left_v[0], c_vals[1], c_vals[2]],
+        #              [right_v[0], c_vals[1], c_vals[2]])
+        # sort_idx  = np.argsort(ray["index", "x"])
+        # x_coord   = ray["index", "x"][sort_idx].to("kpc").v
+        # rho_dm    = ray["deposit", "CIC_particles_density"][sort_idx].v
+        # rho_dm_mean = np.mean(rho_dm) if np.mean(rho_dm) > 0 else 1.0
+        # delta     = rho_dm / rho_dm_mean - 1.0
+        # delta_max = float(np.max(delta))
 
         delta_max_vals.append(delta_max)
         x_coords_hist.append(x_coord)
@@ -274,7 +289,7 @@ def main():
             info_source = "numerically computed mean density"
 
         x_anal_cm, delta_anal, v_anal_cgs = zeldovich_analytical(
-            a_now,
+            a_now,      # analytical reconstruction of the gravitational history that Quokka simulated having only a_init as an input
             a_collapse,
             Lx_cm,
             rho_mean=rho_mean,
