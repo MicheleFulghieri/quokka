@@ -51,18 +51,11 @@ cosmology.hubble_constant        = 0.7
 cosmology.omega_m                = 1.0    # Einstein-de Sitter
 cosmology.omega_r                = 0.0  
 cosmology.omega_lambda           = 0.0
-cosmology.omega_b                = 0.001     
-cosmology.omega_dm               = 0.999
+cosmology.omega_b                = 1.0    # DM-only     
+cosmology.omega_dm               = 0.0
 cosmology.a_init                 = 0.01
 cosmology.a_collapse             = 0.5
 cosmology.a_final                = 0.6
-
-
-# rho_crit_0 is the standard critical density computed from cosmology.hubble_constant = 0.7
-# rho_crit_0 = 3 H0^2 / (8 pi G)
-# then comoving_mean_density = mass_reduction_fraction * rho_crit_0
-# rho_crit_0 = 9.20390146618322489e-30
-cosmology.comoving_mean_density = 2.76117043985496734e-30   # mass_reduction_fraction = 0.3
 
 
 # *****************************************************************
